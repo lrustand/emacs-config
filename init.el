@@ -370,6 +370,11 @@
   :custom
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
+(use-package org-edna
+  :ensure t
+  :config
+  (org-edna-mode 1))
+
 (use-package org-roam
   :ensure t
   :demand t  ;; Ensure org-roam is loaded by default
