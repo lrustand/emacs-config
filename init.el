@@ -371,6 +371,26 @@
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-modules (append org-modules '(org-checklist)))
+
+  (org-todo-keywords
+   '((sequence
+      "TODO(t)" ; doing later
+      "NEXT(n)" ; doing now or soon
+      "|"
+      "DONE(d!)" ; done
+      )
+     (sequence
+      "BLOCKED(b@/!)"
+      "HOLD(h)"
+      "IDEA(i)" ; maybe someday
+      "|"
+      "CANCELED(c@/!)" ; stopped waiting, decided not to work on it
+      )))
+  (org-todo-keyword-faces
+   '(("NEXT" . "green")
+     ("BLOCKED" . "orange")
+     ("CANCELED" . (:foreground "red" :weight bold))))
+
   (org-agenda-prefix-format '(
     ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
     (agenda  . " %i %(org-get-title)%?-12t% s")
