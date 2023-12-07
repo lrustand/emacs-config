@@ -283,7 +283,11 @@
   (setq mu4e-maildir (expand-file-name "~/mail/gmail"))
   ;; use mu4e for e-mail in emacs
   (setq mail-user-agent 'mu4e-user-agent)
-
+  (setq sendmail-program "msmtp"
+        send-mail-function 'smtpmail-send-it
+        message-sendmail-f-is-evil t
+        message-sendmail-extra-arguments '("--read-envelope-from")
+        message-send-mail-function 'message-send-mail-with-sendmail)
   ;; these must start with a "/", and must exist
   ;; (i.e.. /home/user/Maildir/sent must exist)
   ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
