@@ -134,8 +134,10 @@
   :config
   (require 'shrface))
 
+;; TODO one of the following options disables shrface conversion to org-mode headings
+;; Figure out what and fix it
 (require 'mu4e-contrib)
-(setq mu4e-html2text-command 'mu4e-shr2text)
+;;(setq mu4e-html2text-command 'mu4e-shr2text)
 (setq shr-color-visible-luminance-min 60)
 (setq shr-color-visible-distance-min 5)
 (setq shr-use-colors nil)
