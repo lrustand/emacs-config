@@ -341,6 +341,20 @@
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-modules (append org-modules '(org-checklist)))
+  (org-agenda-prefix-format '(
+    ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+    (agenda  . " %i %(org-get-title)%?-12t% s")
+    (timeline  . "  %(org-get-title) s")
+    (todo  . " %i %(org-get-title) ")
+    (tags  . " %i %(org-get-title) ")
+    (search . " %i %(org-get-title) ")))
+  (org-agenda-custom-commands
+    '(("d" "Dashboard"
+       ((agenda "" ((org-deadline-warning-days 7)))
+        (todo "NEXT"
+          ((org-agenda-overriding-header "Next Tasks")))
+        (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))))
+
 
   :hook (org-mode . (lambda ()
                       (org-indent-mode)
