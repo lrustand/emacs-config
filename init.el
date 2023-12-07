@@ -250,8 +250,8 @@
   :config
   (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
 
-;;(use-package quelpa-use-package
-;;  :ensure t)
+(use-package quelpa-use-package
+  :ensure t)
 ;;
 ;;(use-package mastodon-alt
 ;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
@@ -300,6 +300,34 @@
   (setq mu4e-sent-folder   "/Sent Mail")
   (setq mu4e-drafts-folder "/Drafts")
   (setq mu4e-trash-folder  "/Trash"))
+
+(use-package mu4e-thread-folding
+  :quelpa (mu4e-thread-folding
+           :fetcher github
+           :repo "rougier/mu4e-thread-folding")
+  :after mu4e
+  :config
+  (add-to-list 'mu4e-header-info-custom
+               '(:empty . (:name "Empty"
+                           :shortname ""
+                           :function (lambda (msg) "  "))))
+
+  (setq mu4e-headers-fields '((:empty         .    2)
+                              (:human-date    .   12)
+                              (:flags         .    6)
+                              ;;(:mailing-list  .   10)
+                              (:from          .   22)
+                              (:subject       .   nil))
+         mu4e-thread-folding-default-view 'folded
+         mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all))
+
+  (evil-define-key 'normal mu4e-headers-mode-map
+    (kbd "TAB")  'mu4e-headers-toggle-at-point
+    (kbd "<left>") 'mu4e-headers-fold-at-point
+    (kbd "<S-left>") 'mu4e-headers-fold-all
+    (kbd "<right>") 'mu4e-headers-unfold-at-point
+    (kbd "<S-right>") 'mu4e-headers-unfold-all)
+)
 
 (use-package eat
   :ensure t
