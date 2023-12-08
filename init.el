@@ -343,6 +343,9 @@
   (eat-eshell-mode)
   (setq eshell-visual-commands nil))
 
+(use-package vterm
+  :ensure t)
+
 (use-package multi-vterm
   :ensure t)
 
@@ -710,3 +713,9 @@ capture was not aborted."
 (setq custom-file (concat user-emacs-directory "custom.el"))
 (when (file-exists-p custom-file)
   (load custom-file))
+
+;; Use libvterm installed in Guix
+(advice-add 'vterm-module-compile :around
+            (lambda (f &rest r)
+              (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
+                                  (file-name-directory (locate-library "vterm.el" t)) t)))
