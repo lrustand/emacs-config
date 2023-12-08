@@ -682,37 +682,3 @@ capture was not aborted."
          (pdf-pages (shell-command-to-string "cd ~/Documents/master/thesis; pdfinfo main.pdf | grep Pages:")))
     (insert "" pdf-pages)
     (insert "Git changes:" git-changes)))
-
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c"
-     default))
- '(helm-minibuffer-history-key "M-p")
- '(package-selected-packages
-   '(org-transclusion multi-vterm org-download all-the-icons
-                      doom-modeline mastodon-alt quelpa-use-package
-                      mastodon org-contrib yasnippet-snippets xclip
-                      which-key vertico undohist undo-tree
-                      treemacs-evil solarized-theme sly
-                      scheme-complete ripgrep restart-emacs pyvenv
-                      projectile org-roam-ui org-ref org-bullets
-                      neotree mugur magit macrostep lsp-pyright
-                      lsp-latex lsp-grammarly helpful helm-systemd
-                      helm-system-packages helm-swoop helm-bibtex guix
-                      git-gutter geiser-guile flycheck-package exwm
-                      excorporate evil-terminal-cursor-changer
-                      evil-collection eshell-vterm
-                      eshell-syntax-highlighting erc-twitch erc-image
-                      erc-hl-nicks ement eat dap-mode counsel
-                      company-auctex bitbake auctex-lua ag)))
-
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(default ((((class color) (min-colors 89)) (:foreground "#839496" :background "#002b36")))))
