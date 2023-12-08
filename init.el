@@ -379,6 +379,8 @@
   (org-log-done 'time)
   (org-log-into-drawer t)
   (org-modules (append org-modules '(org-checklist)))
+  (org-agenda-window-setup 'current-window)
+  (org-agenda-skip-scheduled-if-deadline-is-shown t)
 
   (org-todo-keywords
    '((sequence
