@@ -301,6 +301,14 @@
   (setq mu4e-drafts-folder "/Drafts")
   (setq mu4e-trash-folder  "/Trash"))
 
+(defun my-confirm-empty-subject ()
+  "Allow user to quit when current message subject is empty."
+  (or (message-field-value "Subject")
+      (yes-or-no-p "Really send without Subject? ")
+      (keyboard-quit)))
+
+(add-hook 'message-send-hook #'my-confirm-empty-subject)
+
 (use-package mu4e-thread-folding
   :quelpa (mu4e-thread-folding
            :fetcher github
