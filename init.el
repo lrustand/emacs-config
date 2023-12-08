@@ -393,17 +393,21 @@
 
   (org-agenda-prefix-format '(
     ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-    (agenda  . " %i %(org-get-title)%?-12t% s")
-    (timeline  . "  %(org-get-title) s")
+    (agenda  . " %i %(org-get-title) ")
+    (timeline  . "  %(org-get-title) ")
     (todo  . " %i %(org-get-title) ")
     (tags  . " %i %(org-get-title) ")
     (search . " %i %(org-get-title) ")))
+
   (org-agenda-custom-commands
     '(("d" "Dashboard"
        ((agenda "" ((org-deadline-warning-days 7)))
         (todo "NEXT"
           ((org-agenda-overriding-header "Next Tasks")))
-        (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))))
+        (tags-todo "work"
+          ((org-agenda-overriding-header "Work Tasks")))
+        (tags-todo "+irl-TODO=\"HOLD\"-recurring"
+          ((org-agenda-overriding-header "IRL Tasks")))))))
 
 
   :hook (org-mode . (lambda ()
@@ -493,7 +497,8 @@
 
 (defun my/org-roam-refresh-agenda-list ()
   (interactive)
-  (setq org-agenda-files (my/org-roam-list-notes-by-tag "project")))
+  (setq org-agenda-files (append (my/org-roam-list-notes-by-tag "project")
+                                 (my/org-roam-list-notes-by-tag "todo"))))
 
 ;; Build the agenda list the first time for the session
 (my/org-roam-refresh-agenda-list)
