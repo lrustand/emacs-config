@@ -497,8 +497,8 @@
 
 (defun my/org-roam-refresh-agenda-list ()
   (interactive)
-  (setq org-agenda-files (append (my/org-roam-list-notes-by-tag "project")
-                                 (my/org-roam-list-notes-by-tag "todo"))))
+  (setq org-agenda-files (delete-dups (append (my/org-roam-list-notes-by-tag "project")
+                                      (my/org-roam-list-notes-by-tag "todo")))))
 
 ;; Build the agenda list the first time for the session
 (my/org-roam-refresh-agenda-list)
