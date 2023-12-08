@@ -706,3 +706,7 @@ capture was not aborted."
          (pdf-pages (shell-command-to-string "cd ~/Documents/master/thesis; pdfinfo main.pdf | grep Pages:")))
     (insert "" pdf-pages)
     (insert "Git changes:" git-changes)))
+
+(setq custom-file (concat user-emacs-directory "custom.el"))
+(when (file-exists-p custom-file)
+  (load custom-file))
