@@ -371,6 +371,19 @@
   :config
   (erc-image-enable))
 
+(defun my/org-roam-get-title (file)
+  (save-window-excursion
+    (find-file file)
+    (org-get-title)))
+
+;; This function generates headings for org-agenda for project files
+(defun my/org-agenda-create-project-heading-agenda-views ()
+  (mapcar (lambda (file)
+            `(todo "" ((org-agenda-files '(,file))
+                       (org-agenda-overriding-header ,(my/org-roam-get-title file))
+                       (org-agenda-prefix-format '((todo . ""))))))
+          (my/org-roam-list-notes-by-tag "project")))
+
 (use-package org
   :custom
   (org-ellipsis " ▾")
@@ -410,14 +423,15 @@
     (search . " %i %(org-get-title) ")))
 
   (org-agenda-custom-commands
-    '(("d" "Dashboard"
+    `(("d" "Dashboard"
        ((agenda "" ((org-deadline-warning-days 7)))
         (todo "NEXT"
           ((org-agenda-overriding-header "Next Tasks")))
         (tags-todo "work"
           ((org-agenda-overriding-header "Work Tasks")))
         (tags-todo "+irl-TODO=\"HOLD\"-recurring"
-          ((org-agenda-overriding-header "IRL Tasks")))))))
+                   ((org-agenda-overriding-header "IRL Tasks")))
+        ,@(my/org-agenda-create-project-heading-agenda-views)))))
 
 
   :hook (org-mode . (lambda ()
