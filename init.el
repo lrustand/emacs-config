@@ -719,3 +719,17 @@ capture was not aborted."
             (lambda (f &rest r)
               (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
                                   (file-name-directory (locate-library "vterm.el" t)) t)))
+
+;; TODO only collapse DONE items if there are no TODO children
+(defun org-fold-all-done-entries ()
+  "Close/fold all entries marked DONE."
+  (interactive)
+  (save-excursion
+    (goto-char (point-max))
+    (while (outline-previous-heading)
+      (when (org-entry-is-done-p)
+        (hide-entry)))))
+
+(add-hook 'org-mode-hook (lambda ()
+                           (org-hide-drawer-all)
+                           (org-fold-all-done-entries)))
