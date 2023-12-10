@@ -387,6 +387,14 @@
                        (org-agenda-prefix-format '((todo . ""))))))
           (my/org-roam-list-notes-by-tag "project")))
 
+;; This function generates headings for org-agenda per tag
+(defun my/org-agenda-create-tag-heading-agenda-views ()
+  (mapcar (lambda (tag)
+            `(tags-todo ,(car tag) ((org-agenda-overriding-header ,(car tag)))))
+          (seq-filter (lambda (it) (not (or (string-equal (car it) "project")
+                                            (string-equal (car it) "todo"))))
+                      (org-roam-db-query [:select :distinct [tag] :from tags ]))))
+
 (use-package org
   :custom
   (org-ellipsis " ▾")
@@ -434,7 +442,11 @@
           ((org-agenda-overriding-header "Work Tasks")))
         (tags-todo "+irl-TODO=\"HOLD\"-recurring"
                    ((org-agenda-overriding-header "IRL Tasks")))
-        ,@(my/org-agenda-create-project-heading-agenda-views)))))
+        ,@(my/org-agenda-create-project-heading-agenda-views)))
+      ("p" "Projects"
+       ,(my/org-agenda-create-project-heading-agenda-views))
+      ("t" "Tags"
+       ,(my/org-agenda-create-tag-heading-agenda-views))))
 
 
   :hook (org-mode . (lambda ()
