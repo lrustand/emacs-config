@@ -402,7 +402,8 @@
   (org-return-follows-link  t)
   (org-log-done 'time)
   (org-log-into-drawer t)
-  (org-modules (append org-modules '(org-checklist)))
+  (org-modules (append org-modules '(org-checklist
+                                     org-habit)))
   (org-agenda-window-setup 'current-window)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
 
