@@ -528,6 +528,12 @@
 
 (add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
 
+(defun org-summary-todo (n-done n-not-done)
+  "Switch entry to DONE when all subentries are done."
+  (if (= n-not-done 0) (org-todo "DONE")))
+
+(add-hook 'org-after-todo-statistics-hook #'org-summary-todo)
+
 (use-package org-roam
   :ensure t
   :demand t  ;; Ensure org-roam is loaded by default
