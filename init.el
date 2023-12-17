@@ -284,7 +284,6 @@
   (require 'mu4e)
 
   :config
-  (setq mu4e-maildir (expand-file-name "~/mail/gmail"))
   ;; use mu4e for e-mail in emacs
   (setq mail-user-agent 'mu4e-user-agent)
   (setq sendmail-program "msmtp"
