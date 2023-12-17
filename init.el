@@ -332,12 +332,7 @@
          mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all))
 
   (evil-define-key 'normal mu4e-headers-mode-map
-    (kbd "TAB")  'mu4e-headers-toggle-at-point
-    (kbd "<left>") 'mu4e-headers-fold-at-point
-    (kbd "<S-left>") 'mu4e-headers-fold-all
-    (kbd "<right>") 'mu4e-headers-unfold-at-point
-    (kbd "<S-right>") 'mu4e-headers-unfold-all)
-)
+    (kbd "TAB")  'mu4e-headers-toggle-at-point))
 
 (use-package eat
   :ensure t
