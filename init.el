@@ -72,10 +72,48 @@
 
 (set-frame-font "DeJavu Sans Mono 10" nil t)
 
-(use-package company
+(use-package corfu
   :ensure t
+  :custom
+  (corfu-auto nil)
+  ;;(corfu-auto-delay 0.6)
+  (corfu-cycle t)
+  (corfu-preview-current t)
+  (corfu-popupinfo-delay 0)
   :config
-  (global-company-mode 1))
+  (setq tab-always-indent 'complete)
+  (corfu-popupinfo-mode 1)
+  (global-corfu-mode))
+
+(defun corfu-enable-in-minibuffer ()
+  "Enable Corfu in the minibuffer."
+  (when (local-variable-p 'completion-at-point-functions)
+    ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
+    (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
+                corfu-popupinfo-delay nil)
+    (corfu-mode 1)))
+(add-hook 'minibuffer-setup-hook #'corfu-enable-in-minibuffer)
+
+(use-package cape
+  :ensure t
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-file)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  (add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+  )
 
 (use-package magit
   :ensure t
@@ -709,7 +747,7 @@ capture was not aborted."
   (buffer-face-set 'default))
 (add-hook 'buffer-list-update-hook 'highlight-selected-window)
 
-(add-to-list 'default-frame-alist '(background-color . "unspecified-bg"))
+(add-to-list 'default-frame-alist '(background-color . "#073642"))
 
 (defun tmux-navigate-directions ()
   (let* ((x (nth 0 (window-edges)))
