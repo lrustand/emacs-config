@@ -248,14 +248,10 @@
   (add-hook 'window-setup-hook 'set-git-gutter-background)
   (global-git-gutter-mode 1))
 
-(use-package helm
+(use-package vertico
   :ensure t
   :init
-  (helm-mode 1)
-  :bind (("M-x"     . helm-M-x)
-         ("C-x C-f" . helm-find-files)
-         ("C-x C-r" . helm-recentf)
-         ("C-h a"   . helm-apropos)))
+  (vertico-mode))
 
 
 (use-package bibtex-completion
