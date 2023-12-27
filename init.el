@@ -253,6 +253,11 @@
   :init
   (vertico-mode))
 
+(use-package marginalia
+  :ensure t
+  :init
+  (marginalia-mode))
+
 (use-package orderless
   :init
   ;; Configure a custom style dispatcher (see the Consult wiki)
