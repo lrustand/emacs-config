@@ -258,6 +258,15 @@
   :init
   (marginalia-mode))
 
+(use-package consult
+  :ensure t
+  :bind (("C-x b" . consult-buffer)))
+
+(use-package consult-projectile
+  :ensure t
+  :bind (("C-c p p" . consult-projectile-switch-project)
+         ("C-c p f" . consult-projectile)))
+
 (use-package orderless
   :init
   ;; Configure a custom style dispatcher (see the Consult wiki)
