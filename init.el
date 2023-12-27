@@ -343,6 +343,8 @@
   (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
   (require 'mu4e)
 
+  :custom
+  (mu4e-update-interval 30)
   :config
   ;; use mu4e for e-mail in emacs
   (setq mail-user-agent 'mu4e-user-agent)
