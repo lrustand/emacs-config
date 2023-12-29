@@ -279,15 +279,7 @@
 (use-package bibtex-completion
   :ensure t
   :config
-  (setq bibtex-completion-bibliography '("~/Documents/master/thesis/Ref.bib")
-        bibtex-completion-library-path '("~/Documents/master/thesis/papers"
-                                         "~/Documents/master/thesis/papers/ota"
-                                         "~/Documents/master/thesis/papers/ota/implementations"
-                                         "~/Documents/master/thesis/papers/security"
-                                         "~/Documents/master/thesis/papers/identity"
-                                         "~/Documents/master/thesis/papers/chain-of-trust")
-        bibtex-completion-notes-path "~/Documents/master/thesis/"
-        bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n"
+  (setq bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n"
 
         bibtex-completion-additional-search-fields '(keywords)
         bibtex-completion-display-formats
