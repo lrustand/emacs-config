@@ -45,6 +45,10 @@
           (require 'evil-terminal-cursor-changer)
           (evil-terminal-cursor-changer-activate)))
 
+(use-package emacs
+  :custom
+  (show-trailing-whitespace t))
+
 (use-package which-key
   :ensure t
   :config
