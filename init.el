@@ -328,7 +328,7 @@
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
 
-(with-eval-after-load "geiser-guile" 
+(with-eval-after-load "geiser-guile"
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
   (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
@@ -497,7 +497,7 @@
         (tags-todo "work"
           ((org-agenda-overriding-header "Work Tasks")))
         (tags-todo "+irl-TODO=\"HOLD\"-recurring"
-                   ((org-agenda-overriding-header "IRL Tasks")))
+          ((org-agenda-overriding-header "IRL Tasks")))
         ,@(my/org-agenda-create-project-heading-agenda-views)))
       ("p" "Projects"
        ,(my/org-agenda-create-project-heading-agenda-views))
@@ -530,7 +530,7 @@
     (widen)
     (org-forward-heading-same-level 1))
       (org-narrow-to-subtree))
-  
+
   (defun org-retreat ()
     (interactive)
     (when (buffer-narrowed-p)
@@ -543,7 +543,7 @@
 
 (use-package org-contrib
   :ensure t)
- 
+
 (use-package org-bullets
   :ensure t
   :after org
