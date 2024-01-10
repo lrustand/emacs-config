@@ -499,6 +499,9 @@
         (tags-todo "+irl-TODO=\"HOLD\"-recurring"
           ((org-agenda-overriding-header "IRL Tasks")))
         ,@(my/org-agenda-create-project-heading-agenda-views)))
+      ("h" "Habits"
+       ((tags-todo "STYLE=\"habit\""
+          ((org-agenda-overriding-header "Habits")))))
       ("p" "Projects"
        ,(my/org-agenda-create-project-heading-agenda-views))
       ("t" "Tags"
