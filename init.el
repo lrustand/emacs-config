@@ -506,7 +506,6 @@
 
 
   :hook (org-mode . (lambda ()
-                      (org-indent-mode)
                       (visual-line-mode 1)
                       (org-hide-drawer-all)
                       (org-fold-all-done-entries)))
