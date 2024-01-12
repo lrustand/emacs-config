@@ -18,6 +18,11 @@
   :config
   (doom-modeline-mode 1))
 
+(use-package auto-dim-other-buffers
+  :ensure t
+  :init
+  (auto-dim-other-buffers-mode 1))
+
 (use-package evil
   :ensure t
   :init
@@ -757,16 +762,16 @@ capture was not aborted."
     "neomutt"
     "tmux")))
 
-(defun highlight-selected-window ()
-  "Highlight selected window with a different background color."
-  (walk-windows (lambda (w)
-                  (unless (eq w (selected-window))
-                    (with-current-buffer (window-buffer w)
-                      (buffer-face-set '(:background "#041f27"))))))
-  (buffer-face-set 'default))
-(add-hook 'buffer-list-update-hook 'highlight-selected-window)
-
-(add-to-list 'default-frame-alist '(background-color . "#073642"))
+;;(defun highlight-selected-window ()
+;;  "Highlight selected window with a different background color."
+;;  (walk-windows (lambda (w)
+;;                  (unless (eq w (selected-window))
+;;                    (with-current-buffer (window-buffer w)
+;;                      (buffer-face-set '(:background "#041f27"))))))
+;;  (buffer-face-set 'default))
+;;(add-hook 'buffer-list-update-hook 'highlight-selected-window)
+;;
+;;(add-to-list 'default-frame-alist '(background-color . "#073642"))
 
 (defun tmux-navigate-directions ()
   (let* ((x (nth 0 (window-edges)))
