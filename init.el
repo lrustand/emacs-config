@@ -456,6 +456,8 @@
                       (org-roam-db-query [:select :distinct [tag] :from tags ]))))
 
 (use-package org
+  :config
+  (require 'org-inlinetask)
   :custom
   (org-ellipsis " ▾")
   (org-hide-emphasis-markers t)
