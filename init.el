@@ -81,6 +81,9 @@
 
 (set-frame-font "DeJavu Sans Mono 10" nil t)
 
+(use-package pcmpl-args
+  :ensure t)
+
 (use-package corfu
   :ensure t
   :custom
