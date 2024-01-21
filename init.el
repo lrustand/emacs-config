@@ -828,3 +828,12 @@ capture was not aborted."
               (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
                                   (file-name-directory (locate-library "vterm.el" t)) t)))
 
+(defun insert-cut-here-start ()
+  "Insert opening \"cut here start\" snippet."
+  (interactive)
+  (insert "--8<---------------cut here---------------start------------->8---"))
+
+(defun insert-cut-here-end ()
+  "Insert closing \"cut here end\" snippet."
+  (interactive)
+  (insert "--8<---------------cut here---------------end--------------->8---"))
