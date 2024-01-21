@@ -135,9 +135,10 @@
 
 (use-package yasnippet
   :ensure t
+  :custom
+  (yas-indent-line 'auto)
+  (yas-also-auto-indent-first-line t)
   :config
-  (setq yas-indent-line 'auto)
-  (setq yas-also-auto-indent-first-line t)
   (yas-global-mode 1))
 
 (use-package yasnippet-snippets
@@ -161,18 +162,19 @@
   (add-hook 'latex-mode-hook 'lsp)
   (add-hook 'LaTeX-mode-hook 'lsp)
 
-  (setq lsp-latex-forward-search-executable "okular")
-  (setq lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
-  (setq lsp-latex-build-forward-search-after t)
-  (setq lsp-latex-build-on-save t)
-
   ;; For YaTeX
   (with-eval-after-load "yatex"
     (add-hook 'yatex-mode-hook 'lsp))
 
   ;; For bibtex
   (with-eval-after-load "bibtex"
-    (add-hook 'bibtex-mode-hook 'lsp)))
+    (add-hook 'bibtex-mode-hook 'lsp))
+
+  :custom
+  (lsp-latex-forward-search-executable "okular")
+  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
+  (lsp-latex-build-forward-search-after t)
+  (lsp-latex-build-on-save t))
 
 (use-package shrface
   :ensure t
@@ -181,7 +183,8 @@
   (shrface-basic)
   (shrface-trial)
   (shrface-default-keybindings) ; setup default keybindings
-  (setq shrface-href-versatile t))
+  :custom
+  (shrface-href-versatile t))
 
 (use-package eww
   :defer t
@@ -215,8 +218,9 @@
 (use-package bitbake
   :ensure t
   :mode "bitbake-mode"
-  :config
+  :init
   (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
+  :config
   (with-eval-after-load 'lsp-mode
     (add-to-list 'lsp-language-id-configuration
       '(bitbake-mode . "bitbake"))
@@ -233,25 +237,29 @@
   :ensure t
   :config
   (global-undo-tree-mode 1)
-  (setq undo-tree-visualizer-timestamps t)
-  (setq undo-tree-visualizer-diff t)
-  (setq undo-tree-auto-save-history t)
-  (setq undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
+  :custom
+  (undo-tree-visualizer-timestamps t)
+  (undo-tree-visualizer-diff t)
+  (undo-tree-auto-save-history t)
+  (undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
 
 (use-package tex
   :ensure auctex
   :config
   (setq-default TeX-master "main") ; All master files called "main".
-  (setq TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
-  (setq TeX-view-program-selection '((output-pdf "Okular"))))
+  :custom
+  (TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
+  (TeX-view-program-selection '((output-pdf "Okular"))))
 
 (use-package git-gutter
   :ensure t
+  :custom
+  (git-gutter:hide-gutter t)
+  (git-gutter:update-interval 2)
+  (git-gutter:unchanged-sign " ")
+
   :config
   (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
-  (setq git-gutter:hide-gutter t)
-  (setq git-gutter:update-interval 2)
-  (setq git-gutter:unchanged-sign " ")
   (defun set-git-gutter-background ()
     (set-face-background 'git-gutter:unchanged (face-attribute 'mode-line :background))
     (set-face-background 'git-gutter:modified (face-attribute 'mode-line :background))
@@ -291,19 +299,20 @@
 
 (use-package bibtex-completion
   :ensure t
-  :config
-  (setq bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n"
+  :custom
+  (bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n")
+  (bibtex-completion-additional-search-fields '(keywords))
+  (bibtex-completion-display-formats
+  '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
+    (inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
+    (incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+    (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+    (t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}")))
+  (bibtex-completion-pdf-open-function
+    (lambda (fpath)
+      (call-process "okular" nil 0 nil fpath)))
 
-        bibtex-completion-additional-search-fields '(keywords)
-        bibtex-completion-display-formats
-        '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
-          (inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
-          (incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-          (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-          (t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}"))
-        bibtex-completion-pdf-open-function
-          (lambda (fpath)
-            (call-process "okular" nil 0 nil fpath)))
+  :config
   (defun my-open-citation-at-point ()
     (interactive) (bibtex-completion-open-pdf (list (thing-at-point 'symbol))))
 
@@ -312,8 +321,8 @@
 
 (use-package ace-window
   :ensure t
-  :config
-  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+  :custom
+  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
 
 (use-package quelpa-use-package
   :ensure t)
@@ -350,14 +359,13 @@
 
   :custom
   (mu4e-update-interval 30)
-  :config
   ;; use mu4e for e-mail in emacs
-  (setq mail-user-agent 'mu4e-user-agent)
-  (setq sendmail-program "msmtp"
-        send-mail-function 'smtpmail-send-it
-        message-sendmail-f-is-evil t
-        message-sendmail-extra-arguments '("--read-envelope-from")
-        message-send-mail-function 'message-send-mail-with-sendmail)
+  (mail-user-agent 'mu4e-user-agent)
+  (sendmail-program "msmtp")
+  (send-mail-function 'smtpmail-send-it)
+  (message-sendmail-f-is-evil t)
+  (message-sendmail-extra-arguments '("--read-envelope-from"))
+  (message-send-mail-function 'message-send-mail-with-sendmail)
   ;; these must start with a "/", and must exist
   ;; (i.e.. /home/user/Maildir/sent must exist)
   ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
@@ -365,9 +373,9 @@
 
   ;; below are the defaults; if they do not exist yet, mu4e offers to
   ;; create them. they can also functions; see their docstrings.
-  (setq mu4e-sent-folder   "/Sent Mail")
-  (setq mu4e-drafts-folder "/Drafts")
-  (setq mu4e-trash-folder  "/Trash"))
+  (mu4e-sent-folder   "/Sent Mail")
+  (mu4e-drafts-folder "/Drafts")
+  (mu4e-trash-folder  "/Trash"))
 
 (defun my-confirm-empty-subject ()
   "Allow user to quit when current message subject is empty."
@@ -388,23 +396,25 @@
                            :shortname ""
                            :function (lambda (msg) "  "))))
 
-  (setq mu4e-headers-fields '((:empty         .    2)
-                              (:human-date    .   12)
-                              (:flags         .    6)
-                              ;;(:mailing-list  .   10)
-                              (:from          .   22)
-                              (:subject       .   nil))
-         mu4e-thread-folding-default-view 'folded
-         mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all))
-
   (evil-define-key 'normal mu4e-headers-mode-map
-    (kbd "TAB")  'mu4e-headers-toggle-at-point))
+    (kbd "TAB")  'mu4e-headers-toggle-at-point)
+
+  :custom
+  (mu4e-headers-fields '((:empty         .    2)
+                         (:human-date    .   12)
+                         (:flags         .    6)
+                         ;;(:mailing-list  .   10)
+                         (:from          .   22)
+                         (:subject       .   nil)))
+  (mu4e-thread-folding-default-view 'folded)
+  (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
 
 (use-package eat
   :ensure t
   :config
-  (eat-eshell-mode)
-  (setq eshell-visual-commands nil))
+  (eat-eshell-mode))
+  ;;:custom
+  ;;(eshell-visual-commands nil))
 
 (use-package vterm
   :ensure t)
