@@ -356,9 +356,34 @@
   :init
   (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
   (require 'mu4e)
-
+  :config
+  ;; Don't create tons of "draft" messages
+  (add-hook 'mu4e-compose-mode-hook #'(lambda () (auto-save-mode -1)))
   :custom
   (mu4e-update-interval 30)
+  ;; Use with font-google-noto, or a later version of font-openmoji
+  (mu4e-headers-unread-mark    '("u" . "📩"))
+  (mu4e-headers-draft-mark     '("D" . "✏️"))
+  (mu4e-headers-flagged-mark   '("F" . "🚩"))
+  (mu4e-headers-new-mark       '("N" . "✨"))
+  (mu4e-headers-passed-mark    '("R" . "↪️"))
+  (mu4e-headers-replied-mark   '("R" . "↩️"))
+  (mu4e-headers-seen-mark      '("S" . "✔️"))
+  (mu4e-headers-trashed-mark   '("T" . "🗑️"))
+  (mu4e-headers-attach-mark    '("a" . "📎"))
+  (mu4e-headers-encrypted-mark '("x" . "🔒"))
+  (mu4e-headers-signed-mark    '("s" . "🔑️"))
+  (mu4e-headers-calendar-mark  '("c" . "📅"))
+  (mu4e-headers-list-mark      '("l" . "📰"))
+  (mu4e-headers-personal-mark  '(""  . ""  )) ; All emails are marked personal; hide this mark
+
+  (mu4e-compose-dont-reply-to-self t)
+
+  (mu4e-attachment-dir "~/Downloads")
+
+  ;; Gmail takes care of sent messages
+  (mu4e-sent-messages-behavior 'delete)
+
   ;; use mu4e for e-mail in emacs
   (mail-user-agent 'mu4e-user-agent)
   (sendmail-program "msmtp")
