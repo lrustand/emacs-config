@@ -616,6 +616,7 @@
   :ensure t
   :demand t  ;; Ensure org-roam is loaded by default
   :init
+  (make-directory "~/org-roam" t)
   (setq org-roam-v2-ack t)
   :custom
   (org-roam-directory "~/org-roam")
