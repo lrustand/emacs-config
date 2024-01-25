@@ -52,6 +52,7 @@
 
 (use-package emacs
   :custom
+  (native-comp-async-report-warnings-errors 'silent)
   (show-trailing-whitespace t))
 
 (use-package which-key
