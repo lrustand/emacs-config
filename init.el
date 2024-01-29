@@ -51,6 +51,11 @@
           (evil-terminal-cursor-changer-activate)))
 
 (use-package emacs
+  :config
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path) ;; Fix tramp for Guix
+  (add-hook 'prog-mode-hook
+            (lambda ()
+              (setq-local show-trailing-whitespace t)))
   :custom
   (native-comp-async-report-warnings-errors 'silent)
   (show-trailing-whitespace t))
