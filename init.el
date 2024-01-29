@@ -99,6 +99,7 @@
   (corfu-preview-current t)
   (corfu-popupinfo-delay 0)
   (tab-always-indent 'complete)
+  (corfu-history-mode t)
   :config
   (with-eval-after-load "sly"
     (setq sly-symbol-completion-mode nil))
