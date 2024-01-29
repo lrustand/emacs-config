@@ -57,8 +57,7 @@
             (lambda ()
               (setq-local show-trailing-whitespace t)))
   :custom
-  (native-comp-async-report-warnings-errors 'silent)
-  (show-trailing-whitespace t))
+  (native-comp-async-report-warnings-errors 'silent))
 
 (use-package which-key
   :ensure t
