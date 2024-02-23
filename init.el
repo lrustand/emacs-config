@@ -497,6 +497,16 @@
   :config
   (erc-image-enable))
 
+(use-package goggles
+  :ensure t
+  :config
+  (goggles-mode))
+
+(use-package evil-goggles
+  :ensure t
+  :config
+  (evil-goggles-mode))
+
 (defun my/org-roam-get-title (file)
   (save-window-excursion
     (find-file file)
