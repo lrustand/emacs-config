@@ -208,6 +208,17 @@
 (setq shr-use-colors nil)
 (advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
 
+(use-package hl-todo
+  :ensure t
+  :config
+  (global-hl-todo-mode 1))
+
+(use-package magit-todos
+  :ensure t
+  :after magit
+  :config
+  (magit-todos-mode 1))
+
 (use-package projectile
   :ensure t
   :config
