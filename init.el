@@ -355,6 +355,9 @@
 ;;(use-package mastodon-alt
 ;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
 
+(use-package org-gantt
+  :quelpa (org-gantt :fetcher github :repo "swillner/org-gantt"))
+
 (use-package geiser
   :ensure t
   :custom
@@ -467,11 +470,20 @@
   ;;(eshell-visual-commands nil))
 
 (use-package vterm
-  :ensure t)
+  :ensure t
+  :config
+  ;; Use libvterm installed in Guix
+  (advice-add 'vterm-module-compile :around
+              (lambda (f &rest r)
+                (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/libvterm.so.0")
+                                    (file-name-directory (locate-library "vterm.el" t)) t)
+                (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
+                                    (file-name-directory (locate-library "vterm.el" t)) t))))
 
 (use-package multi-vterm
   :ensure t)
 
+;; IRC client config
 (use-package erc
   :custom
   (erc-fill-function 'erc-fill-static)
@@ -927,12 +939,6 @@ capture was not aborted."
 (setq custom-file (concat user-emacs-directory "custom.el"))
 (when (file-exists-p custom-file)
   (load custom-file))
-
-;; Use libvterm installed in Guix
-(advice-add 'vterm-module-compile :around
-            (lambda (f &rest r)
-              (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
-                                  (file-name-directory (locate-library "vterm.el" t)) t)))
 
 (defun insert-cut-here-start ()
   "Insert opening \"cut here start\" snippet."
