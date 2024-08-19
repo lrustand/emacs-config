@@ -507,14 +507,6 @@
   :config
   (evil-goggles-mode))
 
-(use-package evil-org
-  :ensure t
-  :after org
-  :hook (org-mode . (lambda () evil-org-mode))
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
-
 (defun my/org-roam-get-title (file)
   (save-window-excursion
     (find-file file)
@@ -633,6 +625,14 @@
 
 (use-package org-contrib
   :ensure t)
+
+(use-package evil-org
+  :ensure t
+  :after org
+  :hook (org-mode . evil-org-mode)
+  :config
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys))
 
 (use-package org-bullets
   :ensure t
