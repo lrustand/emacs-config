@@ -777,6 +777,48 @@ capture was not aborted."
 (use-package org-transclusion
   :ensure t)
 
+(use-package dired
+  :ensure nil
+  :commands (dired dired-jump)
+  :bind ("C-x C-j" . dired-jump)
+  :custom
+  (dired-listing-switches "-lAh --group-directories-first")
+  :config
+  (evil-collection-define-key 'normal 'dired-mode-map
+    "h" 'dired-up-directory
+    "l" 'dired-find-file))
+
+;; Open archive files seamlessly in dired
+(use-package dired-avfs
+  :ensure t)
+
+;; Filetype icons in dired
+(use-package all-the-icons-dired
+  :ensure t
+  :hook (dired-mode . all-the-icons-dired-mode))
+
+;; Collapse multiple dirctory levels if each only has one dir
+;; Like the file explorer on github does
+(use-package dired-collapse
+  :ensure t
+  :config
+  (global-dired-collapse-mode))
+
+;; Keep reusing a single dired buffer instead of opening new
+;; every time you navigate to another folder
+;; TODO: Integrate in normal dired commands
+(use-package dired-single
+  :ensure t)
+
+;; Open some filetypes in external program
+;; TODO: Automatically open correct program through mime/xdg
+(use-package dired-open
+  :ensure t
+  :custom
+  (dired-open-extensions
+   '(("png" . "feh")
+     ("mp4" . "mpv")
+     ("pdf" . "okular"))))
 
 (setq backup-directory-alist '((".*" . "~/.emacs.d/backup")))
 (setq create-lockfiles nil)
@@ -790,7 +832,6 @@ capture was not aborted."
 (setq auto-revert-use-notify nil)
 (global-auto-revert-mode 1)
 (save-place-mode 1)
-(setq dired-listing-switches "-lAh --group-directories-first")
 (recentf-mode 1)
 (setq recentf-max-menu-items 25)
 
