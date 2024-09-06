@@ -1118,6 +1118,13 @@ capture was not aborted."
 (use-package app-launcher
   :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
 
+;; Let windmove move to other frames as well
+;; TODO Send PR. I have modified framemove to get correct frame coords in EXWM
+;; Lines 45-48 in framemove.el. Use exwm-workspace--get-geometry.
+(use-package framemove
+  :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
+  :custom (framemove-hook-into-windmove t))
+
 ;; Make vertico display in a floating window
 (use-package vertico-posframe
   :ensure t
