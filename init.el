@@ -1002,3 +1002,34 @@ capture was not aborted."
   "Insert closing \"cut here end\" snippet."
   (interactive)
   (insert "--8<---------------cut here---------------end--------------->8---"))
+
+;; Process Editor (htop-like)
+(use-package proced
+  :custom
+  (proced-auto-update-flag 'visible)
+  (proced-auto-update-interval 1)
+  (proced-enable-color-flag t)
+  ;; Enable remote proced over tramp
+  (proced-show-remote-processes t)
+  :config
+  (defvar nix-proced-readable-mode-keywords
+    '(("\\(/nix/store/[0-9a-z]*-\\)"
+       (1 '(face nil invisible t)))
+      ("\\(/gnu/store/[0-9a-z/\.-]*/\\).* ?.*"
+       (1 '(face nil invisible t)))))
+
+  (define-minor-mode nix-proced-readable-mode
+    "Make proced filenames more readable in NixOS and GuixSD"
+    :lighter " proced-hash-filter-mode"
+    (if nix-proced-readable-mode
+        (progn
+          (make-variable-buffer-local 'font-lock-extra-managed-props)
+          (add-to-list 'font-lock-extra-managed-props 'invisible)
+          (font-lock-add-keywords nil
+                                  nix-proced-readable-mode-keywords)
+          (font-lock-mode t))
+      (progn
+        (font-lock-remove-keywords nil
+                                   nix-proced-readable-mode-keywords)
+        (font-lock-mode t))))
+  (add-hook 'proced-mode-hook 'nix-proced-readable-mode))
