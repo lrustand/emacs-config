@@ -15,6 +15,8 @@
   :ensure t
   :init
   (require 'doom-modeline)
+  :custom
+  (doom-modeline-workspace-name nil)
   :config
   (doom-modeline-mode 1))
 
