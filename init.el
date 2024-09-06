@@ -1117,6 +1117,12 @@ capture was not aborted."
 ;; Rofi application launcher alternative
 (use-package app-launcher
   :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
+
+;; Make vertico display in a floating window
+(use-package vertico-posframe
+  :ensure t
+  :config
+  (vertico-posframe-mode 1))
 ;; Process Editor (htop-like)
 (use-package proced
   :custom
