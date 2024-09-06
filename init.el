@@ -829,6 +829,8 @@ capture was not aborted."
   :bind ("C-x C-j" . dired-jump)
   :custom
   (dired-listing-switches "-lAh --group-directories-first")
+  :hook
+  (dired-mode . dired-hide-details-mode)
   :config
   (evil-collection-define-key 'normal 'dired-mode-map
     "h" 'dired-up-directory
