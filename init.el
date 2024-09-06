@@ -1239,3 +1239,11 @@ capture was not aborted."
                                    nix-proced-readable-mode-keywords)
         (font-lock-mode t))))
   (add-hook 'proced-mode-hook 'nix-proced-readable-mode))
+
+;; Drag stuff up/down etc with M-<up>, M-<down>...
+(use-package drag-stuff
+  :ensure t
+  :config
+  (drag-stuff-global-mode 1)
+  (drag-stuff-define-keys))
+
