@@ -887,13 +887,11 @@ capture was not aborted."
 (fset 'yes-or-no-p 'y-or-n-p)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
-
+;; TODO Do this same way as for auto dim, see above
 (defun set-line-number-background ()
   (set-face-background 'line-number (face-attribute 'mode-line :background)))
 (add-hook 'server-after-make-frame-hook 'set-line-number-background)
 (add-hook 'window-setup-hook 'set-line-number-background)
-
-(windmove-default-keybindings)
 
 (use-package eshell
   :config
@@ -981,13 +979,6 @@ capture was not aborted."
 
 (unless (display-graphic-p)
   (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
-
-(defun org-dblock-write:thesis-status (params)
-  (let* ((date (plist-get params :date))
-         (git-changes (shell-command-to-string (concat "cd ~/Documents/master/thesis; git diff --shortstat @{" date "T00:00:00} @{" date "T23:59:59} *.tex")))
-         (pdf-pages (shell-command-to-string "cd ~/Documents/master/thesis; pdfinfo main.pdf | grep Pages:")))
-    (insert "" pdf-pages)
-    (insert "Git changes:" git-changes)))
 
 (setq custom-file (concat user-emacs-directory "custom.el"))
 (when (file-exists-p custom-file)
