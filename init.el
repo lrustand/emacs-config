@@ -1113,6 +1113,10 @@ capture was not aborted."
   (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
   (exwm-randr-mode 1)
   (exwm-enable))
+
+;; Rofi application launcher alternative
+(use-package app-launcher
+  :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
 ;; Process Editor (htop-like)
 (use-package proced
   :custom
