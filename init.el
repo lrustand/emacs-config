@@ -895,41 +895,58 @@ capture was not aborted."
 
 (windmove-default-keybindings)
 
-(defun git-status ()
-  (let ((default-directory (eshell/pwd)))
-    (with-output-to-string
-      (with-current-buffer standard-output
-        (call-process "git" nil t nil "status" "--porcelain")))))
+(use-package eshell
+  :config
+  (defun git-status ()
+    (let ((default-directory (eshell/pwd)))
+      (with-output-to-string
+        (with-current-buffer standard-output
+          (call-process "git" nil t nil "status" "--porcelain")))))
 
-(defun git-status--dirty-p ()
-  (not (string-blank-p (git-status))))
-
-(add-hook 'eshell-mode-hook (lambda () (setenv "TERM" "xterm-256color"))) 
-(setq eshell-prompt-function '(lambda () (concat
-  "\n"
-  ;;(propertize (if venv-current-name (concat " (" venv-current-name ")\n")  "") 'face `(:foreground "#00dc00"))
-  (propertize (format-time-string "[%H:%M, %d/%m/%y]\n" (current-time)) 'face '(:foreground "green" :bold))
-  (if (= (user-uid) 0)
-    (propertize (user-login-name) 'face '(:foreground "red" :bold))
-    (propertize (user-login-name) 'face '(:foreground "green" :bold)))
-  (propertize "@" 'face `(:foreground "default" :bold))
-  (propertize (system-name) 'face `(:foreground "green" :bold))
-  (propertize (concat " [" (eshell/pwd) "]") 'face `(:foreground "default" :bold))
-  (when (magit-get-current-branch)
-      (propertize (concat " [" (magit-get-current-branch)) 'face `(:foreground "default" :bold)))
-      (when (git-status--dirty-p) (propertize "*" 'face `(:foreground "red" :bold)))
-      (propertize "]" 'face `(:foreground "default" :bold))
-  (propertize "\n")
-  (propertize " ->" 'face '(:foreground "blue" :bold))
-  (propertize " " 'face '(:foreground "default" :bold))
-  )))
-(setq eshell-prompt-regexp " -> ")
-
-(setq eshell-visual-commands (append eshell-visual-commands
-  '("ipython"
-    "nvim"
-    "neomutt"
-    "tmux")))
+  (defun git-status--dirty-p ()
+    (not (string-blank-p (git-status))))
+  :hook
+  (eshell-mode . (lambda () (setenv "TERM" "xterm-256color")))
+  :custom
+  (eshell-prompt-function
+   (lambda ()
+     (let* ((green (face-foreground 'term-color-green))
+            (red (face-foreground 'term-color-red))
+            (black (face-foreground 'term-color-black))
+            (blue (face-foreground 'term-color-blue))
+            (prompt-bg black)
+            (username-fg (if (= (user-uid) 0) red green))
+            (username-face `(:foreground ,username-fg
+                                         :background ,prompt-bg
+                                         :weight bold))
+            (hostname-face `(:foreground ,green
+                                         :background ,prompt-bg
+                                         :weight bold))
+            (timedate-face `(:foreground ,green
+                                         :background ,prompt-bg
+                                         :weight bold))
+            (default-prompt-face `(:foreground "default"
+                                               :background ,black
+                                               :weight bold)))
+       (concat
+        "\n"
+        ;;(propertize (if venv-current-name (concat " (" venv-current-name ")\n")  "") 'face `(:foreground "#00dc00"))
+        (propertize (format-time-string "[%H:%M, %d/%m/%y]\n" (current-time)) 'face timedate-face)
+        (propertize (user-login-name) 'face username-face)
+        (propertize "@" 'face default-prompt-face)
+        (propertize (system-name) 'face hostname-face)
+        (propertize (format " [%s]" (f-abbrev (eshell/pwd))) 'face default-prompt-face)
+        (when (magit-get-current-branch)
+          (concat
+           (propertize (format " [%s" (magit-get-current-branch)) 'face default-prompt-face)
+           (when (git-status--dirty-p)
+             (propertize "*" 'face `(:foreground "red" :background ,prompt-bg :bold)))
+           (propertize "]" 'face default-prompt-face)))
+        "\n"
+        (propertize "\n" 'face default-prompt-face)
+        (propertize " ->" 'face `(:foreground ,blue :background ,prompt-bg :bold))
+        (propertize " " 'face default-prompt-face)))))
+  (eshell-prompt-regexp " -> "))
 
 ;;(defun highlight-selected-window ()
 ;;  "Highlight selected window with a different background color."
