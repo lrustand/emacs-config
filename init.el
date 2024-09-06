@@ -1123,6 +1123,92 @@ capture was not aborted."
   :ensure t
   :config
   (vertico-posframe-mode 1))
+
+(use-package tab-bar
+  :config
+  (tab-bar-mode 1)
+  (defun lr/tab-bar-battery-status ()
+    (battery-format "%b%p%%"
+                    (funcall battery-status-function)))
+  (defun lr/tab-bar-time-and-date ()
+    (let* ((tab-bar-time-face '(:weight bold))
+           (tab-bar-time-format  "%a %-d %b, %H:%M "))
+      `((menu-bar menu-item
+                  ,(propertize (format-time-string tab-bar-time-format)
+                               'font-lock-face
+                               tab-bar-time-face)
+                  nil ;; <- Function to run when clicked
+                  :help "My heltp"))))
+  (defun lr/tab-bar-separator () " | ")
+  (defun ram ()
+    (lemon-monitor-display my/memory-monitor))
+  (defun cpu ()
+    (lemon-monitor-display my/cpu-monitor))
+  (defun bat ()
+    (lemon-monitor-display my/battery-monitor))
+  (defun net ()
+    (concat
+     (lemon-monitor-display my/network-rx-monitor)
+     (lemon-monitor-display my/network-tx-monitor)))
+
+  (defface my-tab-bar-face
+    '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
+    "Face for the tab bar.")
+
+  ;; Set the tab-bar face to use the custom face
+  (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
+  :custom
+  (tab-bar-format '(tab-bar-format-history
+                    tab-bar-format-tabs
+                    tab-bar-separator
+                    tab-bar-format-add-tab
+                    tab-bar-format-align-right
+                    net
+                    lr/tab-bar-separator
+                    ram
+                    lr/tab-bar-separator
+                    cpu
+                    lr/tab-bar-separator
+                    bat
+                    lr/tab-bar-separator
+                    lr/tab-bar-time-and-date)))
+
+(use-package lemon
+  :quelpa (lemon :fetcher codeberg :repo "emacs-weirdware/lemon"))
+
+(setq my/battery-monitor
+      (lemon-battery :display-opts '(:charging-indicator "+"
+                                     :discharging-indicator "-")))
+(setq my/battery-monitor-timer
+      (run-with-timer 0 30
+                      (lambda ()
+                        (lemon-monitor-update
+                         my/battery-monitor))))
+(setq my/cpu-monitor (lemon-cpu-linux))
+(setq my/cpu-monitor-timer
+      (run-with-timer 0 1
+                      (lambda ()
+                        (lemon-monitor-update
+                         my/cpu-monitor))))
+(setq my/memory-monitor (lemon-memory-linux))
+(setq my/memory-monitor-timer
+      (run-with-timer 0 30
+                      (lambda ()
+                        (lemon-monitor-update
+                         my/memory-monitor))))
+(setq my/network-rx-monitor (lemon-linux-network-rx))
+(setq my/network-tx-monitor (lemon-linux-network-tx))
+(setq my/network-monitor-timer
+      (run-with-timer 0 1
+                      (lambda ()
+                        (lemon-monitor-update
+                         my/network-rx-monitor)
+                        (lemon-monitor-update
+                         my/network-tx-monitor))))
+(setq my/tab-bar-refresh-timer
+      (run-with-timer 0 1
+                      'force-mode-line-update))
+
 ;; Process Editor (htop-like)
 (use-package proced
   :custom
