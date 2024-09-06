@@ -302,6 +302,15 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (git-gutter:unchanged-sign " ")
 
   :config
+  (defun rpo/git-gutter-mode ()
+    "Enable git-gutter mode if current buffer's file is under version control."
+    (if (and (buffer-file-name)
+             (vc-backend (buffer-file-name))
+             ;; Skip filetypes where git-gutter makes problems
+             (not (cl-some (lambda (suffix) (string-suffix-p suffix (buffer-file-name)))
+                           '(".pdf" ".svg" ".png"))))
+        (git-gutter-mode 1)))
+  (add-hook 'find-file-hook #'rpo/git-gutter-mode)
   (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
   (defun set-git-gutter-background ()
     (set-face-background 'git-gutter:unchanged (face-attribute 'mode-line :background))
@@ -309,8 +318,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
     (set-face-background 'git-gutter:added (face-attribute 'mode-line :background))
     (set-face-background 'git-gutter:deleted (face-attribute 'mode-line :background)))
   (add-hook 'server-after-make-frame-hook 'set-git-gutter-background)
-  (add-hook 'window-setup-hook 'set-git-gutter-background)
-  (global-git-gutter-mode 1))
+  (add-hook 'window-setup-hook 'set-git-gutter-background))
 
 (use-package vertico
   :ensure t
