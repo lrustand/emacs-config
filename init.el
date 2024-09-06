@@ -18,11 +18,6 @@
   :config
   (doom-modeline-mode 1))
 
-(use-package auto-dim-other-buffers
-  :ensure t
-  :init
-  (auto-dim-other-buffers-mode 1))
-
 (use-package evil
   :ensure t
   :init
@@ -76,10 +71,41 @@
   :config
   (xclip-mode 1))
 
+;; Using this to change the auto-dim-other-bufers-face for solarized
+;; Taken from alphapapa unpackaged scripts
+;;;###autoload
+(defun unpackaged/customize-theme-faces (theme &rest faces)
+  "Customize THEME with FACES.
+Advises `enable-theme' with a function that customizes FACES when
+THEME is enabled.  If THEME is already enabled, also applies
+faces immediately.  Calls `custom-theme-set-faces', which see."
+  (declare (indent defun))
+  (when (member theme custom-enabled-themes)
+    ;; Theme already enabled: apply faces now.
+    (let ((custom--inhibit-theme-enable nil))
+      (apply #'custom-theme-set-faces theme faces)))
+  (let ((fn-name (intern (concat "unpackaged/enable-theme-advice-for-" (symbol-name theme)))))
+    ;; Apply advice for next time theme is enabled.
+    (fset fn-name
+          (lambda (enabled-theme)
+            (when (eq enabled-theme theme)
+              (let ((custom--inhibit-theme-enable nil))
+                (apply #'custom-theme-set-faces theme faces)))))
+    (advice-remove #'enable-theme fn-name)
+    (advice-add #'enable-theme :after fn-name)))
+
 (use-package solarized-theme
   :ensure t
   :config
   (load-theme 'solarized-dark t))
+
+(use-package auto-dim-other-buffers
+  :ensure t
+  :config
+  (unpackaged/customize-theme-faces 'solarized-dark
+    '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
+  :init
+  (auto-dim-other-buffers-mode 1))
 
 (use-package dap-mode
   :ensure t)
