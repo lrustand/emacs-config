@@ -1003,6 +1003,116 @@ capture was not aborted."
   (interactive)
   (insert "--8<---------------cut here---------------end--------------->8---"))
 
+
+(defun efs/exwm-update-class ()
+  (exwm-workspace-rename-buffer exwm-title))
+
+(defun lr/exwm-resize-left ()
+  (interactive)
+  (if (window-at-side-p nil 'right)
+      (exwm-layout-enlarge-window-horizontally 30)
+    (exwm-layout-shrink-window-horizontally 30)))
+(defun lr/exwm-resize-right ()
+  (interactive)
+  (if (window-at-side-p nil 'right)
+      (exwm-layout-shrink-window-horizontally 30)
+    (exwm-layout-enlarge-window-horizontally 30)))
+(defun lr/exwm-resize-up ()
+  (interactive)
+  (if (window-at-side-p nil 'bottom)
+      (exwm-layout-enlarge-window 30)
+    (exwm-layout-shrink-window 30)))
+(defun lr/exwm-resize-down ()
+  (interactive)
+  (if (window-at-side-p nil 'bottom)
+      (exwm-layout-shrink-window 30)
+    (exwm-layout-enlarge-window 30)))
+
+(use-package exwm
+  :ensure t
+  :custom
+  ;; Set the default number of workspaces
+  (exwm-workspace-number 5)
+  ;; These keys should always pass through to Emacs
+  (exwm-input-prefix-keys
+    '(?\C-x
+      ?\C-u
+      ?\C-h
+      ?\M-x
+      ?\M-`
+      ?\M-&
+      ?\M-:
+      ?\C-\ ))  ;; Ctrl+Space
+  ;; Set up global key bindings.  These always work, no matter the input state!
+  (exwm-input-global-keys
+        `(
+          ;; Reset to line-mode (C-c C-k switches to char-mode via exwm-input-release-keyboard)
+          ([?\s-r] . exwm-reset)
+
+          ([?\H-d] . app-launcher-run-app)
+          ([s-backspace] . kill-current-buffer)
+          ([s-return] . multi-vterm-dedicated-toggle)
+
+          ;; Move focus between windows
+          ([s-left] . windmove-left)
+          ([s-right] . windmove-right)
+          ([s-up] . windmove-up)
+          ([s-down] . windmove-down)
+          ([?\s-h] . windmove-left)
+          ([?\s-l] . windmove-right)
+          ([?\s-k] . windmove-up)
+          ([?\s-j] . windmove-down)
+
+          ;; Swap windows
+          ([M-s-left] . windmove-swap-states-left)
+          ([M-s-right] . windmove-swap-states-right)
+          ([M-s-up] . windmove-swap-states-up)
+          ([M-s-down] . windmove-swap-states-down)
+          ([?\M-\s-h] . windmove-swap-states-left)
+          ([?\M-\s-l] . windmove-swap-states-right)
+          ([?\M-\s-k] . windmove-swap-states-up)
+          ([?\M-\s-j] . windmove-swap-states-down)
+
+          ;; Resize window
+          ([C-s-left] . lr/exwm-resize-left)
+          ([C-s-down] . lr/exwm-resize-down)
+          ([C-s-up] . lr/exwm-resize-up)
+          ([C-s-right] . lr/exwm-resize-right)
+          ([?\C-\s-h] . lr/exwm-resize-left)
+          ([?\C-\s-j] . lr/exwm-resize-down)
+          ([?\C-\s-k] . lr/exwm-resize-up)
+          ([?\C-\s-l] . lr/exwm-resize-right)
+
+          ;; Launch applications via shell command
+          ([?\s-&] . (lambda (command)
+                       (interactive (list (read-shell-command "$ ")))
+                       (start-process-shell-command command nil command)))
+
+          ;; Switch workspace
+          ([?\s-w] . exwm-workspace-switch)
+
+          ;; 's-N': Switch to certain workspace with Super (Win) plus a number key (0 - 9)
+          ,@(mapcar (lambda (i)
+                      `(,(kbd (format "s-%d" i)) .
+                        (lambda ()
+                          (interactive)
+                          (exwm-workspace-switch-create ,i))))
+                    (number-sequence 0 9))))
+  :config
+
+  ;; When window "class" updates, use it to set the buffer name
+  ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
+  (add-hook 'exwm-update-title-hook #'efs/exwm-update-class)
+
+  (add-hook 'exwm-randr-screen-change-hook #'exwm-randr-refresh)
+
+  ;; Ctrl+Q will enable the next key to be sent directly
+  (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
+
+
+  (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
+  (exwm-randr-mode 1)
+  (exwm-enable))
 ;; Process Editor (htop-like)
 (use-package proced
   :custom
