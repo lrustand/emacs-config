@@ -936,8 +936,45 @@ capture was not aborted."
 (add-hook 'server-after-make-frame-hook 'set-line-number-background)
 (add-hook 'window-setup-hook 'set-line-number-background)
 
+
 (use-package eshell
-  :config
+  :preface
+  ;; Define a variable to hold the cd history
+  (defvar eshell-cd-history nil
+    "History of directories visited in EShell.")
+
+  ;; Function to view and select from cd history
+  (defun eshell-cd-history-view ()
+    "View and select a directory from the cd history."
+    (interactive)
+    (if eshell-cd-history
+        (let ((directory (completing-read "Select directory: " eshell-cd-history)))
+          (cd directory))
+      (message "No history available.")))
+
+  ;; Advice function to modify the original cd command
+  (defun eshell-cd-advice (orig-fun &rest args)
+    "Advice around the original cd function to record history."
+    (let ((directory (car args)))  ;; Get the first argument (the directory)
+      (when (and directory (stringp directory))
+        (setq eshell-cd-history (cons (expand-file-name directory) eshell-cd-history)))
+      ;; Call the original cd function
+      (apply orig-fun args)))
+
+  ;; Apply the advice to the original eshell/cd function
+  (advice-add 'eshell/cd :around #'eshell-cd-advice)
+  ;; TODO: Make functions to navigate back/forward
+
+  ;; Bind the history view function to a key for easy access
+  (define-key eshell-mode-map (kbd "C-c C-d") 'eshell-cd-history-view)
+
+  (defun my-eshell-evil-insert ()
+    "Move cursor to end of prompt when entering insert mode in Eshell."
+    (when (and (eq major-mode 'eshell-mode)
+               (evil-insert-state-p))
+      (goto-char (point-max))
+      (eshell-bol)))
+
   (defun git-status ()
     (let ((default-directory (eshell/pwd)))
       (with-output-to-string
@@ -947,7 +984,11 @@ capture was not aborted."
   (defun git-status--dirty-p ()
     (not (string-blank-p (git-status))))
   :hook
-  (eshell-mode . (lambda () (setenv "TERM" "xterm-256color")))
+  (eshell-mode . (lambda ()
+                   (setenv "TERM" "xterm-256color")
+                   ;; Buffer local hook
+                   (add-hook 'evil-insert-state-entry-hook
+                             #'my-eshell-evil-insert nil t)))
   :custom
   (eshell-prompt-function
    (lambda ()
@@ -987,7 +1028,18 @@ capture was not aborted."
         (propertize "\n" 'face default-prompt-face)
         (propertize " ->" 'face `(:foreground ,blue :background ,prompt-bg :bold))
         (propertize " " 'face default-prompt-face)))))
-  (eshell-prompt-regexp " -> "))
+  (eshell-prompt-regexp "^ -> "))
+
+;; Highlight command names in eshell
+(use-package eshell-syntax-highlighting
+  :after eshell
+  :ensure t
+  :custom
+  ;; Do not print the "nobreak" character
+  (nobreak-char-display nil)
+  :config
+  ;; Enable in all Eshell buffers.
+  (eshell-syntax-highlighting-global-mode 1))
 
 ;;(defun highlight-selected-window ()
 ;;  "Highlight selected window with a different background color."
