@@ -119,8 +119,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (set-frame-font "DeJavu Sans Mono 10" nil t)
 
+;; Completion for shell commands
 (use-package pcmpl-args
-  :ensure t)
+  :ensure t
+  :demand t)
+
 (defun get-focused-monitor-geometry ()
   "Get the geometry of the monitor displaying the selected frame in EXWM."
   (let* ((monitor-attrs (frame-monitor-attributes))
