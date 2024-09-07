@@ -9,7 +9,15 @@
 (add-to-list 'package-archives
          '("melpa" . "https://melpa.org/packages/"))
 (package-initialize)
-(package-refresh-contents)
+(if package-archive-contents
+    ;; Do it in the background if we already have it
+    (package-refresh-contents t)
+  (package-refresh-contents))
+
+(use-package solarized-theme
+  :ensure t
+  :config
+  (load-theme 'solarized-dark t))
 
 (use-package doom-modeline
   :ensure t
@@ -35,13 +43,14 @@
   (evil-set-undo-system 'undo-tree))
 
 (use-package evil-collection
-  :after evil
   :ensure t
+  :after evil
   :config
   (evil-collection-init))
 
 (use-package evil-terminal-cursor-changer
   :ensure t
+  :after evil
   :config
   (unless (display-graphic-p)
           (require 'evil-terminal-cursor-changer)
@@ -49,10 +58,11 @@
 
 (use-package emacs
   :config
+  (require 'tramp)
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path) ;; Fix tramp for Guix
-  (add-hook 'prog-mode-hook
-            (lambda ()
-              (setq-local show-trailing-whitespace t)))
+  :hook
+  (prog-mode . (lambda ()
+                 (setq-local show-trailing-whitespace t)))
   :custom
   (native-comp-async-report-warnings-errors 'silent))
 
@@ -96,11 +106,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
     (advice-remove #'enable-theme fn-name)
     (advice-add #'enable-theme :after fn-name)))
 
-(use-package solarized-theme
-  :ensure t
-  :config
-  (load-theme 'solarized-dark t))
-
 (use-package auto-dim-other-buffers
   :ensure t
   :config
@@ -116,9 +121,45 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package pcmpl-args
   :ensure t)
+(defun get-focused-monitor-geometry ()
+  "Get the geometry of the monitor displaying the selected frame in EXWM."
+  (let* ((monitor-attrs (frame-monitor-attributes))
+         (workarea (assoc 'workarea monitor-attrs))
+         (geometry (cdr workarea)))
+    (list (nth 0 geometry) ; X
+          (nth 1 geometry) ; Y
+          (nth 2 geometry) ; Width
+          (nth 3 geometry) ; Height
+          )))
 
 (use-package corfu
   :ensure t
+  :preface
+  (defun corfu-enable-in-minibuffer ()
+    "Enable Corfu in the minibuffer."
+    (when (local-variable-p 'completion-at-point-functions)
+      ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
+      (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
+                  corfu-popupinfo-delay nil)
+      (corfu-mode 1)))
+  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
+    "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
+    ;; Get the geometry of the currently focused monitor
+    (let* ((monitor-geometry (get-focused-monitor-geometry))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry))
+           ;; You may want to adjust the logic below if you have specific preferences
+           ;; on where on the monitor the posframe should appear.
+           ;; Currently, it places the posframe at its intended X and Y, but ensures
+           ;; it's within the bounds of the focused monitor.
+           (new-x (+ monitor-x x))
+           (new-y (+ monitor-y y)))
+      ;; Call the original function with potentially adjusted coordinates
+      (funcall orig-fun frame new-x new-y width height buffer)))
+
+
+  :hook
+  (minibuffer-setup-hook . corfu-enable-in-minibuffer)
   :custom
   (corfu-auto nil)
   ;;(corfu-auto-delay 0.6)
@@ -130,17 +171,10 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :config
   (with-eval-after-load "sly"
     (setq sly-symbol-completion-mode nil))
+  (advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
   (corfu-popupinfo-mode 1)
   (global-corfu-mode))
 
-(defun corfu-enable-in-minibuffer ()
-  "Enable Corfu in the minibuffer."
-  (when (local-variable-p 'completion-at-point-functions)
-    ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
-    (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
-                corfu-popupinfo-delay nil)
-    (corfu-mode 1)))
-(add-hook 'minibuffer-setup-hook #'corfu-enable-in-minibuffer)
 
 (use-package cape
   :ensure t
@@ -191,10 +225,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :init
   (require 'lsp-latex)
 
+  :hook
+  (tex-mode . 'lsp)
+  (latex-mode . 'lsp)
+  (LaTeX-mode . 'lsp)
   :config
-  (add-hook 'tex-mode-hook 'lsp)
-  (add-hook 'latex-mode-hook 'lsp)
-  (add-hook 'LaTeX-mode-hook 'lsp)
 
   ;; For YaTeX
   (with-eval-after-load "yatex"
@@ -298,12 +333,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package git-gutter
   :ensure t
-  :custom
-  (git-gutter:hide-gutter t)
-  (git-gutter:update-interval 2)
-  (git-gutter:unchanged-sign " ")
-
-  :config
+  :preface
   (defun rpo/git-gutter-mode ()
     "Enable git-gutter mode if current buffer's file is under version control."
     (if (and (buffer-file-name)
@@ -312,15 +342,22 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
              (not (cl-some (lambda (suffix) (string-suffix-p suffix (buffer-file-name)))
                            '(".pdf" ".svg" ".png"))))
         (git-gutter-mode 1)))
-  (add-hook 'find-file-hook #'rpo/git-gutter-mode)
-  (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
   (defun set-git-gutter-background ()
     (set-face-background 'git-gutter:unchanged (face-attribute 'mode-line :background))
     (set-face-background 'git-gutter:modified (face-attribute 'mode-line :background))
     (set-face-background 'git-gutter:added (face-attribute 'mode-line :background))
     (set-face-background 'git-gutter:deleted (face-attribute 'mode-line :background)))
-  (add-hook 'server-after-make-frame-hook 'set-git-gutter-background)
-  (add-hook 'window-setup-hook 'set-git-gutter-background))
+  :custom
+  (git-gutter:hide-gutter t)
+  (git-gutter:update-interval 2)
+  (git-gutter:unchanged-sign " ")
+
+  :config
+  (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
+  :hook
+  (prog-mode . rpo/git-gutter-mode)
+  (server-after-make-frame-hook . set-git-gutter-background)
+  (window-setup-hook . set-git-gutter-background))
 
 (use-package vertico
   :ensure t
@@ -418,11 +455,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package mu4e
   :init
-  (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+  ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
   (require 'mu4e)
-  :config
+  :hook
   ;; Don't create tons of "draft" messages
-  (add-hook 'mu4e-compose-mode-hook #'(lambda () (auto-save-mode -1)))
+  (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
   :custom
   (mu4e-update-interval 30)
   ;; Use with font-google-noto, or a later version of font-openmoji
@@ -552,30 +589,119 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package evil-goggles
   :ensure t
+  :after (evil goggles)
   :config
   (evil-goggles-mode))
 
-(defun my/org-roam-get-title (file)
-  (save-window-excursion
-    (find-file file)
-    (org-get-title)))
 
-;; This function generates headings for org-agenda for project files
-(defun my/org-agenda-create-project-heading-agenda-views ()
-  (mapcar (lambda (file)
-            `(todo "" ((org-agenda-files '(,file))
-                       (org-agenda-overriding-header ,(my/org-roam-get-title file))
-                       (org-agenda-prefix-format '((todo . ""))))))
-          (my/org-roam-list-notes-by-tag "project")))
 
-;; This function generates headings for org-agenda per tag
-(defun my/org-agenda-create-tag-heading-agenda-views ()
-  (mapcar (lambda (tag)
-            `(tags-todo ,(car tag) ((org-agenda-overriding-header ,(car tag)))))
-          (seq-filter (lambda (it) (not (or (string-equal (car it) "project")
-                                            (string-equal (car it) "todo"))))
-                      (org-roam-db-query [:select :distinct [tag] :from tags ]))))
+(use-package org-roam
+  :ensure t
+  :demand t  ;; Ensure org-roam is loaded by default
+  :init
+  (make-directory "~/org-roam" t)
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory "~/org-roam")
+  (org-roam-dailies-directory "dailies")
+  (org-roam-completion-everywhere t)
+  (org-roam-capture-templates
+   '(("d" "default" plain "%?"
+      :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}")
+      :unnarrowed t)))
+  (org-roam-dailies-capture-templates
+   '(("d" "default" plain "%?"
+      :target (file+head "%<%Y-%m-%d>.org"
+                         "#+title: %<%Y-%m-%d>")
+      :unnarrowed t)))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n p" . my/org-roam-find-project)
+         :map org-mode-map
+         ("C-M-i" . completion-at-point)
+         :map org-roam-dailies-map
+         ("Y" . org-roam-dailies-capture-yesterday)
+         ("T" . org-roam-dailies-capture-tomorrow))
+  :bind-keymap
+  ("C-c n d" . org-roam-dailies-map)
+  :config
+  (require 'org-roam-dailies) ;; Ensure the keymap is available
 
+  (defun my/org-roam-get-title (file)
+    (save-window-excursion
+      (find-file file)
+      (org-get-title)))
+
+  (defun my/org-roam-filter-by-tag (tag-name)
+    (lambda (node)
+      (member tag-name (org-roam-node-tags node))))
+
+  (defun my/org-roam-list-notes-by-tag (tag-name)
+    (mapcar #'org-roam-node-file
+            (seq-filter
+             (my/org-roam-filter-by-tag tag-name)
+             (org-roam-node-list))))
+
+  (defun my/org-roam-refresh-agenda-list ()
+    (interactive)
+    (setq org-agenda-files (delete-dups (append (my/org-roam-list-notes-by-tag "project")
+                                                (my/org-roam-list-notes-by-tag "todo")))))
+
+  ;; Build the agenda list the first time for the session
+  (my/org-roam-refresh-agenda-list)
+
+  (defun my/org-roam-project-finalize-hook ()
+    "Adds the captured project file to `org-agenda-files' if the
+capture was not aborted."
+    ;; Remove the hook since it was added temporarily
+    (remove-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
+
+    ;; Add project file to the agenda list if the capture was confirmed
+    (unless org-note-abort
+      (with-current-buffer (org-capture-get :buffer)
+        (add-to-list 'org-agenda-files (buffer-file-name)))))
+
+  (defun my/org-roam-find-project ()
+    (interactive)
+    ;; Add the project file to the agenda after capture is finished
+    (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
+
+    ;; Select a project file to open, creating it if necessary
+    (org-roam-node-find
+     nil
+     nil
+     (my/org-roam-filter-by-tag "project")
+     nil
+     :templates
+     '(("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+category: ${title}\n#+filetags: project")
+        :unnarrowed t))))
+
+  (defun my/org-roam-copy-todo-to-today ()
+    (interactive)
+    (let ((org-refile-keep t) ;; Set this to nil to delete the original!
+          (org-roam-dailies-capture-templates
+           '(("t" "tasks" entry "%?"
+              :if-new (file+head+olp "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n" ("Tasks")))))
+          (org-after-refile-insert-hook #'save-buffer)
+          today-file
+          pos)
+      (save-window-excursion
+        (org-roam-dailies--capture (current-time) t)
+        (setq today-file (buffer-file-name))
+        (setq pos (point)))
+
+      ;; Only refile if the target file is different than the current file
+      (unless (equal (file-truename today-file)
+                     (file-truename (buffer-file-name)))
+        (org-refile nil nil (list "Tasks" today-file nil pos)))))
+
+  (add-to-list 'org-after-todo-state-change-hook
+               (lambda ()
+                 (when (equal org-state "DONE")
+                   (my/org-roam-copy-todo-to-today))))
+  (org-roam-db-autosync-mode))
 (use-package org
   :config
   (require 'org-inlinetask)
@@ -610,30 +736,30 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
      ("CANCELED" . (:foreground "red" :weight bold))))
 
   (org-agenda-prefix-format '(
-    ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-    (agenda  . " %i %(org-get-title) ")
-    (timeline  . "  %(org-get-title) ")
-    (todo  . " %i %(org-get-title) ")
-    (tags  . " %i %(org-get-title) ")
-    (search . " %i %(org-get-title) ")))
+                              ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                              (agenda  . " %i %(org-get-title) ")
+                              (timeline  . "  %(org-get-title) ")
+                              (todo  . " %i %(org-get-title) ")
+                              (tags  . " %i %(org-get-title) ")
+                              (search . " %i %(org-get-title) ")))
 
   (org-agenda-custom-commands
-    `(("d" "Dashboard"
-       ((agenda "" ((org-deadline-warning-days 7)))
-        (todo "NEXT"
-          ((org-agenda-overriding-header "Next Tasks")))
-        (tags-todo "work"
-          ((org-agenda-overriding-header "Work Tasks")))
-        (tags-todo "+irl-TODO=\"HOLD\"-recurring"
-          ((org-agenda-overriding-header "IRL Tasks")))
-        ,@(my/org-agenda-create-project-heading-agenda-views)))
-      ("h" "Habits"
-       ((tags-todo "STYLE=\"habit\""
-          ((org-agenda-overriding-header "Habits")))))
-      ("p" "Projects"
-       ,(my/org-agenda-create-project-heading-agenda-views))
-      ("t" "Tags"
-       ,(my/org-agenda-create-tag-heading-agenda-views))))
+   `(("d" "Dashboard"
+      ((agenda "" ((org-deadline-warning-days 7)))
+       (todo "NEXT"
+             ((org-agenda-overriding-header "Next Tasks")))
+       (tags-todo "work"
+                  ((org-agenda-overriding-header "Work Tasks")))
+       (tags-todo "+irl-TODO=\"HOLD\"-recurring"
+                  ((org-agenda-overriding-header "IRL Tasks")))
+       ,@(my/org-agenda-create-project-heading-agenda-views)))
+     ("h" "Habits"
+      ((tags-todo "STYLE=\"habit\""
+                  ((org-agenda-overriding-header "Habits")))))
+     ("p" "Projects"
+      ,(my/org-agenda-create-project-heading-agenda-views))
+     ("t" "Tags"
+      ,(my/org-agenda-create-tag-heading-agenda-views))))
 
 
   :hook (org-mode . (lambda ()
@@ -642,6 +768,51 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
                       (org-fold-all-done-entries)))
 
   :config
+  ;; This function generates headings for org-agenda for project files
+  (defun my/org-agenda-create-project-heading-agenda-views ()
+    (mapcar (lambda (file)
+              `(todo "" ((org-agenda-files '(,file))
+                         (org-agenda-overriding-header ,(my/org-roam-get-title file))
+                         (org-agenda-prefix-format '((todo . ""))))))
+            (my/org-roam-list-notes-by-tag "project")))
+
+  ;; This function generates headings for org-agenda per tag
+  (defun my/org-agenda-create-tag-heading-agenda-views ()
+    (mapcar (lambda (tag)
+              `(tags-todo ,(car tag) ((org-agenda-overriding-header ,(car tag)))))
+            (seq-filter (lambda (it) (not (or (string-equal (car it) "project")
+                                              (string-equal (car it) "todo"))))
+                        (org-roam-db-query [:select :distinct [tag] :from tags ]))))
+
+  (defun my/org-checkbox-todo ()
+    "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
+    (interactive)
+    (let ((todo-state (org-get-todo-state)) beg end)
+      (unless (not todo-state)
+        (save-excursion
+          (org-back-to-heading t)
+          (setq beg (point))
+          (end-of-line)
+          (setq end (point))
+          (goto-char beg)
+          (if (re-search-forward "\\[\\([0-9]*%\\)\\]\\|\\[\\([0-9]*\\)/\\([0-9]*\\)\\]"
+                                 end t)
+              (if (match-end 1)
+                  (if (equal (match-string 1) "100%")
+                      (unless (string-equal todo-state "DONE")
+                        (org-todo 'done)))
+                (if (and (> (match-end 2) (match-beginning 2))
+                         (equal (match-string 2) (match-string 3)))
+                    (unless (string-equal todo-state "DONE")
+                      (org-todo 'done)))))))))
+
+  (add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
+
+  (defun org-summary-todo (n-done n-not-done)
+    "Switch entry to DONE when all subentries are done."
+    (if (= n-not-done 0) (org-todo "DONE")))
+
+  (add-hook 'org-after-todo-statistics-hook #'org-summary-todo)
 
   ;; TODO only collapse DONE items if there are no TODO children
   (defun org-fold-all-done-entries ()
@@ -651,28 +822,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
       (goto-char (point-max))
       (while (outline-previous-heading)
         (when (org-entry-is-done-p)
-          (hide-entry)))))
-
-  (defun org-advance ()
-    (interactive)
-    (when (buffer-narrowed-p)
-    (beginning-of-buffer)
-    (widen)
-    (org-forward-heading-same-level 1))
-      (org-narrow-to-subtree))
-
-  (defun org-retreat ()
-    (interactive)
-    (when (buffer-narrowed-p)
-      (beginning-of-buffer)
-      (widen)
-     (org-backward-heading-same-level 1))
-     (org-narrow-to-subtree))
-  (evil-define-key 'normal org-mode-map (kbd "J") 'org-advance)
-  (evil-define-key 'normal org-mode-map (kbd "K") 'org-retreat))
+          (hide-entry))))))
 
 (use-package org-contrib
-  :ensure t)
+  :ensure t
+  :after org)
 
 (use-package evil-org
   :ensure t
@@ -691,139 +845,15 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package org-edna
   :ensure t
+  :after org
   :config
   (org-edna-mode 1))
 
-(defun my/org-checkbox-todo ()
-  "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
-  (interactive)
-  (let ((todo-state (org-get-todo-state)) beg end)
-    (unless (not todo-state)
-      (save-excursion
-        (org-back-to-heading t)
-        (setq beg (point))
-        (end-of-line)
-        (setq end (point))
-        (goto-char beg)
-        (if (re-search-forward "\\[\\([0-9]*%\\)\\]\\|\\[\\([0-9]*\\)/\\([0-9]*\\)\\]"
-                       end t)
-            (if (match-end 1)
-                (if (equal (match-string 1) "100%")
-                    (unless (string-equal todo-state "DONE")
-                      (org-todo 'done)))
-                (if (and (> (match-end 2) (match-beginning 2))
-                         (equal (match-string 2) (match-string 3)))
-                    (unless (string-equal todo-state "DONE")
-                      (org-todo 'done)))))))))
 
-(add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
-
-(defun org-summary-todo (n-done n-not-done)
-  "Switch entry to DONE when all subentries are done."
-  (if (= n-not-done 0) (org-todo "DONE")))
-
-(add-hook 'org-after-todo-statistics-hook #'org-summary-todo)
-
-(use-package org-roam
-  :ensure t
-  :demand t  ;; Ensure org-roam is loaded by default
-  :init
-  (make-directory "~/org-roam" t)
-  (setq org-roam-v2-ack t)
-  :custom
-  (org-roam-directory "~/org-roam")
-  (org-roam-dailies-directory "dailies")
-  (org-roam-completion-everywhere t)
-  (org-roam-capture-templates
-   '(("d" "default" plain "%?"
-      :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}")
-      :unnarrowed t)))
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-         ("C-c n f" . org-roam-node-find)
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n p" . my/org-roam-find-project)
-         :map org-mode-map
-         ("C-M-i" . completion-at-point)
-         :map org-roam-dailies-map
-         ("Y" . org-roam-dailies-capture-yesterday)
-         ("T" . org-roam-dailies-capture-tomorrow))
-  :bind-keymap
-  ("C-c n d" . org-roam-dailies-map)
-  :config
-  (require 'org-roam-dailies) ;; Ensure the keymap is available
-  (org-roam-db-autosync-mode))
-
-(defun my/org-roam-filter-by-tag (tag-name)
-  (lambda (node)
-    (member tag-name (org-roam-node-tags node))))
-
-(defun my/org-roam-list-notes-by-tag (tag-name)
-  (mapcar #'org-roam-node-file
-          (seq-filter
-           (my/org-roam-filter-by-tag tag-name)
-           (org-roam-node-list))))
-
-(defun my/org-roam-refresh-agenda-list ()
-  (interactive)
-  (setq org-agenda-files (delete-dups (append (my/org-roam-list-notes-by-tag "project")
-                                      (my/org-roam-list-notes-by-tag "todo")))))
-
-;; Build the agenda list the first time for the session
-(my/org-roam-refresh-agenda-list)
-
-(defun my/org-roam-project-finalize-hook ()
-  "Adds the captured project file to `org-agenda-files' if the
-capture was not aborted."
-  ;; Remove the hook since it was added temporarily
-  (remove-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
-
-  ;; Add project file to the agenda list if the capture was confirmed
-  (unless org-note-abort
-    (with-current-buffer (org-capture-get :buffer)
-      (add-to-list 'org-agenda-files (buffer-file-name)))))
-
-(defun my/org-roam-find-project ()
-  (interactive)
-  ;; Add the project file to the agenda after capture is finished
-  (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
-
-  ;; Select a project file to open, creating it if necessary
-  (org-roam-node-find
-   nil
-   nil
-   (my/org-roam-filter-by-tag "project")
-   nil
-   :templates
-   '(("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
-      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+category: ${title}\n#+filetags: project")
-      :unnarrowed t))))
-
-(defun my/org-roam-copy-todo-to-today ()
-  (interactive)
-  (let ((org-refile-keep t) ;; Set this to nil to delete the original!
-        (org-roam-dailies-capture-templates
-          '(("t" "tasks" entry "%?"
-             :if-new (file+head+olp "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n" ("Tasks")))))
-        (org-after-refile-insert-hook #'save-buffer)
-        today-file
-        pos)
-    (save-window-excursion
-      (org-roam-dailies--capture (current-time) t)
-      (setq today-file (buffer-file-name))
-      (setq pos (point)))
-
-    ;; Only refile if the target file is different than the current file
-    (unless (equal (file-truename today-file)
-                   (file-truename (buffer-file-name)))
-      (org-refile nil nil (list "Tasks" today-file nil pos)))))
-
-(add-to-list 'org-after-todo-state-change-hook
-             (lambda ()
-               (when (equal org-state "DONE")
-                 (my/org-roam-copy-todo-to-today))))
 
 (use-package org-transclusion
-  :ensure t)
+  :ensure t
+  :after org)
 
 (use-package dired
   :ensure nil
@@ -840,17 +870,20 @@ capture was not aborted."
 
 ;; Open archive files seamlessly in dired
 (use-package dired-avfs
-  :ensure t)
+  :ensure t
+  :after dired)
 
 ;; Filetype icons in dired
 (use-package all-the-icons-dired
   :ensure t
+  :after dired
   :hook (dired-mode . all-the-icons-dired-mode))
 
 ;; Collapse multiple dirctory levels if each only has one dir
 ;; Like the file explorer on github does
 (use-package dired-collapse
   :ensure t
+  :after dired
   :config
   (global-dired-collapse-mode))
 
@@ -864,6 +897,7 @@ capture was not aborted."
 ;; TODO: Automatically open correct program through mime/xdg
 (use-package dired-open
   :ensure t
+  :after dired
   :custom
   (dired-open-extensions
    '(("png" . "feh")
@@ -997,113 +1031,113 @@ capture was not aborted."
   (insert "--8<---------------cut here---------------end--------------->8---"))
 
 
-(defun efs/exwm-update-class ()
-  (exwm-workspace-rename-buffer exwm-title))
-
-(defun lr/exwm-resize-left ()
-  (interactive)
-  (if (window-at-side-p nil 'right)
-      (exwm-layout-enlarge-window-horizontally 30)
-    (exwm-layout-shrink-window-horizontally 30)))
-(defun lr/exwm-resize-right ()
-  (interactive)
-  (if (window-at-side-p nil 'right)
-      (exwm-layout-shrink-window-horizontally 30)
-    (exwm-layout-enlarge-window-horizontally 30)))
-(defun lr/exwm-resize-up ()
-  (interactive)
-  (if (window-at-side-p nil 'bottom)
-      (exwm-layout-enlarge-window 30)
-    (exwm-layout-shrink-window 30)))
-(defun lr/exwm-resize-down ()
-  (interactive)
-  (if (window-at-side-p nil 'bottom)
-      (exwm-layout-shrink-window 30)
-    (exwm-layout-enlarge-window 30)))
 
 (use-package exwm
   :ensure t
+  :preface
+  (defun efs/exwm-update-class ()
+    (exwm-workspace-rename-buffer exwm-title))
+
+  (defun lr/exwm-resize-left ()
+    (interactive)
+    (if (window-at-side-p nil 'right)
+        (exwm-layout-enlarge-window-horizontally 30)
+      (exwm-layout-shrink-window-horizontally 30)))
+  (defun lr/exwm-resize-right ()
+    (interactive)
+    (if (window-at-side-p nil 'right)
+        (exwm-layout-shrink-window-horizontally 30)
+      (exwm-layout-enlarge-window-horizontally 30)))
+  (defun lr/exwm-resize-up ()
+    (interactive)
+    (if (window-at-side-p nil 'bottom)
+        (exwm-layout-enlarge-window 30)
+      (exwm-layout-shrink-window 30)))
+  (defun lr/exwm-resize-down ()
+    (interactive)
+    (if (window-at-side-p nil 'bottom)
+        (exwm-layout-shrink-window 30)
+      (exwm-layout-enlarge-window 30)))
+  :init
+  (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
   :custom
   ;; Set the default number of workspaces
   (exwm-workspace-number 5)
   ;; These keys should always pass through to Emacs
   (exwm-input-prefix-keys
-    '(?\C-x
-      ?\C-u
-      ?\C-h
-      ?\M-x
-      ?\M-`
-      ?\M-&
-      ?\M-:
-      ?\C-\ ))  ;; Ctrl+Space
+   '(?\C-x
+     ?\C-u
+     ?\C-h
+     ?\M-x
+     ?\M-`
+     ?\M-&
+     ?\M-:
+     ?\C-\ ))  ;; Ctrl+Space
   ;; Set up global key bindings.  These always work, no matter the input state!
   (exwm-input-global-keys
-        `(
-          ;; Reset to line-mode (C-c C-k switches to char-mode via exwm-input-release-keyboard)
-          ([?\s-r] . exwm-reset)
+   `(
+     ;; Reset to line-mode (C-c C-k switches to char-mode via exwm-input-release-keyboard)
+     ([?\s-r] . exwm-reset)
 
-          ([?\H-d] . app-launcher-run-app)
-          ([s-backspace] . kill-current-buffer)
-          ([s-return] . multi-vterm-dedicated-toggle)
+     ([?\H-d] . app-launcher-run-app)
+     ([s-backspace] . kill-current-buffer)
+     ([s-return] . multi-vterm-dedicated-toggle)
 
-          ;; Move focus between windows
-          ([s-left] . windmove-left)
-          ([s-right] . windmove-right)
-          ([s-up] . windmove-up)
-          ([s-down] . windmove-down)
-          ([?\s-h] . windmove-left)
-          ([?\s-l] . windmove-right)
-          ([?\s-k] . windmove-up)
-          ([?\s-j] . windmove-down)
+     ;; Move focus between windows
+     ([s-left] . windmove-left)
+     ([s-right] . windmove-right)
+     ([s-up] . windmove-up)
+     ([s-down] . windmove-down)
+     ([?\s-h] . windmove-left)
+     ([?\s-l] . windmove-right)
+     ([?\s-k] . windmove-up)
+     ([?\s-j] . windmove-down)
 
-          ;; Swap windows
-          ([M-s-left] . windmove-swap-states-left)
-          ([M-s-right] . windmove-swap-states-right)
-          ([M-s-up] . windmove-swap-states-up)
-          ([M-s-down] . windmove-swap-states-down)
-          ([?\M-\s-h] . windmove-swap-states-left)
-          ([?\M-\s-l] . windmove-swap-states-right)
-          ([?\M-\s-k] . windmove-swap-states-up)
-          ([?\M-\s-j] . windmove-swap-states-down)
+     ;; Swap windows
+     ([M-s-left] . windmove-swap-states-left)
+     ([M-s-right] . windmove-swap-states-right)
+     ([M-s-up] . windmove-swap-states-up)
+     ([M-s-down] . windmove-swap-states-down)
+     ([?\M-\s-h] . windmove-swap-states-left)
+     ([?\M-\s-l] . windmove-swap-states-right)
+     ([?\M-\s-k] . windmove-swap-states-up)
+     ([?\M-\s-j] . windmove-swap-states-down)
 
-          ;; Resize window
-          ([C-s-left] . lr/exwm-resize-left)
-          ([C-s-down] . lr/exwm-resize-down)
-          ([C-s-up] . lr/exwm-resize-up)
-          ([C-s-right] . lr/exwm-resize-right)
-          ([?\C-\s-h] . lr/exwm-resize-left)
-          ([?\C-\s-j] . lr/exwm-resize-down)
-          ([?\C-\s-k] . lr/exwm-resize-up)
-          ([?\C-\s-l] . lr/exwm-resize-right)
+     ;; Resize window
+     ([C-s-left] . lr/exwm-resize-left)
+     ([C-s-down] . lr/exwm-resize-down)
+     ([C-s-up] . lr/exwm-resize-up)
+     ([C-s-right] . lr/exwm-resize-right)
+     ([?\C-\s-h] . lr/exwm-resize-left)
+     ([?\C-\s-j] . lr/exwm-resize-down)
+     ([?\C-\s-k] . lr/exwm-resize-up)
+     ([?\C-\s-l] . lr/exwm-resize-right)
 
-          ;; Launch applications via shell command
-          ([?\s-&] . (lambda (command)
-                       (interactive (list (read-shell-command "$ ")))
-                       (start-process-shell-command command nil command)))
+     ;; Launch applications via shell command
+     ([?\s-&] . (lambda (command)
+                  (interactive (list (read-shell-command "$ ")))
+                  (start-process-shell-command command nil command)))
 
-          ;; Switch workspace
-          ([?\s-w] . exwm-workspace-switch)
+     ;; Switch workspace
+     ([?\s-w] . exwm-workspace-switch)
 
-          ;; 's-N': Switch to certain workspace with Super (Win) plus a number key (0 - 9)
-          ,@(mapcar (lambda (i)
-                      `(,(kbd (format "s-%d" i)) .
-                        (lambda ()
-                          (interactive)
-                          (exwm-workspace-switch-create ,i))))
-                    (number-sequence 0 9))))
-  :config
-
+     ;; 's-N': Switch to certain workspace with Super (Win) plus a number key (0 - 9)
+     ,@(mapcar (lambda (i)
+                 `(,(kbd (format "s-%d" i)) .
+                   (lambda ()
+                     (interactive)
+                     (exwm-workspace-switch-create ,i))))
+               (number-sequence 0 9))))
+  :hook
   ;; When window "class" updates, use it to set the buffer name
   ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
-  (add-hook 'exwm-update-title-hook #'efs/exwm-update-class)
-
-  (add-hook 'exwm-randr-screen-change-hook #'exwm-randr-refresh)
+  (exwm-update-title-hook . efs/exwm-update-class)
+  (exwm-randr-screen-change-hook . exwm-randr-refresh)
+  :config
 
   ;; Ctrl+Q will enable the next key to be sent directly
   (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
 
-
-  (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
   (exwm-randr-mode 1)
   (exwm-enable))
 
@@ -1121,12 +1155,34 @@ capture was not aborted."
 ;; Make vertico display in a floating window
 (use-package vertico-posframe
   :ensure t
+  :after vertico
+  :preface
+  (defun advise-vertico-posframe-show-with-monitor-awareness (orig-fun buffer window-point &rest args)
+    "Advise `vertico-posframe--show` to position the posframe according to the focused monitor."
+    ;; Extract the focused monitor's geometry
+    (let* ((monitor-geometry (get-focused-monitor-geometry))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry)))
+      ;; Override poshandler buffer-local variable to use monitor-aware positioning
+      (let ((vertico-posframe-poshandler
+             (lambda (info)
+               (let* ((parent-frame-width (plist-get info :parent-frame-width))
+                      (parent-frame-height (plist-get info :parent-frame-height))
+                      (posframe-width (plist-get info :posframe-width))
+                      (posframe-height (plist-get info :posframe-height))
+                      ;; Calculate center position on the focused monitor
+                      (x (+ monitor-x (/ (- parent-frame-width posframe-width) 2)))
+                      (y (+ monitor-y (/ (- parent-frame-height posframe-height) 2))))
+                 (cons x y)))))
+        ;; Call the original function with potentially adjusted poshandler
+        (apply orig-fun buffer window-point args))))
+
   :config
+  (advice-add 'vertico-posframe--show :around #'advise-vertico-posframe-show-with-monitor-awareness)
   (vertico-posframe-mode 1))
 
 (use-package tab-bar
-  :config
-  (tab-bar-mode 1)
+  :preface
   (defun lr/tab-bar-battery-status ()
     (battery-format "%b%p%%"
                     (funcall battery-status-function)))
@@ -1154,6 +1210,8 @@ capture was not aborted."
   (defface my-tab-bar-face
     '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
     "Face for the tab bar.")
+  :config
+  (tab-bar-mode 1)
 
   ;; Set the tab-bar face to use the custom face
   (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
@@ -1211,21 +1269,15 @@ capture was not aborted."
 
 ;; Process Editor (htop-like)
 (use-package proced
-  :custom
-  (proced-auto-update-flag 'visible)
-  (proced-auto-update-interval 1)
-  (proced-enable-color-flag t)
-  ;; Enable remote proced over tramp
-  (proced-show-remote-processes t)
-  :config
-  (defvar nix-proced-readable-mode-keywords
+  :preface
+  (defvar proced-guix-nix-readable-mode-keywords
     '(("\\(/nix/store/[0-9a-z]*-\\)"
        (1 '(face nil invisible t)))
       ("\\(/gnu/store/[0-9a-z/\.-]*/\\).* ?.*"
        (1 '(face nil invisible t)))))
 
-  (define-minor-mode nix-proced-readable-mode
-    "Make proced filenames more readable in NixOS and GuixSD"
+  (define-minor-mode proced-guix-nix-readable-mode
+    "Make proced filenames more readable in Guix and Nix"
     :lighter " proced-hash-filter-mode"
     (if nix-proced-readable-mode
         (progn
@@ -1238,7 +1290,14 @@ capture was not aborted."
         (font-lock-remove-keywords nil
                                    nix-proced-readable-mode-keywords)
         (font-lock-mode t))))
-  (add-hook 'proced-mode-hook 'nix-proced-readable-mode))
+  :custom
+  (proced-auto-update-flag 'visible)
+  (proced-auto-update-interval 1)
+  (proced-enable-color-flag t)
+  ;; Enable remote proced over tramp
+  (proced-show-remote-processes t)
+  :hook
+  (proced-mode . nix-proced-readable-mode))
 
 ;; Drag stuff up/down etc with M-<up>, M-<down>...
 (use-package drag-stuff
@@ -1296,52 +1355,3 @@ capture was not aborted."
     (tab-new)
     (start-process "qutebrowser" nil "qutebrowser" "--target" "private-window" url)))
 
-(defun get-focused-monitor-geometry ()
-  "Get the geometry of the monitor displaying the selected frame in EXWM."
-  (let* ((monitor-attrs (frame-monitor-attributes))
-         (workarea (assoc 'workarea monitor-attrs))
-         (geometry (cdr workarea)))
-    (list (nth 0 geometry) ; X
-          (nth 1 geometry) ; Y
-          (nth 2 geometry) ; Width
-          (nth 3 geometry) ; Height
-          )))
-
-(defun advise-vertico-posframe-show-with-monitor-awareness (orig-fun buffer window-point &rest args)
-  "Advise `vertico-posframe--show` to position the posframe according to the focused monitor."
-  ;; Extract the focused monitor's geometry
-  (let* ((monitor-geometry (get-focused-monitor-geometry))
-         (monitor-x (nth 0 monitor-geometry))
-         (monitor-y (nth 1 monitor-geometry)))
-    ;; Override poshandler buffer-local variable to use monitor-aware positioning
-    (let ((vertico-posframe-poshandler
-           (lambda (info)
-             (let* ((parent-frame-width (plist-get info :parent-frame-width))
-                    (parent-frame-height (plist-get info :parent-frame-height))
-                    (posframe-width (plist-get info :posframe-width))
-                    (posframe-height (plist-get info :posframe-height))
-                    ;; Calculate center position on the focused monitor
-                    (x (+ monitor-x (/ (- parent-frame-width posframe-width) 2)))
-                    (y (+ monitor-y (/ (- parent-frame-height posframe-height) 2))))
-               (cons x y)))))
-      ;; Call the original function with potentially adjusted poshandler
-      (apply orig-fun buffer window-point args))))
-
-(advice-add 'vertico-posframe--show :around #'advise-vertico-posframe-show-with-monitor-awareness)
-
-(defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
-  "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
-  ;; Get the geometry of the currently focused monitor
-  (let* ((monitor-geometry (get-focused-monitor-geometry))
-         (monitor-x (nth 0 monitor-geometry))
-         (monitor-y (nth 1 monitor-geometry))
-         ;; You may want to adjust the logic below if you have specific preferences
-         ;; on where on the monitor the posframe should appear.
-         ;; Currently, it places the posframe at its intended X and Y, but ensures
-         ;; it's within the bounds of the focused monitor.
-         (new-x (+ monitor-x x))
-         (new-y (+ monitor-y y)))
-    ;; Call the original function with potentially adjusted coordinates
-    (funcall orig-fun frame new-x new-y width height buffer)))
-
-(advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
