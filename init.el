@@ -907,6 +907,10 @@ capture was not aborted."
      ("mp4" . "mpv")
      ("pdf" . "okular"))))
 
+(use-package pdf-tools
+  :ensure nil ;; Use package from Guix
+  (pdf-tools-install))
+
 (setq backup-directory-alist '((".*" . "~/.emacs.d/backup")))
 (setq create-lockfiles nil)
 
