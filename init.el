@@ -204,16 +204,16 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :ensure t
   :defer t)
 
-(use-package yasnippet
-  :ensure t
-  :custom
-  (yas-indent-line 'auto)
-  (yas-also-auto-indent-first-line t)
-  :config
-  (yas-global-mode 1))
-
-(use-package yasnippet-snippets
-  :ensure t)
+;;(use-package yasnippet
+;;  :ensure t
+;;  :custom
+;;  (yas-indent-line 'auto)
+;;  (yas-also-auto-indent-first-line t)
+;;  :config
+;;  (yas-global-mode 1))
+;;
+;;(use-package yasnippet-snippets
+;;  :ensure t)
 
 (use-package lsp-mode
   :ensure t
@@ -538,12 +538,12 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (mu4e-thread-folding-default-view 'folded)
   (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
 
-(use-package eat
-  :ensure t
-  :config
-  (eat-eshell-mode))
-  ;;:custom
-  ;;(eshell-visual-commands nil))
+;;(use-package eat
+;;  :ensure t
+;;  :config
+;;  (eat-eshell-mode))
+;;  ;;:custom
+;;  ;;(eshell-visual-commands nil))
 
 (use-package vterm
   :ensure t
