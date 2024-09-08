@@ -1398,19 +1398,29 @@ capture was not aborted."
     (cdr (or (assoc selected candidates)
              (cons nil selected)))))
 
+(defun launch-url-in-qutebrowser--internal (target)
+  (let ((url (select-from-qutebrowser-history))
+        (pipe (getenv "QUTE_FIFO"))
+        (flag (pcase target
+                    ('window "-w")
+                    ('tab "-t")
+                    ('private-window "-p"))))
+    (if pipe
+        (write-region (format "open %s %s" flag url) nil pipe t)
+      (start-process "qutebrowser" nil "qutebrowser" "--target" (symbol-name target) url))))
+
 (defun launch-url-in-qutebrowser ()
   (interactive)
-  (let ((url (select-from-qutebrowser-history)))
-    (start-process "qutebrowser" nil "qutebrowser" url)))
+  (launch-url-in-qutebrowser--internal 'auto))
+
+(defun launch-url-in-qutebrowser-tab ()
+  (interactive)
+  (launch-url-in-qutebrowser--internal 'tab))
 
 (defun launch-url-in-qutebrowser-window ()
   (interactive)
-  (let ((url (select-from-qutebrowser-history)))
-    (start-process "qutebrowser" nil "qutebrowser" "--target" "window" url)))
+  (launch-url-in-qutebrowser--internal 'window))
 
 (defun launch-url-in-qutebrowser-private ()
   (interactive)
-  (let ((url (select-from-qutebrowser-history)))
-    (tab-new)
-    (start-process "qutebrowser" nil "qutebrowser" "--target" "private-window" url)))
-
+  (launch-url-in-qutebrowser--internal 'private))
