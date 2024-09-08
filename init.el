@@ -1094,7 +1094,9 @@ capture was not aborted."
 
 (use-package exwm
   :ensure t
-  :preface
+  :demand t
+  :init (require 'exwm)
+  :config
   (defun efs/exwm-update-class ()
     (exwm-workspace-rename-buffer exwm-title))
 
@@ -1189,11 +1191,11 @@ capture was not aborted."
                      (exwm-workspace-switch-create ,i))))
                (number-sequence 0 9))))
   :hook
-  ;; When window "class" updates, use it to set the buffer name
-  ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
-  (exwm-update-title-hook . efs/exwm-update-class)
   (exwm-randr-screen-change-hook . exwm-randr-refresh)
   :config
+  ;; When window "class" updates, use it to set the buffer name
+  ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
+  (add-hook 'exwm-update-title-hook #'efs/exwm-update-class)
 
   ;; Ctrl+Q will enable the next key to be sent directly
   (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
