@@ -998,6 +998,7 @@ capture was not aborted."
             (red (face-foreground 'term-color-red))
             (black (face-foreground 'term-color-black))
             (blue (face-foreground 'term-color-blue))
+            (bright-black (face-foreground 'term-color-bright-black))
             (prompt-bg black)
             (username-fg (if (= (user-uid) 0) red green))
             (username-face `(:foreground ,username-fg
@@ -1009,23 +1010,26 @@ capture was not aborted."
             (timedate-face `(:foreground ,green
                                          :background ,prompt-bg
                                          :weight bold))
+            (git-branch-face `(:foreground ,bright-black
+                                           :background ,prompt-bg))
             (default-prompt-face `(:foreground "default"
                                                :background ,black
                                                :weight bold)))
        (concat
         "\n"
         ;;(propertize (if venv-current-name (concat " (" venv-current-name ")\n")  "") 'face `(:foreground "#00dc00"))
-        (propertize (format-time-string "[%H:%M, %d/%m/%y]\n" (current-time)) 'face timedate-face)
+        (propertize (format-time-string "[%H:%M, %d/%m/%y]" (current-time)) 'face timedate-face)
+        "\n"
         (propertize (user-login-name) 'face username-face)
         (propertize "@" 'face default-prompt-face)
         (propertize (system-name) 'face hostname-face)
         (propertize (format " [%s]" (f-abbrev (eshell/pwd))) 'face default-prompt-face)
         (when (magit-get-current-branch)
           (concat
-           (propertize (format " [%s" (magit-get-current-branch)) 'face default-prompt-face)
+           (propertize (format " [%s" (magit-get-current-branch)) 'face git-branch-face)
            (when (git-status--dirty-p)
              (propertize "*" 'face `(:foreground "red" :background ,prompt-bg :bold)))
-           (propertize "]" 'face default-prompt-face)))
+           (propertize "]" 'face git-branch-face)))
         "\n"
         (propertize "\n" 'face default-prompt-face)
         (propertize " ->" 'face `(:foreground ,blue :background ,prompt-bg :bold))
