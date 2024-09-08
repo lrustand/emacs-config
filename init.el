@@ -910,6 +910,7 @@ capture was not aborted."
 
 (use-package pdf-tools
   :ensure nil ;; Use package from Guix
+  :config
   (pdf-tools-install))
 
 (setq backup-directory-alist '((".*" . "~/.emacs.d/backup")))
