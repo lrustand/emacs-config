@@ -1200,6 +1200,12 @@ capture was not aborted."
   ;; Ctrl+Q will enable the next key to be sent directly
   (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
 
+  ;; Make posframe appear in front of X11 windows
+  (with-eval-after-load 'posframe
+    (define-advice posframe-show (:filter-return (frame) exwm-deparent)
+      (set-frame-parameter frame 'parent-frame nil)
+      frame))
+
   (exwm-randr-mode 1)
   (exwm-enable))
 
