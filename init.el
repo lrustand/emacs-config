@@ -1338,16 +1338,16 @@ capture was not aborted."
   (define-minor-mode proced-guix-nix-readable-mode
     "Make proced filenames more readable in Guix and Nix"
     :lighter " proced-hash-filter-mode"
-    (if nix-proced-readable-mode
+    (if proced-guix-nix-readable-mode
         (progn
           (make-variable-buffer-local 'font-lock-extra-managed-props)
           (add-to-list 'font-lock-extra-managed-props 'invisible)
           (font-lock-add-keywords nil
-                                  nix-proced-readable-mode-keywords)
+                                  proced-guix-nix-readable-mode-keywords)
           (font-lock-mode t))
       (progn
         (font-lock-remove-keywords nil
-                                   nix-proced-readable-mode-keywords)
+                                   proced-guix-nix-readable-mode-keywords)
         (font-lock-mode t))))
   :custom
   (proced-auto-update-flag 'visible)
@@ -1356,7 +1356,7 @@ capture was not aborted."
   ;; Enable remote proced over tramp
   (proced-show-remote-processes t)
   :hook
-  (proced-mode . nix-proced-readable-mode))
+  (proced-mode . proced-guix-nix-readable-mode))
 
 ;; Drag stuff up/down etc with M-<up>, M-<down>...
 (use-package drag-stuff
