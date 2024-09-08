@@ -1251,11 +1251,8 @@ capture was not aborted."
 
 (use-package tab-bar
   :preface
-  (defun lr/tab-bar-battery-status ()
-    (battery-format "%b%p%%"
-                    (funcall battery-status-function)))
   (defun lr/tab-bar-time-and-date ()
-    (let* ((tab-bar-time-face '(:weight bold))
+    (let* ((tab-bar-time-face '(:weight bold :foreground "white"))
            (tab-bar-time-format  "%a %-d %b, %H:%M "))
       `((menu-bar menu-item
                   ,(propertize (format-time-string tab-bar-time-format)
@@ -1265,15 +1262,24 @@ capture was not aborted."
                   :help "My heltp"))))
   (defun lr/tab-bar-separator () " | ")
   (defun ram ()
-    (lemon-monitor-display my/memory-monitor))
+    (propertize
+     (lemon-monitor-display my/memory-monitor)
+     'font-lock-face
+     '(:foreground "default")))
   (defun cpu ()
-    (lemon-monitor-display my/cpu-monitor))
+    (propertize
+     (lemon-monitor-display my/cpu-monitor)
+     'font-lock-face
+     '(:foreground "default")))
   (defun bat ()
     (lemon-monitor-display my/battery-monitor))
   (defun net ()
-    (concat
-     (lemon-monitor-display my/network-rx-monitor)
-     (lemon-monitor-display my/network-tx-monitor)))
+    (propertize
+     (concat
+      (lemon-monitor-display my/network-rx-monitor)
+      (lemon-monitor-display my/network-tx-monitor))
+     'face
+     '(:foreground "default")))
 
   (defface my-tab-bar-face
     '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
@@ -1290,11 +1296,8 @@ capture was not aborted."
                     tab-bar-format-add-tab
                     tab-bar-format-align-right
                     net
-                    lr/tab-bar-separator
                     ram
-                    lr/tab-bar-separator
                     cpu
-                    lr/tab-bar-separator
                     bat
                     lr/tab-bar-separator
                     lr/tab-bar-time-and-date)))
@@ -1310,13 +1313,17 @@ capture was not aborted."
                       (lambda ()
                         (lemon-monitor-update
                          my/battery-monitor))))
-(setq my/cpu-monitor (lemon-cpu-linux))
+(setq my/cpu-monitor
+      (lemon-cpu-linux :display-opts '(:index "CPU: "
+                                       :unit "%")))
 (setq my/cpu-monitor-timer
       (run-with-timer 0 1
                       (lambda ()
                         (lemon-monitor-update
                          my/cpu-monitor))))
-(setq my/memory-monitor (lemon-memory-linux))
+(setq my/memory-monitor
+      (lemon-memory-linux :display-opts '(:index "MEM: "
+                                          :unit "%")))
 (setq my/memory-monitor-timer
       (run-with-timer 0 30
                       (lambda ()
