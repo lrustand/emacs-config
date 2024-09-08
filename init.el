@@ -372,14 +372,15 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :init
   (marginalia-mode))
 
-(use-package consult
-  :ensure t
-  :bind (("C-x b" . consult-buffer)))
-
-(use-package consult-projectile
-  :ensure t
-  :bind (("C-c p p" . consult-projectile-switch-project)
-         ("C-c p f" . consult-projectile)))
+;;(use-package consult
+;;  :ensure t
+;;  :bind (("C-x b" . consult-buffer)))
+;;
+;;(use-package consult-projectile
+;;  :ensure t
+;;  :after consult
+;;  :bind (("C-c p p" . consult-projectile-switch-project)
+;;         ("C-c p f" . consult-projectile)))
 
 (use-package orderless
   :ensure t
