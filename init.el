@@ -1181,6 +1181,16 @@ capture was not aborted."
      ([?\s-k] . windmove-up)
      ([?\s-j] . windmove-down)
 
+     ;; Move buffers
+     ([S-s-left] . buf-move-left)
+     ([S-s-right] . buf-move-right)
+     ([S-s-up] . buf-move-up)
+     ([S-s-down] . buf-move-down)
+     ([?\s-H] . buf-move-left)
+     ([?\s-L] . buf-move-right)
+     ([?\s-K] . buf-move-up)
+     ([?\s-J] . buf-move-down)
+
      ;; Swap windows
      ([M-s-left] . windmove-swap-states-left)
      ([M-s-right] . windmove-swap-states-right)
@@ -1245,6 +1255,12 @@ capture was not aborted."
 (use-package framemove
   :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
   :custom (framemove-hook-into-windmove t))
+;; Move a buffer to a different window without swapping
+;; TODO: Integrate with framemove
+(use-package buffer-move
+  :ensure t
+  :custom
+  (buffer-move-behavior 'move))
 
 ;; Make vertico display in a floating window
 (use-package vertico-posframe
