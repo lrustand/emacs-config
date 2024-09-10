@@ -3,6 +3,7 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
+(server-start)
 
 ;; Set up package.el to work with MELPA
 (require 'package)
