@@ -1119,7 +1119,10 @@ capture was not aborted."
 (use-package exwm
   :ensure t
   :demand t
-  :init (require 'exwm)
+  :init
+  (require 'exwm)
+  (require 'exwm-randr)
+  (exwm-randr-mode 1)
   :config
   (defun efs/exwm-update-class ()
     (exwm-workspace-rename-buffer exwm-title))
@@ -1144,6 +1147,14 @@ capture was not aborted."
     (if (window-at-side-p nil 'bottom)
         (exwm-layout-shrink-window 30)
       (exwm-layout-enlarge-window 30)))
+
+  (defun my/exwm-configure-monitors ()
+    (interactive)
+    (let* ((monitors (mapcar #'car (cadr (exwm-randr--get-monitors))))
+           (workspaces (number-sequence 1 (length monitors))))
+      (setq exwm-randr-workspace-monitor-plist
+            (flatten-list (cl-mapcar #'cons workspaces monitors)))
+      (exwm-randr-refresh)))
   :init
   (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
   :custom
@@ -1227,7 +1238,7 @@ capture was not aborted."
                      (exwm-workspace-switch-create ,i))))
                (number-sequence 0 9))))
   :hook
-  (exwm-randr-screen-change . exwm-randr-refresh)
+  (exwm-randr-screen-change . my/exwm-configure-monitors)
   :config
   ;; When window "class" updates, use it to set the buffer name
   ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
@@ -1242,8 +1253,8 @@ capture was not aborted."
       (set-frame-parameter frame 'parent-frame nil)
       frame))
 
-  (exwm-randr-mode 1)
   (exwm-enable))
+
 
 ;; Rofi application launcher alternative
 (use-package app-launcher
