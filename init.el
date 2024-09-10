@@ -142,11 +142,22 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
     (advice-remove #'enable-theme fn-name)
     (advice-add #'enable-theme :after fn-name)))
 
+;; Swap the modeline bg colors for oksolar-dark
+(unpackaged/customize-theme-faces 'doom-oksolar-dark
+  `(mode-line-active
+    ((t (:background ,(face-attribute 'mode-line-inactive
+                                      :background)))))
+  `(mode-line-inactive
+    ((t (:background ,(face-attribute 'mode-line-active
+                                      :background))))))
 (use-package auto-dim-other-buffers
   :ensure t
   :config
   (unpackaged/customize-theme-faces 'solarized-dark
     '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
+  (unpackaged/customize-theme-faces 'solarized-light
+    '(auto-dim-other-buffers-face ((t (:background
+                                       "#eee8d5")))))
   :init
   (auto-dim-other-buffers-mode 1))
 
