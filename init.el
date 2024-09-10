@@ -1026,9 +1026,20 @@ capture was not aborted."
 
 (use-package pdf-tools
   :ensure nil ;; Use package from Guix
+  :hook
+  ;; Disable blinking border around pdf pages (caused by cursor blink)
+  (pdf-view-mode . (lambda ()
+                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
   :config
   (pdf-tools-install))
 
+(use-package image-mode
+  :hook
+  ;; Disable blinking border around images (caused by cursor blink)
+  (image-mode . (lambda ()
+                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil)))))
 
 
 (use-package eshell
