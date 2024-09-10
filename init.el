@@ -993,8 +993,10 @@ capture was not aborted."
     "Move cursor to end of prompt when entering insert mode in Eshell."
     (when (and (eq major-mode 'eshell-mode)
                (evil-insert-state-p))
-      (goto-char (point-max))
-      (eshell-bol)))
+      (unless (eq (line-number-at-pos)
+                  (line-number-at-pos (point-max)))
+        (goto-char (point-max))
+        (end-of-line))))
 
   (defun git-status ()
     (let ((default-directory (eshell/pwd)))
