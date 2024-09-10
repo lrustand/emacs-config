@@ -60,9 +60,39 @@
   :config
   (require 'tramp)
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path) ;; Fix tramp for Guix
+  (xterm-mouse-mode 1)
+  (savehist-mode 1)
+  (global-hl-line-mode 1)
+  (global-auto-revert-mode 1)
+  (save-place-mode 1)
+  (recentf-mode 1)
+
+  (window-divider-mode 1)
+  (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
+  (set-face-attribute 'window-divider-first-pixel nil :foreground (face-attribute 'mode-line :background))
+  (set-face-attribute 'window-divider-last-pixel nil :foreground (face-attribute 'mode-line :background))
+
+  ;; change all prompts to y or n
+  (fset 'yes-or-no-p 'y-or-n-p)
+
+  ;; TODO Do this same way as for auto dim, see above
+  ;;(defun set-line-number-background ()
+  ;;  (set-face-background 'line-number (face-attribute 'mode-line :background)))
+  :custom
+  (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
+  (create-lockfiles nil)
+
+  (x-select-enable-clipboard t)
+  (indent-tabs-mode nil)
+
+  (auto-revert-use-notify nil)
+  (recentf-max-menu-items 25)
   :hook
   (prog-mode . (lambda ()
                  (setq-local show-trailing-whitespace t)))
+  (prog-mode . display-line-numbers-mode)
+  ;;(server-after-make-frame . set-line-number-background)
+  ;;(window-setup . set-line-number-background)
   :custom
   (native-comp-async-report-warnings-errors 'silent))
 
@@ -932,30 +962,6 @@ capture was not aborted."
   :config
   (pdf-tools-install))
 
-(setq backup-directory-alist '((".*" . "~/.emacs.d/backup")))
-(setq create-lockfiles nil)
-
-(setq x-select-enable-clipboard t)
-(setq-default indent-tabs-mode nil)
-
-(xterm-mouse-mode 1)
-(savehist-mode 1)
-(global-hl-line-mode 1)
-(setq auto-revert-use-notify nil)
-(global-auto-revert-mode 1)
-(save-place-mode 1)
-(recentf-mode 1)
-(setq recentf-max-menu-items 25)
-
-;; change all prompts to y or n
-(fset 'yes-or-no-p 'y-or-n-p)
-
-(add-hook 'prog-mode-hook 'display-line-numbers-mode)
-;; TODO Do this same way as for auto dim, see above
-(defun set-line-number-background ()
-  (set-face-background 'line-number (face-attribute 'mode-line :background)))
-(add-hook 'server-after-make-frame-hook 'set-line-number-background)
-(add-hook 'window-setup-hook 'set-line-number-background)
 
 
 (use-package eshell
