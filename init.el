@@ -1020,9 +1020,7 @@ capture was not aborted."
   :after dired
   :custom
   (dired-open-extensions
-   '(("png" . "feh")
-     ("mp4" . "mpv")
-     ("pdf" . "okular"))))
+   '(("mp4" . "mpv"))))
 
 (use-package pdf-tools
   :ensure nil ;; Use package from Guix
