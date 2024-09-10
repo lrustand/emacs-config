@@ -163,7 +163,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 
   :hook
-  (minibuffer-setup-hook . corfu-enable-in-minibuffer)
+  (minibuffer-setup . corfu-enable-in-minibuffer)
   :custom
   (corfu-auto nil)
   ;;(corfu-auto-delay 0.6)
@@ -365,8 +365,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
   :hook
   (prog-mode . rpo/git-gutter-mode)
-  (server-after-make-frame-hook . set-git-gutter-background)
-  (window-setup-hook . set-git-gutter-background))
+  (server-after-make-frame . set-git-gutter-background)
+  (window-setup . set-git-gutter-background))
 
 (use-package vertico
   :ensure t
@@ -1227,7 +1227,7 @@ capture was not aborted."
                      (exwm-workspace-switch-create ,i))))
                (number-sequence 0 9))))
   :hook
-  (exwm-randr-screen-change-hook . exwm-randr-refresh)
+  (exwm-randr-screen-change . exwm-randr-refresh)
   :config
   ;; When window "class" updates, use it to set the buffer name
   ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
