@@ -1254,7 +1254,9 @@ capture was not aborted."
 ;; Lines 45-48 in framemove.el. Use exwm-workspace--get-geometry.
 (use-package framemove
   :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
-  :custom (framemove-hook-into-windmove t))
+  :init
+  (setq framemove-hook-into-windmove t))
+
 ;; Move a buffer to a different window without swapping
 ;; TODO: Integrate with framemove
 (use-package buffer-move
