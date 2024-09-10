@@ -615,7 +615,18 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
                 (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/libvterm.so.0")
                                     (file-name-directory (locate-library "vterm.el" t)) t)
                 (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
-                                    (file-name-directory (locate-library "vterm.el" t)) t))))
+                                    (file-name-directory (locate-library "vterm.el" t)) t)))
+  ;; Disable running process warning when only shell is running
+  ;; TODO: Send PR?
+  (advice-add 'kill-buffer :around
+              (lambda (orig-fun &rest args)
+                (if (eq major-mode 'vterm-mode)
+                    (let* ((proc (get-buffer-process (current-buffer)))
+                           (proc-name (if proc (process-name proc) ""))
+                           (only-shell-running (not (process-running-child-p proc-name))))
+                      (if only-shell-running
+                          (set-process-query-on-exit-flag proc nil))))
+                (apply orig-fun args))))
 
 (use-package multi-vterm
   :ensure t
