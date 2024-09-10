@@ -987,6 +987,16 @@ capture was not aborted."
     "h" 'dired-up-directory
     "l" 'dired-find-file))
 
+
+(use-package dired-narrow
+  :ensure t
+  :config
+  (defun my-dired-narrow-and-select ()
+    "Narrow dired to filter results, then select the file at point."
+    (interactive)
+    (call-interactively 'dired-narrow)
+    (dired-find-file)))
+
 ;; Open archive files seamlessly in dired
 (use-package dired-avfs
   :ensure t
