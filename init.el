@@ -1428,3 +1428,33 @@ capture was not aborted."
 (use-package qute-launcher
   :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
 
+(use-package engine-mode
+  :ensure t
+  :custom
+  (engine/browser-function 'qute-launcher)
+  :config
+  (defengine github
+    "https://github.com/search?ref=simplesearch&q=%s"
+    :keybinding "h")
+
+  (defengine google
+    "https://google.com/search?q=%s"
+    :keybinding "d")
+
+  (defengine duckduckgo
+    "https://duckduckgo.com/?q=%s"
+    :keybinding "d")
+
+  (defengine youtube
+    "https://youtube.com/results?search_query=%s"
+    :keybinding "y")
+
+  (defengine amazon
+    "https://amazon.com/s?k=%s"
+    :keybinding "a")
+
+  (defengine ebay
+    "https://ebay.com/sch/i.html?_nkw=%s"
+    :keybinding "e")
+  (engine-mode 1))
+
