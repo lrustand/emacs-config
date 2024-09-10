@@ -320,7 +320,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 ;; TODO one of the following options disables shrface conversion to org-mode headings
 ;; Figure out what and fix it
-(require 'mu4e-contrib)
 ;;(setq mu4e-html2text-command 'mu4e-shr2text)
 (setq shr-color-visible-luminance-min 60)
 (setq shr-color-visible-distance-min 5)
@@ -520,6 +519,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :init
   ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
   (require 'mu4e)
+  (require 'mu4e-contrib)
   :hook
   ;; Don't create tons of "draft" messages
   (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
