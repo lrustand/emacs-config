@@ -1405,62 +1405,6 @@ capture was not aborted."
   (drag-stuff-global-mode 1)
   (drag-stuff-define-keys))
 
+(use-package qute-launcher
+  :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
 
-;; TODO Separate out search history from regular history
-;; i.e. remove Google, Ebay, Amazon, Youtube searches etc
-(require 'sqlite)
-(require 'marginalia)
-(defun select-from-qutebrowser-history ()
-  (let* ((db (sqlite-open "~/.local/share/qutebrowser/history.sqlite"))
-         (history (sqlite-select db "SELECT url,substr(title,0,99) FROM History GROUP BY url ORDER BY COUNT(url) DESC"))
-         (candidates (mapcar (lambda (row)
-                               (let* ((url (nth 0 row))
-                                      (title (nth 1 row))
-                                      (display-url (truncate-string-to-width url 50 0 ?\ )))
-                                 (cons
-                                  (format "%s %s"
-                                          display-url
-                                          (propertize title
-                                                      'face 'marginalia-value))
-                                  url)))
-                             history))
-         (completion-table
-          (lambda (string pred action)
-            (if (eq action 'metadata)
-                `(metadata
-                  (display-sort-function . identity)
-                  (cycle-sort-function . identity)
-                  (category . qutebrowser-history)
-                  (annotation-function . nil))
-              (complete-with-action action candidates string pred))))
-         (selected (completing-read "Choose URL from history: " completion-table nil nil)))
-    ;; Return the URL of the selected candidate
-    (cdr (or (assoc selected candidates)
-             (cons nil selected)))))
-
-(defun launch-url-in-qutebrowser--internal (target)
-  (let ((url (select-from-qutebrowser-history))
-        (pipe (getenv "QUTE_FIFO"))
-        (flag (pcase target
-                    ('window "-w")
-                    ('tab "-t")
-                    ('private-window "-p"))))
-    (if pipe
-        (write-region (format "open %s %s" flag url) nil pipe t)
-      (start-process "qutebrowser" nil "qutebrowser" "--target" (symbol-name target) url))))
-
-(defun launch-url-in-qutebrowser ()
-  (interactive)
-  (launch-url-in-qutebrowser--internal 'auto))
-
-(defun launch-url-in-qutebrowser-tab ()
-  (interactive)
-  (launch-url-in-qutebrowser--internal 'tab))
-
-(defun launch-url-in-qutebrowser-window ()
-  (interactive)
-  (launch-url-in-qutebrowser--internal 'window))
-
-(defun launch-url-in-qutebrowser-private ()
-  (interactive)
-  (launch-url-in-qutebrowser--internal 'private))
