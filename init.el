@@ -78,6 +78,12 @@
   ;; TODO Do this same way as for auto dim, see above
   ;;(defun set-line-number-background ()
   ;;  (set-face-background 'line-number (face-attribute 'mode-line :background)))
+
+  ;; Fix load-theme
+  (defun disable-all-themes-before-load (theme &rest _)
+    "Disable all themes before loading a new one."
+    (mapcar #'disable-theme custom-enabled-themes))
+  (advice-add 'load-theme :before #'disable-all-themes-before-load)
   :custom
   (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
   (create-lockfiles nil)
@@ -143,6 +149,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
     '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
   :init
   (auto-dim-other-buffers-mode 1))
+
+(setq custom-file-save-faces nil)
 
 (use-package dap-mode
   :ensure t
