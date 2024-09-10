@@ -174,9 +174,9 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :ensure t
   :demand t)
 
-(defun get-focused-monitor-geometry ()
+(defun get-focused-monitor-geometry (&optional frame)
   "Get the geometry of the monitor displaying the selected frame in EXWM."
-  (let* ((monitor-attrs (frame-monitor-attributes))
+  (let* ((monitor-attrs (frame-monitor-attributes frame))
          (workarea (assoc 'workarea monitor-attrs))
          (geometry (cdr workarea)))
     (list (nth 0 geometry) ; X
@@ -478,6 +478,42 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package ace-window
   :ensure t
+  :bind (("C-x o" . ace-window)
+         ("C-x O" . ace-swap-window))
+  :config
+  (defun my/aw-window-list-advice (orig-fun &rest args)
+    "Advice to use EXWM-aware frame visibility check in aw-window-list."
+    (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
+      (apply orig-fun args)))
+
+  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
+  (defun my-aw-poshandler (info)
+    (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry))
+           (window-left (plist-get info :parent-window-left))
+           (window-top (plist-get info :parent-window-top))
+           (window-width (plist-get info :parent-window-width))
+           (window-height (plist-get info :parent-window-height))
+           (posframe-width (plist-get info :posframe-width))
+           (posframe-height (plist-get info :posframe-height))
+           (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
+           (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
+      (message "X: %s, Y: %s" x y)
+      (cons x y)))
+  (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
+    (let ((aw-posframe-position-handler #'my-aw-poshandler))
+      (apply orig-fun args)))
+  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (orig-fun &rest args)
+    "Don't reuse posframes, they get mangled on multi-monitor"
+    (mapc #'posframe-delete aw--posframe-frames)
+    (setq aw--posframe-frames nil))
+
+  :config
+  (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
+  (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
+  (set-face-attribute 'aw-leading-char-face nil :height 200)
+  (ace-window-posframe-mode 1)
   :custom
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
 
