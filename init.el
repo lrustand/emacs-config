@@ -115,7 +115,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (auto-dim-other-buffers-mode 1))
 
 (use-package dap-mode
-  :ensure t)
+  :ensure t
+  :defer t)
 
 (set-frame-font "DeJavu Sans Mono 10" nil t)
 
@@ -202,7 +203,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package magit
   :ensure t
-  :defer t)
+  :demand t)
 
 ;;(use-package yasnippet
 ;;  :ensure t
@@ -217,6 +218,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package lsp-mode
   :ensure t
+  :defer t
   :commands (lsp lsp-deferred)
   :init
   (setq lsp-keymap-prefix "C-c l")
@@ -225,6 +227,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package lsp-latex
   :ensure t
+  :defer t
+  :after lsp-mode
   :init
   (require 'lsp-latex)
 
@@ -300,6 +304,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package bitbake
   :ensure t
+  :defer t
   :mode "bitbake-mode"
   :init
   (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
@@ -328,6 +333,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package tex
   :ensure auctex
+  :defer t
   :config
   (setq-default TeX-master "main") ; All master files called "main".
   :custom
@@ -401,6 +407,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package bibtex-completion
   :ensure t
+  :defer t
   :custom
   (bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n")
   (bibtex-completion-additional-search-fields '(keywords))
@@ -433,6 +440,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
 
 (use-package org-gantt
+  :after org
+  :defer t
   :quelpa (org-gantt :fetcher github :repo "swillner/org-gantt"))
 
 (use-package geiser
@@ -444,6 +453,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package geiser-guile
   :ensure t
+  :after geiser
   :config
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
   (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
@@ -548,6 +558,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package vterm
   :ensure t
+  :defer t
   :config
   ;; Use libvterm installed in Guix
   (advice-add 'vterm-module-compile :around
@@ -558,10 +569,13 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
                                     (file-name-directory (locate-library "vterm.el" t)) t))))
 
 (use-package multi-vterm
-  :ensure t)
+  :ensure t
+  :defer t
+  :after vterm)
 
 ;; IRC client config
 (use-package erc
+  :defer t
   :custom
   (erc-fill-function 'erc-fill-static)
   (erc-fill-static-center 15)
@@ -571,18 +585,21 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (use-package erc-twitch
   :ensure t
   :after erc
+  :defer t
   :config
   (erc-twitch-enable))
 
 (use-package erc-hl-nicks
   :ensure t
   :after erc
+  :defer t
   :config
   (erc-hl-nicks-enable))
 
 (use-package erc-image
   :ensure t
   :after erc
+  :defer t
   :config
   (erc-image-enable))
 
@@ -602,6 +619,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (use-package org-roam
   :ensure t
   :demand t  ;; Ensure org-roam is loaded by default
+  :after org
   :init
   (make-directory "~/org-roam" t)
   (setq org-roam-v2-ack t)
@@ -895,7 +913,8 @@ capture was not aborted."
 ;; every time you navigate to another folder
 ;; TODO: Integrate in normal dired commands
 (use-package dired-single
-  :ensure t)
+  :ensure t
+  :after dired)
 
 ;; Open some filetypes in external program
 ;; TODO: Automatically open correct program through mime/xdg
