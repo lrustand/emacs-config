@@ -1029,9 +1029,9 @@ capture was not aborted."
             (timedate-face `(:foreground ,green
                                          :background ,prompt-bg
                                          :weight bold))
-            (git-branch-face `(:foreground ,bright-black
+            (git-branch-face `(:foreground ,blue
                                            :background ,prompt-bg))
-            (default-prompt-face `(:foreground "default"
+            (default-prompt-face `(:foreground unspecified
                                                :background ,black
                                                :weight bold)))
        (concat
@@ -1289,12 +1289,12 @@ capture was not aborted."
     (propertize
      (lemon-monitor-display my/memory-monitor)
      'font-lock-face
-     '(:foreground "default")))
+     '(:foreground unspecified)))
   (defun cpu ()
     (propertize
      (lemon-monitor-display my/cpu-monitor)
      'font-lock-face
-     '(:foreground "default")))
+     '(:foreground unspecified)))
   (defun bat ()
     (lemon-monitor-display my/battery-monitor))
   (defun net ()
@@ -1303,7 +1303,7 @@ capture was not aborted."
       (lemon-monitor-display my/network-rx-monitor)
       (lemon-monitor-display my/network-tx-monitor))
      'face
-     '(:foreground "default")))
+     '(:foreground unspecified)))
 
   (defface my-tab-bar-face
     '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
