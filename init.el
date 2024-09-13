@@ -1640,6 +1640,24 @@ capture was not aborted."
                      engine-search-history nil nil nil 'engine-search-history current-word)))
 
 (advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
+
+;; Enable opening another minibuffer while in minibuffer
+;; Usually recursive, but see below
+(setq enable-recursive-minibuffers t)
+
+;; Replace current minibuffer with a new one
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-unrecursion)
+
+(defun my-minibuffer-unrecursion ()
+  (when (> (minibuffer-depth) 1)
+    (run-with-timer 0 nil 'my-interactive-command
+                    this-command current-prefix-arg)
+    (abort-recursive-edit)))
+
+(defun my-interactive-command (cmd arg)
+  (let ((current-prefix-arg arg))
+    (call-interactively cmd)))
+
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
 
