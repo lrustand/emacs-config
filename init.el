@@ -1566,7 +1566,7 @@ and sends a message of the current volume status."
     (emms-player-mpv-cmd `(add volume ,(- (or amount '5))))
     (emms-player-mpv-get-volume))
   :custom
-  (emms-volume-change-function . #'emms-player-mpv-raise-volume))
+  (emms-volume-change-function 'emms-player-mpv-raise-volume))
 
 ;; Drag stuff up/down etc with M-<up>, M-<down>...
 (use-package drag-stuff
