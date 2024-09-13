@@ -1594,6 +1594,42 @@ capture was not aborted."
           (xkcd-get num)
         (xkcd)))))
 
+
+(use-package ednc
+  :ensure t
+  :preface
+  (defun my-ednc-notifier (old notification)
+  "Show TEXT in a posframe in the upper right corner of the main frame."
+  (let* ((main-frame (selected-frame))
+         (frame-width (frame-width main-frame))
+         (frame-height (frame-height main-frame))
+         (app-name (ednc-notification-app-name notification))
+         (app-icon (ednc-notification-app-icon notification))
+         (summary (ednc-notification-summary notification))
+         (body (ednc-notification-body notification))
+         (icon-image (if (f-file-p app-icon)
+                         (create-image app-icon nil nil :width 32 :height 32)
+                       ""))
+         (icon-string (propertize "" 'display icon-image))
+         (summary-text (propertize summary 'face 'bold))
+         (body-text (string-trim (string-fill body 40)))
+         (formatted-text
+          (format "%s%s\n%s\n%s"
+                  icon-string app-name summary-text (or body-text ""))))
+    (posframe-show
+     "*my-posframe-buffer*"
+     :string formatted-text
+     :poshandler (lambda (info) '(-1 . 16))
+     :background-color "black"
+     :border-color "red"
+     :border-width 10
+     :accept-focus nil
+     :timeout 10)))
+
+  :config
+  (ednc-mode 1)
+  (add-hook 'ednc-notification-presentation-functions 'my-ednc-notifier))
+
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
 
