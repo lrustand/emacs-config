@@ -454,6 +454,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
    ("C-;" . embark-dwim)
    ("C-h B" . embark-bindings)))
 
+(use-package org-ref
+  :after org
+  :config
+  (require 'org-ref))
+
 (use-package bibtex-completion
   :ensure t
   :defer t
