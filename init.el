@@ -1539,12 +1539,7 @@ capture was not aborted."
       (call-process "yt-dlp" nil t nil "--get-title" url)
       (string-trim (buffer-string))))
 
-  (defun my/set-emms-youtube-title (orig-fun type name)
-    (if (eq 'url type)
-        (apply orig-fun (list type (my/get-youtube-title name)))
-      (apply orig-fun (list type name))))
-
-  (advice-add 'emms-track :around #'my/set-emms-youtube-title)
+  (advice-add 'emms-format-url-track-name :override #'my/get-youtube-title)
 
   (defvar emms-player-mpv-volume 100)
   (defun emms-player-mpv-get-volume ()
