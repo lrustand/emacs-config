@@ -1572,6 +1572,25 @@ capture was not aborted."
   (engine-mode 1))
 
 
+(defun toggle-svkbd ()
+  (interactive)
+  (let* ((proc (get-process "svkbd"))
+         (monitor-geometry (get-focused-monitor-geometry))
+         (monitor-x (nth 0 monitor-geometry))
+         (monitor-y (nth 1 monitor-geometry)))
+    (if proc
+        (kill-process proc)
+      (progn
+        (start-process "svkbd" nil "svkbd-mobile-intl" "-l" "minimal,symbols" "-d" "-g"
+                       (format "%sx300+%s+%s"
+                               (frame-pixel-width)
+                               monitor-x
+                               monitor-y))
+        (sleep-for 0.1)
+        (set-frame-height (selected-frame)
+                          (- (frame-pixel-height) 300)
+                          nil t)))))
+
 (use-package xkcd
   :ensure t
   :init
