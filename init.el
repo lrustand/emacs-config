@@ -1537,6 +1537,19 @@ capture was not aborted."
   (require 'emms-player-mpv)
   (add-to-list 'emms-player-list 'emms-player-mpv)
   :preface
+  (defun my/get-youtube-title (url)
+    "Get the title of a YouTube video using yt-dlp."
+    (with-temp-buffer
+      (call-process "yt-dlp" nil t nil "--get-title" url)
+      (string-trim (buffer-string))))
+
+  (defun my/set-emms-youtube-title (orig-fun type name)
+    (if (eq 'url type)
+        (apply orig-fun (list type (my/get-youtube-title name)))
+      (apply orig-fun (list type name))))
+
+  (advice-add 'emms-track :around #'my/set-emms-youtube-title)
+
   (defvar emms-player-mpv-volume 100)
   (defun emms-player-mpv-get-volume ()
     "Sets `emms-player-mpv-volume' to the current volume value
