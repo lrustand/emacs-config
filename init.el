@@ -1409,7 +1409,7 @@ capture was not aborted."
 (use-package tab-bar
   :preface
   (defun lr/tab-bar-time-and-date ()
-    (let* ((tab-bar-time-face '(:weight bold :foreground "white"))
+    (let* ((tab-bar-time-face '(:weight bold))
            (tab-bar-time-format  "%a %-d %b, %H:%M "))
       `((menu-bar menu-item
                   ,(propertize (format-time-string tab-bar-time-format)
@@ -1419,24 +1419,15 @@ capture was not aborted."
                   :help "My heltp"))))
   (defun lr/tab-bar-separator () " | ")
   (defun ram ()
-    (propertize
-     (lemon-monitor-display my/memory-monitor)
-     'font-lock-face
-     '(:foreground unspecified)))
+    (lemon-monitor-display my/memory-monitor))
   (defun cpu ()
-    (propertize
-     (lemon-monitor-display my/cpu-monitor)
-     'font-lock-face
-     '(:foreground unspecified)))
+    (lemon-monitor-display my/cpu-monitor))
   (defun bat ()
     (lemon-monitor-display my/battery-monitor))
   (defun net ()
-    (propertize
-     (concat
-      (lemon-monitor-display my/network-rx-monitor)
-      (lemon-monitor-display my/network-tx-monitor))
-     'face
-     '(:foreground unspecified)))
+    (concat
+     (lemon-monitor-display my/network-rx-monitor)
+     (lemon-monitor-display my/network-tx-monitor)))
 
   (defface my-tab-bar-face
     '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
