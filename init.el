@@ -1572,6 +1572,28 @@ capture was not aborted."
   (engine-mode 1))
 
 
+(use-package xkcd
+  :ensure t
+  :init
+  (evil-define-key 'normal xkcd-mode-map (kbd "h") 'xkcd-prev)
+  (evil-define-key 'normal xkcd-mode-map (kbd "l") 'xkcd-next)
+  :hook
+  (xkcd-mode . (lambda ()
+                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
+  :bind
+  (:map xkcd-mode-map
+        ("h" . xkcd-prev)
+        ("l" . xkcd-next))
+  :config
+  (defun xkcd-protocol-handler (&optional url)
+    (let ((num (string-to-number
+                (cl-remove-if-not #'cl-digit-char-p
+                                  (or url "")))))
+      (if (> num 0)
+          (xkcd-get num)
+        (xkcd)))))
+
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
 
