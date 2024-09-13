@@ -1242,12 +1242,17 @@ capture was not aborted."
         (exwm-layout-shrink-window 30)
       (exwm-layout-enlarge-window 30)))
 
+  (defun my/exwm-randr-get-monitors ()
+    (mapcar #'car (cadr (exwm-randr--get-monitors))))
   (defun my/exwm-configure-monitors ()
     (interactive)
-    (let* ((monitors (mapcar #'car (cadr (exwm-randr--get-monitors))))
+    (let* ((monitors (my/exwm-randr-get-monitors))
            (workspaces (number-sequence 1 (length monitors))))
+      (exwm-randr-refresh)
       (setq exwm-randr-workspace-monitor-plist
             (flatten-list (cl-mapcar #'cons workspaces monitors)))
+      ;; Wait until monitors are done un/re-connecting
+      (run-with-timer 5 nil #'exwm-randr-refresh)
       (exwm-randr-refresh)))
   :init
   (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
