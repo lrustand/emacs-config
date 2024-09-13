@@ -1630,6 +1630,16 @@ capture was not aborted."
   (ednc-mode 1)
   (add-hook 'ednc-notification-presentation-functions 'my-ednc-notifier))
 
+
+(defvar engine-search-history '())
+
+(defun my-engine-use-completing-read (orig-fun engine-name)
+  "Advice to use completing-read instead of read-string in engine--prompted-search-term."
+  (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
+    (completing-read (engine--search-prompt engine-name current-word)
+                     engine-search-history nil nil nil 'engine-search-history current-word)))
+
+(advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
 
