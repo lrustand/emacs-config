@@ -1321,6 +1321,9 @@ capture was not aborted."
      ([?\C-\s-k] . lr/exwm-resize-up)
      ([?\C-\s-l] . lr/exwm-resize-right)
 
+     ;; Toggle fullscreen
+     ([?\s-f] . my-toggle-fullscreen)
+
      ;; Launch applications via shell command
      ([?\s-&] . (lambda (command)
                   (interactive (list (read-shell-command "$ ")))
@@ -1568,3 +1571,27 @@ capture was not aborted."
     :keybinding "e")
   (engine-mode 1))
 
+
+(defvar my-fullscreen-window-configuration nil
+  "Stores the window configuration before entering fullscreen.")
+
+(defun my-toggle-fullscreen ()
+  "Toggle fullscreen for the current buffer.
+Automatically exits fullscreen if any window-changing command is executed."
+  (interactive)
+  (if (= 1 (length (window-list)))
+      (when my-fullscreen-window-configuration
+        (set-window-configuration my-fullscreen-window-configuration)
+        (setq my-fullscreen-window-configuration nil))
+    (setq my-fullscreen-window-configuration (current-window-configuration))
+    (delete-other-windows)))
+
+(defun my-exit-fullscreen-advice (&rest _)
+  "Advice to exit fullscreen before executing window-changing commands."
+  (when my-fullscreen-window-configuration
+    (my-toggle-fullscreen)))
+
+(advice-add 'split-window :before #'my-exit-fullscreen-advice)
+;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
+;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
+;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
