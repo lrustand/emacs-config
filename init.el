@@ -587,10 +587,30 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
   (require 'mu4e)
   (require 'mu4e-contrib)
+  :preface
+  ;; Override this to avoid the IDIOTIC mue4 "main window"
+  (defun my-mu4e~headers-quit-buffer (&rest _)
+    "Quit the mu4e-headers buffer and do NOT go back to the main view."
+    (interactive)
+    (mu4e-mark-handle-when-leaving)
+    (quit-window t)
+    (mu4e--query-items-refresh 'reset-baseline))
+  (defun my-disabled-mu4e--main-menu ()
+    "Skip the USELESS main menu."
+    (mu4e-search-maildir "/All Mail"))
+  :config
+  (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
+  (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
   :hook
   ;; Don't create tons of "draft" messages
   (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
   :custom
+  ;; Don't spam the echo area all the time
+  (mu4e-hide-index-messages t)
+  ;; Don't mess with my window layout
+  (mu4e-split-view 'single-window)
+  ;; Do as I say
+  (mu4e-confirm-quit nil)
   (mu4e-update-interval 30)
   ;; Use with font-google-noto, or a later version of font-openmoji
   (mu4e-headers-unread-mark    '("u" . "📩"))
@@ -1602,6 +1622,10 @@ and sends a message of the current volume status."
 
 (use-package qute-launcher
   :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
+
+(use-package consult-mu
+  :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
+
 
 (use-package engine-mode
   :ensure t
