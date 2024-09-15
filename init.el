@@ -421,22 +421,22 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
              (not (cl-some (lambda (suffix) (string-suffix-p suffix (buffer-file-name)))
                            '(".pdf" ".svg" ".png"))))
         (git-gutter-mode 1)))
-  (defun set-git-gutter-background ()
-    (set-face-background 'git-gutter:unchanged (face-attribute 'mode-line :background))
-    (set-face-background 'git-gutter:modified (face-attribute 'mode-line :background))
-    (set-face-background 'git-gutter:added (face-attribute 'mode-line :background))
-    (set-face-background 'git-gutter:deleted (face-attribute 'mode-line :background)))
+  ;;(defun set-git-gutter-background ()
+  ;;  ;;(set-face-background 'git-gutter:unchanged (face-attribute 'mode-line :background))
+  ;;  (set-face-background 'git-gutter:modified (face-attribute 'mode-line :background))
+  ;;  (set-face-background 'git-gutter:added (face-attribute 'mode-line :background))
+  ;;  (set-face-background 'git-gutter:deleted (face-attribute 'mode-line :background)))
   :custom
   (git-gutter:hide-gutter t)
   (git-gutter:update-interval 2)
-  (git-gutter:unchanged-sign " ")
+  ;;(git-gutter:unchanged-sign nil)
 
   :config
   (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
   :hook
-  (prog-mode . rpo/git-gutter-mode)
-  (server-after-make-frame . set-git-gutter-background)
-  (window-setup . set-git-gutter-background))
+  (prog-mode . rpo/git-gutter-mode))
+  ;;(server-after-make-frame . set-git-gutter-background)
+  ;;(window-setup . set-git-gutter-background))
 
 (use-package vertico
   :ensure t
