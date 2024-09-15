@@ -557,6 +557,9 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;(use-package mastodon-alt
 ;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
 
+(use-package scad-dbus
+  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
+
 (use-package org-gantt
   :after org
   :defer t
