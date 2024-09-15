@@ -530,7 +530,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
            (posframe-height (plist-get info :posframe-height))
            (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
            (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
-      (message "X: %s, Y: %s" x y)
       (cons x y)))
   (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
     (let ((aw-posframe-position-handler #'my-aw-poshandler))
