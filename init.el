@@ -1793,10 +1793,17 @@ and sends a message of the current volume status."
     (run-with-timer 0 nil 'my-interactive-command
                     this-command current-prefix-arg)
     (abort-recursive-edit)))
+(defun switch-to-buffer-with-predicate (pred)
+  (switch-to-buffer (read-buffer "Switch to buffer: " nil t pred)))
 
 (defun my-interactive-command (cmd arg)
   (let ((current-prefix-arg arg))
     (call-interactively cmd)))
+(defun switch-to-qutebrowser-buffer ()
+  (interactive)
+  (switch-to-buffer-with-predicate
+   (lambda (buf)
+     (string-search "qutebrowser" (car buf)))))
 
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
