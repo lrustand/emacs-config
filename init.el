@@ -186,6 +186,13 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
           (nth 3 geometry) ; Height
           )))
 
+(use-package posframe
+  :ensure t
+  :config
+  ;; Set border color of posframes. The supposed option of
+  ;; make-posframe doesn't work, we have to do this instead
+  (set-face-background 'internal-border "gray50"))
+
 (use-package corfu
   :ensure t
   :preface
