@@ -1712,6 +1712,21 @@ and sends a message of the current volume status."
                           (- (frame-pixel-height) 300)
                           nil t)))))
 
+(defun split-window-below-and-switch-buffer ()
+  "Split the window horizontally, focus the new window, and switch to a different buffer."
+  (interactive)
+  (split-window-below)
+  (other-window 1)
+  (switch-to-buffer (other-buffer)))
+
+(defun split-window-right-and-switch-buffer ()
+  "Split the window vertically, focus the new window, and switch to a different buffer."
+  (interactive)
+  (split-window-right)
+  (other-window 1)
+  (switch-to-buffer (other-buffer)))
+
+
 (use-package xkcd
   :ensure t
   :init
