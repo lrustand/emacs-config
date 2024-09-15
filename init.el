@@ -93,7 +93,7 @@
   (indent-tabs-mode nil)
 
   (auto-revert-use-notify nil)
-  (recentf-max-menu-items 25)
+  (recentf-max-menu-items 250)
   :hook
   (prog-mode . (lambda ()
                  (setq-local show-trailing-whitespace t)))
