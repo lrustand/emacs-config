@@ -1247,17 +1247,6 @@ capture was not aborted."
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
 
-;;(defun highlight-selected-window ()
-;;  "Highlight selected window with a different background color."
-;;  (walk-windows (lambda (w)
-;;                  (unless (eq w (selected-window))
-;;                    (with-current-buffer (window-buffer w)
-;;                      (buffer-face-set '(:background "#041f27"))))))
-;;  (buffer-face-set 'default))
-;;(add-hook 'buffer-list-update-hook 'highlight-selected-window)
-;;
-;;(add-to-list 'default-frame-alist '(background-color . "#073642"))
-
 (defun tmux-navigate-directions ()
   (let* ((x (nth 0 (window-edges)))
          (y (nth 1 (window-edges)))
