@@ -1762,3 +1762,9 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
+
+;; Trying to tame emacs window placement (taken from perspective.el readme)
+(customize-set-variable 'display-buffer-base-action
+  '((display-buffer-reuse-window display-buffer-same-window)
+    (reusable-frames . t)))
+(customize-set-variable 'even-window-sizes nil)     ; avoid resizing
