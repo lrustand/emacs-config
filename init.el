@@ -973,7 +973,7 @@ capture was not aborted."
                       (org-hide-drawer-all)
                       (org-fold-all-done-entries)))
 
-  :config
+  :preface
   ;; This function generates headings for org-agenda for project files
   (defun my/org-agenda-create-project-heading-agenda-views ()
     (mapcar (lambda (file)
