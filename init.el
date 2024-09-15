@@ -696,6 +696,23 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :ensure t
   :defer t
   :config
+  ;; Fix background
+  (defun old-version-of-vterm--get-color (index &rest args)
+    "This is the old version before it was broken by commit
+https://github.com/akermu/emacs-libvterm/commit/e96c53f5035c841b20937b65142498bd8e161a40.
+Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
+    (cond
+     ((and (>= index 0) (< index 16))
+      (face-foreground
+       (elt vterm-color-palette index)
+       nil 'default))
+     ((= index -11)
+      (face-foreground 'vterm-color-underline nil 'default))
+     ((= index -12)
+      (face-background 'vterm-color-inverse-video nil 'default))
+     (t
+      nil)))
+  (advice-add 'vterm--get-color :override #'old-version-of-vterm--get-color)
   ;; Use libvterm installed in Guix
   (advice-add 'vterm-module-compile :around
               (lambda (f &rest r)
