@@ -1,10 +1,12 @@
 ;; -*- lexical-binding: t; -*-
 
+;;; Disable stuff
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (server-start)
 
+;;; Use-package setup
 ;; Set up package.el to work with MELPA
 (require 'package)
 (add-to-list 'package-archives
@@ -15,6 +17,10 @@
     (package-refresh-contents t)
   (package-refresh-contents))
 
+(use-package quelpa-use-package
+  :ensure t)
+
+;;; Theme
 (use-package solarized-theme
   :ensure t
   :config
@@ -29,6 +35,52 @@
   :config
   (doom-modeline-mode 1))
 
+(set-frame-font "DeJavu Sans Mono 10" nil t)
+
+;; Using this to change the auto-dim-other-bufers-face for solarized
+;; Taken from alphapapa unpackaged scripts
+(defun unpackaged/customize-theme-faces (theme &rest faces)
+  "Customize THEME with FACES.
+Advises `enable-theme' with a function that customizes FACES when
+THEME is enabled.  If THEME is already enabled, also applies
+faces immediately.  Calls `custom-theme-set-faces', which see."
+  (declare (indent defun))
+  (when (member theme custom-enabled-themes)
+    ;; Theme already enabled: apply faces now.
+    (let ((custom--inhibit-theme-enable nil))
+      (apply #'custom-theme-set-faces theme faces)))
+  (let ((fn-name (intern (concat "unpackaged/enable-theme-advice-for-" (symbol-name theme)))))
+    ;; Apply advice for next time theme is enabled.
+    (fset fn-name
+          (lambda (enabled-theme)
+            (when (eq enabled-theme theme)
+              (let ((custom--inhibit-theme-enable nil))
+                (apply #'custom-theme-set-faces theme faces)))))
+    (advice-remove #'enable-theme fn-name)
+    (advice-add #'enable-theme :after fn-name)))
+
+;; Swap the modeline bg colors for oksolar-dark
+(unpackaged/customize-theme-faces 'doom-oksolar-dark
+  `(mode-line-active
+    ((t (:background ,(face-attribute 'mode-line-inactive
+                                      :background)))))
+  `(mode-line-inactive
+    ((t (:background ,(face-attribute 'mode-line-active
+                                      :background))))))
+(use-package auto-dim-other-buffers
+  :ensure t
+  :config
+  (unpackaged/customize-theme-faces 'solarized-dark
+    '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
+  (unpackaged/customize-theme-faces 'solarized-light
+    '(auto-dim-other-buffers-face ((t (:background
+                                       "#eee8d5")))))
+  :init
+  (auto-dim-other-buffers-mode 1))
+
+(setq custom-file-save-faces nil)
+
+;;; Evil
 (use-package evil
   :ensure t
   :init
@@ -40,6 +92,7 @@
   (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
 
   (define-key evil-motion-state-map (kbd "RET") nil) ;; Disable to avoid overriding org-mode follow links
+  (define-key evil-motion-state-map (kbd "TAB") nil) ;; Disable to avoid overriding outline folding
   (evil-mode 1)
   (evil-set-undo-system 'undo-tree))
 
@@ -56,6 +109,21 @@
   (unless (display-graphic-p)
           (require 'evil-terminal-cursor-changer)
           (evil-terminal-cursor-changer-activate)))
+
+
+(use-package goggles
+  :ensure t
+  :config
+  (goggles-mode))
+
+(use-package evil-goggles
+  :ensure t
+  :after (evil goggles)
+  :config
+  (evil-goggles-mode))
+
+;;; Emacs
+;;;-------
 
 (use-package emacs
   :config
@@ -103,6 +171,81 @@
   :custom
   (native-comp-async-report-warnings-errors 'silent))
 
+;; Provides only the command “restart-emacs”.
+(use-package restart-emacs
+  :ensure t
+  ;; If I ever close Emacs, it's likely because I want to restart it.
+  :bind ("C-x C-c" . restart-emacs)
+  ;; Let's define an alias so there's no need to remember the order.
+  :config (defalias 'emacs-restart #'restart-emacs))
+
+
+;;; Interface
+;;;-----------
+
+;; Trying to tame emacs window placement (taken from perspective.el readme)
+(customize-set-variable 'display-buffer-base-action
+  '((display-buffer-reuse-window display-buffer-same-window)
+    (reusable-frames . t)))
+(customize-set-variable 'even-window-sizes nil)     ; avoid resizing
+;; Enable opening another minibuffer while in minibuffer
+
+;; Usually recursive, but see below
+(use-package drag-stuff
+  :ensure t
+  :config
+  (drag-stuff-global-mode 1)
+  (drag-stuff-define-keys))
+
+;; Make vertico display in a floating window
+(use-package vertico-posframe
+  :ensure t
+  :after vertico
+  :preface
+  (defun advise-vertico-posframe-show-with-monitor-awareness (orig-fun buffer window-point &rest args)
+    "Advise `vertico-posframe--show` to position the posframe according to the focused monitor."
+    ;; Extract the focused monitor's geometry
+    (let* ((monitor-geometry (get-focused-monitor-geometry))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry)))
+      ;; Override poshandler buffer-local variable to use monitor-aware positioning
+      (let ((vertico-posframe-poshandler
+             (lambda (info)
+               (let* ((parent-frame-width (plist-get info :parent-frame-width))
+                      (parent-frame-height (plist-get info :parent-frame-height))
+                      (posframe-width (plist-get info :posframe-width))
+                      (posframe-height (plist-get info :posframe-height))
+                      ;; Calculate center position on the focused monitor
+                      (x (+ monitor-x (/ (- parent-frame-width posframe-width) 2)))
+                      (y (+ monitor-y (/ (- parent-frame-height posframe-height) 2))))
+                 (cons x y)))))
+        ;; Call the original function with potentially adjusted poshandler
+        (apply orig-fun buffer window-point args))))
+
+  :config
+  (advice-add 'vertico-posframe--show :around #'advise-vertico-posframe-show-with-monitor-awareness)
+  (vertico-posframe-mode 1))
+
+;; TODO: Make package of this
+;; Show function signatures in a popup instead of echo area
+(defun my-eldoc-posframe-show (&rest args)
+  (when (car args)
+    (posframe-show "*eldoc-posframe*"
+                   :string (apply 'format args)
+                   :position (point)
+                   :max-width 100
+                   :background-color "#333333"
+                   :foreground-color "#eeeeee"
+                   :internal-border-width 1
+                   :internal-border-color "#777777")
+    (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
+(defun my-eldoc-posframe-hide ()
+  (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
+  (posframe-hide "*eldoc-posframe*"))
+(setq eldoc-message-function #'my-eldoc-posframe-show)
+(setq eldoc-idle-delay 1)
+;; Only trigger after any editing
+(setq eldoc-print-after-edit t)
 (use-package which-key
   :ensure t
   :config
@@ -122,72 +265,11 @@ characters respectably."
           (min 300 (frame-width))))
   (advice-add 'which-key-posframe--max-dimensions :override #'my-which-key-posframe--max-dimensions))
 
-(use-package sly
-  :ensure t
-  :defer t
-  :config
-  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<up>") 'sly-mrepl-previous-input-or-button)
-  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<down>") 'sly-mrepl-next-input-or-button))
-
+;; Copy to system clipboard
 (use-package xclip
   :ensure t
   :config
   (xclip-mode 1))
-
-;; Using this to change the auto-dim-other-bufers-face for solarized
-;; Taken from alphapapa unpackaged scripts
-;;;###autoload
-(defun unpackaged/customize-theme-faces (theme &rest faces)
-  "Customize THEME with FACES.
-Advises `enable-theme' with a function that customizes FACES when
-THEME is enabled.  If THEME is already enabled, also applies
-faces immediately.  Calls `custom-theme-set-faces', which see."
-  (declare (indent defun))
-  (when (member theme custom-enabled-themes)
-    ;; Theme already enabled: apply faces now.
-    (let ((custom--inhibit-theme-enable nil))
-      (apply #'custom-theme-set-faces theme faces)))
-  (let ((fn-name (intern (concat "unpackaged/enable-theme-advice-for-" (symbol-name theme)))))
-    ;; Apply advice for next time theme is enabled.
-    (fset fn-name
-          (lambda (enabled-theme)
-            (when (eq enabled-theme theme)
-              (let ((custom--inhibit-theme-enable nil))
-                (apply #'custom-theme-set-faces theme faces)))))
-    (advice-remove #'enable-theme fn-name)
-    (advice-add #'enable-theme :after fn-name)))
-
-;; Swap the modeline bg colors for oksolar-dark
-(unpackaged/customize-theme-faces 'doom-oksolar-dark
-  `(mode-line-active
-    ((t (:background ,(face-attribute 'mode-line-inactive
-                                      :background)))))
-  `(mode-line-inactive
-    ((t (:background ,(face-attribute 'mode-line-active
-                                      :background))))))
-(use-package auto-dim-other-buffers
-  :ensure t
-  :config
-  (unpackaged/customize-theme-faces 'solarized-dark
-    '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
-  (unpackaged/customize-theme-faces 'solarized-light
-    '(auto-dim-other-buffers-face ((t (:background
-                                       "#eee8d5")))))
-  :init
-  (auto-dim-other-buffers-mode 1))
-
-(setq custom-file-save-faces nil)
-
-(use-package dap-mode
-  :ensure t
-  :defer t)
-
-(set-frame-font "DeJavu Sans Mono 10" nil t)
-
-;; Completion for shell commands
-(use-package pcmpl-args
-  :ensure t
-  :demand t)
 
 (defun get-focused-monitor-geometry (&optional frame)
   "Get the geometry of the monitor displaying the selected frame in EXWM."
@@ -207,189 +289,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   ;; make-posframe doesn't work, we have to do this instead
   (set-face-background 'internal-border "gray50"))
 
-(use-package corfu
-  :ensure t
-  :preface
-  (defun corfu-enable-in-minibuffer ()
-    "Enable Corfu in the minibuffer."
-    (when (local-variable-p 'completion-at-point-functions)
-      ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
-      (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
-                  corfu-popupinfo-delay nil)
-      (corfu-mode 1)))
-  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
-    "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
-    ;; Get the geometry of the currently focused monitor
-    (let* ((monitor-geometry (get-focused-monitor-geometry))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry))
-           ;; You may want to adjust the logic below if you have specific preferences
-           ;; on where on the monitor the posframe should appear.
-           ;; Currently, it places the posframe at its intended X and Y, but ensures
-           ;; it's within the bounds of the focused monitor.
-           (new-x (+ monitor-x x))
-           (new-y (+ monitor-y y)))
-      ;; Call the original function with potentially adjusted coordinates
-      (funcall orig-fun frame new-x new-y width height buffer)))
-
-
-  :hook
-  (minibuffer-setup . corfu-enable-in-minibuffer)
-  :custom
-  (corfu-auto nil)
-  ;;(corfu-auto-delay 0.6)
-  (corfu-cycle t)
-  (corfu-preview-current t)
-  (corfu-popupinfo-delay 0)
-  (tab-always-indent 'complete)
-  (corfu-history-mode t)
-  :config
-  (with-eval-after-load "sly"
-    (setq sly-symbol-completion-mode nil))
-  (advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
-  (corfu-popupinfo-mode 1)
-  (global-corfu-mode))
-
-
-(use-package cape
-  :ensure t
-  :init
-  ;; Add to the global default value of `completion-at-point-functions' which is
-  ;; used by `completion-at-point'.  The order of the functions matters, the
-  ;; first function returning a result wins.  Note that the list of buffer-local
-  ;; completion functions takes precedence over the global list.
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-file)
-  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  ;;(add-to-list 'completion-at-point-functions #'cape-history)
-  (add-to-list 'completion-at-point-functions #'cape-keyword)
-  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
-  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
-  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
-  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
-  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-  ;;(add-to-list 'completion-at-point-functions #'cape-line)
-  )
-
-(use-package magit
-  :ensure t
-  :demand t)
-
-;;(use-package yasnippet
-;;  :ensure t
-;;  :custom
-;;  (yas-indent-line 'auto)
-;;  (yas-also-auto-indent-first-line t)
-;;  :config
-;;  (yas-global-mode 1))
-;;
-;;(use-package yasnippet-snippets
-;;  :ensure t)
-
-(use-package lsp-mode
-  :ensure t
-  :defer t
-  :commands (lsp lsp-deferred)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :config
-  (lsp-enable-which-key-integration t))
-
-(use-package lsp-latex
-  :ensure t
-  :defer t
-  :after lsp-mode
-  :init
-  (require 'lsp-latex)
-
-  :hook
-  (tex-mode . 'lsp)
-  (latex-mode . 'lsp)
-  (LaTeX-mode . 'lsp)
-  :config
-
-  ;; For YaTeX
-  (with-eval-after-load "yatex"
-    (add-hook 'yatex-mode-hook 'lsp))
-
-  ;; For bibtex
-  (with-eval-after-load "bibtex"
-    (add-hook 'bibtex-mode-hook 'lsp))
-
-  :custom
-  (lsp-latex-forward-search-executable "okular")
-  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
-  (lsp-latex-build-forward-search-after t)
-  (lsp-latex-build-on-save t))
-
-(use-package shrface
-  :ensure t
-  :defer t
-  :config
-  (shrface-basic)
-  (shrface-trial)
-  (shrface-default-keybindings) ; setup default keybindings
-  :custom
-  (shrface-href-versatile t))
-
-(use-package eww
-  :defer t
-  :init
-  (add-hook 'eww-after-render-hook #'shrface-mode)
-  :config
-  (require 'shrface))
-
-;; TODO one of the following options disables shrface conversion to org-mode headings
-;; Figure out what and fix it
-;;(setq mu4e-html2text-command 'mu4e-shr2text)
-(setq shr-color-visible-luminance-min 60)
-(setq shr-color-visible-distance-min 5)
-(setq shr-use-colors nil)
-(advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
 
 (use-package hl-todo
   :ensure t
   :config
   (global-hl-todo-mode 1))
-
-(use-package magit-todos
-  :ensure t
-  :after magit
-  :config
-  (magit-todos-mode 1))
-
-(use-package projectile
-  :ensure t
-  :config
-  (projectile-mode 1))
-
-;; Provides only the command “restart-emacs”.
-(use-package restart-emacs
-  :ensure t
-  ;; If I ever close Emacs, it's likely because I want to restart it.
-  :bind ("C-x C-c" . restart-emacs)
-  ;; Let's define an alias so there's no need to remember the order.
-  :config (defalias 'emacs-restart #'restart-emacs))
-
-(use-package bitbake
-  :ensure t
-  :defer t
-  :mode "bitbake-mode"
-  :init
-  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
-  :config
-  (with-eval-after-load 'lsp-mode
-    (add-to-list 'lsp-language-id-configuration
-      '(bitbake-mode . "bitbake"))
-    (lsp-register-client
-      (make-lsp-client
-      :new-connection (lsp-stdio-connection "bitbake-language-server")
-      :activation-fn (lsp-activate-on "bitbake")
-      :server-id 'bitbake)))
-
-  (with-eval-after-load "bitbake-mode"
-    (add-hook 'bitbake-mode-hook 'lsp)))
 
 (use-package undo-tree
   :ensure t
@@ -400,15 +304,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (undo-tree-visualizer-diff t)
   (undo-tree-auto-save-history t)
   (undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
-
-(use-package tex
-  :ensure auctex
-  :defer t
-  :config
-  (setq-default TeX-master "main") ; All master files called "main".
-  :custom
-  (TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
-  (TeX-view-program-selection '((output-pdf "Okular"))))
 
 (use-package git-gutter
   :ensure t
@@ -437,6 +332,64 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (prog-mode . rpo/git-gutter-mode))
   ;;(server-after-make-frame . set-git-gutter-background)
   ;;(window-setup . set-git-gutter-background))
+
+(use-package ace-window
+  :ensure t
+  :bind (("C-x o" . ace-window)
+         ("C-x O" . ace-swap-window))
+  :config
+  (defun my/aw-window-list-advice (orig-fun &rest args)
+    "Advice to use EXWM-aware frame visibility check in aw-window-list."
+    (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
+      (apply orig-fun args)))
+
+  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
+  (defun my-aw-poshandler (info)
+    (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry))
+           (window-left (plist-get info :parent-window-left))
+           (window-top (plist-get info :parent-window-top))
+           (window-width (plist-get info :parent-window-width))
+           (window-height (plist-get info :parent-window-height))
+           (posframe-width (plist-get info :posframe-width))
+           (posframe-height (plist-get info :posframe-height))
+           (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
+           (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
+      (cons x y)))
+  (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
+    (let ((aw-posframe-position-handler #'my-aw-poshandler))
+      (apply orig-fun args)))
+  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (orig-fun &rest args)
+    "Don't reuse posframes, they get mangled on multi-monitor"
+    (mapc #'posframe-delete aw--posframe-frames)
+    (setq aw--posframe-frames nil))
+
+  :config
+  (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
+  (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
+  (set-face-attribute 'aw-leading-char-face nil :height 200)
+  (ace-window-posframe-mode 1)
+  :custom
+  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+
+;;;; Minibuffer
+(setq enable-recursive-minibuffers t)
+
+(defun my-minibuffer-unrecursion ()
+  (when (> (minibuffer-depth) 1)
+    (run-with-timer 0 nil 'my-interactive-command
+                    this-command current-prefix-arg)
+    (abort-recursive-edit)))
+
+(defun my-interactive-command (cmd arg)
+  (let ((current-prefix-arg arg))
+    (call-interactively cmd)))
+
+;; Drag stuff up/down etc with M-<up>, M-<down>...
+;; Replace current minibuffer with a new one
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-unrecursion)
 
 (use-package vertico
   :ensure t
@@ -483,328 +436,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
    ("C-;" . embark-dwim)
    ("C-h B" . embark-bindings)))
 
-(use-package org-ref
-  :after org
-  :config
-  (require 'org-ref))
-
-(use-package bibtex-completion
-  :ensure t
-  :defer t
-  :custom
-  (bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n")
-  (bibtex-completion-additional-search-fields '(keywords))
-  (bibtex-completion-display-formats
-  '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
-    (inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
-    (incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-    (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-    (t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}")))
-  (bibtex-completion-pdf-open-function
-    (lambda (fpath)
-      (call-process "okular" nil 0 nil fpath)))
-
-  :config
-  (defun my-open-citation-at-point ()
-    (interactive) (bibtex-completion-open-pdf (list (thing-at-point 'symbol))))
-
-  (with-eval-after-load "evil"
-    (evil-define-key 'normal 'latex-mode-map "gp" 'my-open-citation-at-point)))
-
-(use-package ace-window
-  :ensure t
-  :bind (("C-x o" . ace-window)
-         ("C-x O" . ace-swap-window))
-  :config
-  (defun my/aw-window-list-advice (orig-fun &rest args)
-    "Advice to use EXWM-aware frame visibility check in aw-window-list."
-    (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
-      (apply orig-fun args)))
-
-  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
-  (defun my-aw-poshandler (info)
-    (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry))
-           (window-left (plist-get info :parent-window-left))
-           (window-top (plist-get info :parent-window-top))
-           (window-width (plist-get info :parent-window-width))
-           (window-height (plist-get info :parent-window-height))
-           (posframe-width (plist-get info :posframe-width))
-           (posframe-height (plist-get info :posframe-height))
-           (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
-           (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
-      (cons x y)))
-  (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
-    (let ((aw-posframe-position-handler #'my-aw-poshandler))
-      (apply orig-fun args)))
-  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (orig-fun &rest args)
-    "Don't reuse posframes, they get mangled on multi-monitor"
-    (mapc #'posframe-delete aw--posframe-frames)
-    (setq aw--posframe-frames nil))
-
-  :config
-  (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
-  (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
-  (set-face-attribute 'aw-leading-char-face nil :height 200)
-  (ace-window-posframe-mode 1)
-  :custom
-  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
-
-(use-package quelpa-use-package
-  :ensure t)
-;;
-;;(use-package mastodon-alt
-;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
-
-(use-package scad-dbus
-  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
-
-(use-package org-gantt
-  :after org
-  :defer t
-  :quelpa (org-gantt :fetcher github :repo "swillner/org-gantt"))
-
-(use-package geiser
-  :ensure t
-  :custom
-  (geiser-default-implementation 'guile)
-  (geiser-active-implementations '(guile))
-  (geiser-implementations-alist '(((regexp "\\.scm$") guile))))
-
-(use-package geiser-guile
-  :ensure t
-  :after geiser
-  :config
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
-
-(with-eval-after-load "geiser-guile"
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
-
-;; TODO: Make package of this
-;; Show function signatures in a popup instead of echo area
-(defun my-eldoc-posframe-show (&rest args)
-  (when (car args)
-    (posframe-show "*eldoc-posframe*"
-                   :string (apply 'format args)
-                   :position (point)
-                   :max-width 100
-                   :background-color "#333333"
-                   :foreground-color "#eeeeee"
-                   :internal-border-width 1
-                   :internal-border-color "#777777")
-    (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
-(defun my-eldoc-posframe-hide ()
-  (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
-  (posframe-hide "*eldoc-posframe*"))
-(setq eldoc-message-function #'my-eldoc-posframe-show)
-(setq eldoc-idle-delay 1)
-;; Only trigger after any editing
-(setq eldoc-print-after-edit t)
-
-(use-package mu4e
-  :init
-  ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
-  (require 'mu4e)
-  (require 'mu4e-contrib)
-  :preface
-  ;; Override this to avoid the IDIOTIC mue4 "main window"
-  (defun my-mu4e~headers-quit-buffer (&rest _)
-    "Quit the mu4e-headers buffer and do NOT go back to the main view."
-    (interactive)
-    (mu4e-mark-handle-when-leaving)
-    (quit-window t)
-    (mu4e--query-items-refresh 'reset-baseline))
-  (defun my-disabled-mu4e--main-menu ()
-    "Skip the USELESS main menu."
-    (mu4e-search-maildir "/All Mail"))
-  :config
-  (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
-  (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
-  :hook
-  ;; Don't create tons of "draft" messages
-  (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
-  :custom
-  ;; Don't spam the echo area all the time
-  (mu4e-hide-index-messages t)
-  ;; Don't mess with my window layout
-  (mu4e-split-view 'single-window)
-  ;; Do as I say
-  (mu4e-confirm-quit nil)
-  (mu4e-update-interval 30)
-  ;; Use with font-google-noto, or a later version of font-openmoji
-  (mu4e-headers-unread-mark    '("u" . "📩"))
-  (mu4e-headers-draft-mark     '("D" . "✏️"))
-  (mu4e-headers-flagged-mark   '("F" . "🚩"))
-  (mu4e-headers-new-mark       '("N" . "✨"))
-  (mu4e-headers-passed-mark    '("R" . "↪️"))
-  (mu4e-headers-replied-mark   '("R" . "↩️"))
-  (mu4e-headers-seen-mark      '("S" . "✔️"))
-  (mu4e-headers-trashed-mark   '("T" . "🗑️"))
-  (mu4e-headers-attach-mark    '("a" . "📎"))
-  (mu4e-headers-encrypted-mark '("x" . "🔒"))
-  (mu4e-headers-signed-mark    '("s" . "🔑️"))
-  (mu4e-headers-calendar-mark  '("c" . "📅"))
-  (mu4e-headers-list-mark      '("l" . "📰"))
-  (mu4e-headers-personal-mark  '(""  . ""  )) ; All emails are marked personal; hide this mark
-
-  (mu4e-compose-dont-reply-to-self t)
-
-  (mu4e-attachment-dir "~/Downloads")
-
-  ;; Gmail takes care of sent messages
-  (mu4e-sent-messages-behavior 'delete)
-
-  ;; use mu4e for e-mail in emacs
-  (mail-user-agent 'mu4e-user-agent)
-  (sendmail-program "msmtp")
-  (send-mail-function 'smtpmail-send-it)
-  (message-sendmail-f-is-evil t)
-  (message-sendmail-extra-arguments '("--read-envelope-from"))
-  (message-send-mail-function 'message-send-mail-with-sendmail)
-  ;; these must start with a "/", and must exist
-  ;; (i.e.. /home/user/Maildir/sent must exist)
-  ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
-  ;; already exist
-
-  ;; below are the defaults; if they do not exist yet, mu4e offers to
-  ;; create them. they can also functions; see their docstrings.
-  (mu4e-sent-folder   "/Sent Mail")
-  (mu4e-drafts-folder "/Drafts")
-  (mu4e-trash-folder  "/Trash"))
-
-(defun my-confirm-empty-subject ()
-  "Allow user to quit when current message subject is empty."
-  (or (message-field-value "Subject")
-      (yes-or-no-p "Really send without Subject? ")
-      (keyboard-quit)))
-
-(add-hook 'message-send-hook #'my-confirm-empty-subject)
-
-(use-package mu4e-thread-folding
-  :quelpa (mu4e-thread-folding
-           :fetcher github
-           :repo "rougier/mu4e-thread-folding")
-  :after mu4e
-  :config
-  (add-to-list 'mu4e-header-info-custom
-               '(:empty . (:name "Empty"
-                           :shortname ""
-                           :function (lambda (msg) "  "))))
-
-  (evil-define-key 'normal mu4e-headers-mode-map
-    (kbd "TAB")  'mu4e-headers-toggle-at-point)
-
-  :custom
-  (mu4e-headers-fields '((:empty         .    2)
-                         (:human-date    .   12)
-                         (:flags         .    6)
-                         ;;(:mailing-list  .   10)
-                         (:from          .   22)
-                         (:subject       .   nil)))
-  (mu4e-thread-folding-default-view 'folded)
-  (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
-
-;;(use-package eat
-;;  :ensure t
-;;  :config
-;;  (eat-eshell-mode))
-;;  ;;:custom
-;;  ;;(eshell-visual-commands nil))
-
-(use-package vterm
-  :ensure t
-  :defer t
-  :config
-  ;; Fix background
-  (defun old-version-of-vterm--get-color (index &rest args)
-    "This is the old version before it was broken by commit
-https://github.com/akermu/emacs-libvterm/commit/e96c53f5035c841b20937b65142498bd8e161a40.
-Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
-    (cond
-     ((and (>= index 0) (< index 16))
-      (face-foreground
-       (elt vterm-color-palette index)
-       nil 'default))
-     ((= index -11)
-      (face-foreground 'vterm-color-underline nil 'default))
-     ((= index -12)
-      (face-background 'vterm-color-inverse-video nil 'default))
-     (t
-      nil)))
-  (advice-add 'vterm--get-color :override #'old-version-of-vterm--get-color)
-  ;; Use libvterm installed in Guix
-  (advice-add 'vterm-module-compile :around
-              (lambda (f &rest r)
-                (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/libvterm.so.0")
-                                    (file-name-directory (locate-library "vterm.el" t)) t)
-                (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
-                                    (file-name-directory (locate-library "vterm.el" t)) t)))
-  ;; Disable running process warning when only shell is running
-  ;; TODO: Send PR?
-  (advice-add 'kill-buffer :around
-              (lambda (orig-fun &rest args)
-                (if (eq major-mode 'vterm-mode)
-                    (let* ((proc (get-buffer-process (current-buffer)))
-                           (proc-name (if proc (process-name proc) ""))
-                           (only-shell-running (not (process-running-child-p proc-name))))
-                      (if only-shell-running
-                          (set-process-query-on-exit-flag proc nil))))
-                (apply orig-fun args))))
-
-(use-package multi-vterm
-  :ensure t
-  :defer t
-  :after vterm)
-
-;; IRC client config
-(use-package erc
-  :defer t
-  :custom
-  (erc-fill-function 'erc-fill-static)
-  (erc-fill-static-center 15)
-  (erc-hide-list '("JOIN" "PART" "QUIT"))
-  (erc-lurker-hide-list '("JOIN" "PART" "QUIT")))
-
-(use-package erc-twitch
-  :ensure t
-  :after erc
-  :defer t
-  :config
-  (erc-twitch-enable))
-
-(use-package erc-hl-nicks
-  :ensure t
-  :after erc
-  :defer t
-  :config
-  (erc-hl-nicks-enable))
-
-(use-package erc-image
-  :ensure t
-  :after erc
-  :defer t
-  :config
-  (erc-image-enable))
-
-(use-package goggles
-  :ensure t
-  :config
-  (goggles-mode))
-
-(use-package evil-goggles
-  :ensure t
-  :after (evil goggles)
-  :config
-  (evil-goggles-mode))
-
-
+;;; Org
+;;;-----
 
 (use-package org-roam
   :ensure t
@@ -1067,81 +700,426 @@ capture was not aborted."
   :ensure t
   :after org)
 
-(use-package dired
-  :ensure nil
-  :commands (dired dired-jump)
-  :bind ("C-x C-j" . dired-jump)
-  :custom
-  (dired-listing-switches "-lAh --group-directories-first")
-  :hook
-  (dired-mode . dired-hide-details-mode)
+(use-package org-gantt
+  :after org
+  :defer t
+  :quelpa (org-gantt :fetcher github :repo "swillner/org-gantt"))
+
+(use-package org-ref
+  :after org
   :config
-  (evil-collection-define-key 'normal 'dired-mode-map
-    "h" 'dired-up-directory
-    "l" 'dired-find-file))
+  (require 'org-ref))
+
+(use-package bibtex-completion
+  :ensure t
+  :defer t
+  :custom
+  (bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n")
+  (bibtex-completion-additional-search-fields '(keywords))
+  (bibtex-completion-display-formats
+  '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
+    (inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
+    (incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+    (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+    (t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}")))
+  (bibtex-completion-pdf-open-function
+    (lambda (fpath)
+      (call-process "okular" nil 0 nil fpath)))
+
+  :config
+  (defun my-open-citation-at-point ()
+    (interactive) (bibtex-completion-open-pdf (list (thing-at-point 'symbol))))
+
+  (with-eval-after-load "evil"
+    (evil-define-key 'normal 'latex-mode-map "gp" 'my-open-citation-at-point)))
+
+;;; Completion
+;;;---------------
+
+(use-package sly
+  :ensure t
+  :defer t
+  :config
+  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<up>") 'sly-mrepl-previous-input-or-button)
+  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<down>") 'sly-mrepl-next-input-or-button))
 
 
-(use-package dired-narrow
+(use-package dap-mode
+  :ensure t
+  :defer t)
+
+(use-package corfu
+  :ensure t
+  :preface
+  (defun corfu-enable-in-minibuffer ()
+    "Enable Corfu in the minibuffer."
+    (when (local-variable-p 'completion-at-point-functions)
+      ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
+      (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
+                  corfu-popupinfo-delay nil)
+      (corfu-mode 1)))
+  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
+    "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
+    ;; Get the geometry of the currently focused monitor
+    (let* ((monitor-geometry (get-focused-monitor-geometry))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry))
+           ;; You may want to adjust the logic below if you have specific preferences
+           ;; on where on the monitor the posframe should appear.
+           ;; Currently, it places the posframe at its intended X and Y, but ensures
+           ;; it's within the bounds of the focused monitor.
+           (new-x (+ monitor-x x))
+           (new-y (+ monitor-y y)))
+      ;; Call the original function with potentially adjusted coordinates
+      (funcall orig-fun frame new-x new-y width height buffer)))
+
+
+  :hook
+  (minibuffer-setup . corfu-enable-in-minibuffer)
+  :custom
+  (corfu-auto nil)
+  ;;(corfu-auto-delay 0.6)
+  (corfu-cycle t)
+  (corfu-preview-current t)
+  (corfu-popupinfo-delay 0)
+  (tab-always-indent 'complete)
+  (corfu-history-mode t)
+  :config
+  (with-eval-after-load "sly"
+    (setq sly-symbol-completion-mode nil))
+  (advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
+  (corfu-popupinfo-mode 1)
+  (global-corfu-mode))
+
+
+(use-package geiser
+  :ensure t
+  :custom
+  (geiser-default-implementation 'guile)
+  (geiser-active-implementations '(guile))
+  (geiser-implementations-alist '(((regexp "\\.scm$") guile))))
+
+(use-package geiser-guile
+  :ensure t
+  :after geiser
+  :config
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
+
+(with-eval-after-load "geiser-guile"
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
+
+(use-package cape
+  :ensure t
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-file)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  (add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+  )
+
+;;(use-package yasnippet
+;;  :ensure t
+;;  :custom
+;;  (yas-indent-line 'auto)
+;;  (yas-also-auto-indent-first-line t)
+;;  :config
+;;  (yas-global-mode 1))
+;;
+;;(use-package yasnippet-snippets
+;;  :ensure t)
+
+(use-package lsp-mode
+  :ensure t
+  :defer t
+  :commands (lsp lsp-deferred)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
+
+(use-package lsp-latex
+  :ensure t
+  :defer t
+  :after lsp-mode
+  :init
+  (require 'lsp-latex)
+
+  :hook
+  (tex-mode . 'lsp)
+  (latex-mode . 'lsp)
+  (LaTeX-mode . 'lsp)
+  :config
+
+  ;; For YaTeX
+  (with-eval-after-load "yatex"
+    (add-hook 'yatex-mode-hook 'lsp))
+
+  ;; For bibtex
+  (with-eval-after-load "bibtex"
+    (add-hook 'bibtex-mode-hook 'lsp))
+
+  :custom
+  (lsp-latex-forward-search-executable "okular")
+  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
+  (lsp-latex-build-forward-search-after t)
+  (lsp-latex-build-on-save t))
+
+;; Completion for shell commands
+(use-package pcmpl-args
+  :ensure t
+  :demand t)
+
+;;; Git
+;;;-----
+(use-package magit
+  :ensure t
+  :demand t)
+
+(use-package magit-todos
+  :ensure t
+  :after magit
+  :config
+  (magit-todos-mode 1))
+
+;;; Random bullshit
+;;;-----------------
+
+
+(defun tmux-navigate-directions ()
+  (let* ((x (nth 0 (window-edges)))
+         (y (nth 1 (window-edges)))
+         (w (nth 2 (window-edges)))
+         (h (nth 3 (window-edges)))
+
+         (can_go_up (> y 2))
+         (can_go_down (<  (+ y h) (- (frame-height) 2)))
+         (can_go_left (> x 1))
+         (can_go_right (< (+ x w) (frame-width))))
+
+    (send-string-to-terminal
+     (format "\e]2;emacs %s #%s\a"
+    (buffer-name)
+        (string
+          (if can_go_up    ?U 1)
+          (if can_go_down  ?D 1)
+          (if can_go_left  ?L 1)
+          (if can_go_right ?R 1))))))
+
+(unless (display-graphic-p)
+  (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
+
+(setq custom-file (concat user-emacs-directory "custom.el"))
+(when (file-exists-p custom-file)
+  (load custom-file))
+(use-package shrface
+  :ensure t
+  :defer t
+  :config
+  (shrface-basic)
+  (shrface-trial)
+  (shrface-default-keybindings) ; setup default keybindings
+  :custom
+  (shrface-href-versatile t))
+
+(use-package eww
+  :defer t
+  :init
+  (add-hook 'eww-after-render-hook #'shrface-mode)
+  :config
+  (require 'shrface))
+
+;; TODO one of the following options disables shrface conversion to org-mode headings
+;; Figure out what and fix it
+;;(setq mu4e-html2text-command 'mu4e-shr2text)
+(setq shr-color-visible-luminance-min 60)
+(setq shr-color-visible-distance-min 5)
+(setq shr-use-colors nil)
+(advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
+
+(use-package bitbake
+  :ensure t
+  :defer t
+  :mode "bitbake-mode"
+  :init
+  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
+  :config
+  (with-eval-after-load 'lsp-mode
+    (add-to-list 'lsp-language-id-configuration
+      '(bitbake-mode . "bitbake"))
+    (lsp-register-client
+      (make-lsp-client
+      :new-connection (lsp-stdio-connection "bitbake-language-server")
+      :activation-fn (lsp-activate-on "bitbake")
+      :server-id 'bitbake)))
+
+  (with-eval-after-load "bitbake-mode"
+    (add-hook 'bitbake-mode-hook 'lsp)))
+
+(use-package tex
+  :ensure auctex
+  :defer t
+  :config
+  (setq-default TeX-master "main") ; All master files called "main".
+  :custom
+  (TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
+  (TeX-view-program-selection '((output-pdf "Okular"))))
+
+;;
+;;(use-package mastodon-alt
+;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
+
+(use-package scad-dbus
+  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
+
+
+;;; Projectile
+(use-package projectile
   :ensure t
   :config
-  (defun my-dired-narrow-and-select ()
-    "Narrow dired to filter results, then select the file at point."
+  (projectile-mode 1))
+
+
+
+;;; Mail
+;;;------
+
+(use-package consult-mu
+  :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
+
+(defun insert-cut-here-start ()
+  "Insert opening \"cut here start\" snippet."
+  (interactive)
+  (insert "--8<---------------cut here---------------start------------->8---"))
+
+(defun insert-cut-here-end ()
+  "Insert closing \"cut here end\" snippet."
+  (interactive)
+  (insert "--8<---------------cut here---------------end--------------->8---"))
+
+(use-package mu4e
+  :init
+  ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+  (require 'mu4e)
+  (require 'mu4e-contrib)
+  :preface
+  ;; Override this to avoid the IDIOTIC mue4 "main window"
+  (defun my-mu4e~headers-quit-buffer (&rest _)
+    "Quit the mu4e-headers buffer and do NOT go back to the main view."
     (interactive)
-    (call-interactively 'dired-narrow)
-    (dired-find-file)))
-
-;; Open archive files seamlessly in dired
-(use-package dired-avfs
-  :ensure t
-  :after dired)
-
-;; Filetype icons in dired
-(use-package all-the-icons-dired
-  :ensure t
-  :after dired
-  :hook (dired-mode . all-the-icons-dired-mode))
-
-;; Collapse multiple dirctory levels if each only has one dir
-;; Like the file explorer on github does
-(use-package dired-collapse
-  :ensure t
-  :after dired
+    (mu4e-mark-handle-when-leaving)
+    (quit-window t)
+    (mu4e--query-items-refresh 'reset-baseline))
+  (defun my-disabled-mu4e--main-menu ()
+    "Skip the USELESS main menu."
+    (mu4e-search-maildir "/All Mail"))
   :config
-  (global-dired-collapse-mode))
-
-;; Keep reusing a single dired buffer instead of opening new
-;; every time you navigate to another folder
-;; TODO: Integrate in normal dired commands
-(use-package dired-single
-  :ensure t
-  :after dired)
-
-;; Open some filetypes in external program
-;; TODO: Automatically open correct program through mime/xdg
-(use-package dired-open
-  :ensure t
-  :after dired
+  (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
+  (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
+  :hook
+  ;; Don't create tons of "draft" messages
+  (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
   :custom
-  (dired-open-extensions
-   '(("mp4" . "mpv"))))
+  ;; Don't spam the echo area all the time
+  (mu4e-hide-index-messages t)
+  ;; Don't mess with my window layout
+  (mu4e-split-view 'single-window)
+  ;; Do as I say
+  (mu4e-confirm-quit nil)
+  (mu4e-update-interval 30)
+  ;; Use with font-google-noto, or a later version of font-openmoji
+  (mu4e-headers-unread-mark    '("u" . "📩"))
+  (mu4e-headers-draft-mark     '("D" . "✏️"))
+  (mu4e-headers-flagged-mark   '("F" . "🚩"))
+  (mu4e-headers-new-mark       '("N" . "✨"))
+  (mu4e-headers-passed-mark    '("R" . "↪️"))
+  (mu4e-headers-replied-mark   '("R" . "↩️"))
+  (mu4e-headers-seen-mark      '("S" . "✔️"))
+  (mu4e-headers-trashed-mark   '("T" . "🗑️"))
+  (mu4e-headers-attach-mark    '("a" . "📎"))
+  (mu4e-headers-encrypted-mark '("x" . "🔒"))
+  (mu4e-headers-signed-mark    '("s" . "🔑️"))
+  (mu4e-headers-calendar-mark  '("c" . "📅"))
+  (mu4e-headers-list-mark      '("l" . "📰"))
+  (mu4e-headers-personal-mark  '(""  . ""  )) ; All emails are marked personal; hide this mark
 
-(use-package pdf-tools
-  :ensure nil ;; Use package from Guix
-  :hook
-  ;; Disable blinking border around pdf pages (caused by cursor blink)
-  (pdf-view-mode . (lambda ()
-                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
-                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
+  (mu4e-compose-dont-reply-to-self t)
+
+  (mu4e-attachment-dir "~/Downloads")
+
+  ;; Gmail takes care of sent messages
+  (mu4e-sent-messages-behavior 'delete)
+
+  ;; use mu4e for e-mail in emacs
+  (mail-user-agent 'mu4e-user-agent)
+  (sendmail-program "msmtp")
+  (send-mail-function 'smtpmail-send-it)
+  (message-sendmail-f-is-evil t)
+  (message-sendmail-extra-arguments '("--read-envelope-from"))
+  (message-send-mail-function 'message-send-mail-with-sendmail)
+  ;; these must start with a "/", and must exist
+  ;; (i.e.. /home/user/Maildir/sent must exist)
+  ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
+  ;; already exist
+
+  ;; below are the defaults; if they do not exist yet, mu4e offers to
+  ;; create them. they can also functions; see their docstrings.
+  (mu4e-sent-folder   "/Sent Mail")
+  (mu4e-drafts-folder "/Drafts")
+  (mu4e-trash-folder  "/Trash"))
+
+(defun my-confirm-empty-subject ()
+  "Allow user to quit when current message subject is empty."
+  (or (message-field-value "Subject")
+      (yes-or-no-p "Really send without Subject? ")
+      (keyboard-quit)))
+
+(add-hook 'message-send-hook #'my-confirm-empty-subject)
+
+(use-package mu4e-thread-folding
+  :quelpa (mu4e-thread-folding
+           :fetcher github
+           :repo "rougier/mu4e-thread-folding")
+  :after mu4e
   :config
-  (pdf-tools-install))
+  (add-to-list 'mu4e-header-info-custom
+               '(:empty . (:name "Empty"
+                           :shortname ""
+                           :function (lambda (msg) "  "))))
 
-(use-package image-mode
-  :hook
-  ;; Disable blinking border around images (caused by cursor blink)
-  (image-mode . (lambda ()
-                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
-                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil)))))
+  (evil-define-key 'normal mu4e-headers-mode-map
+    (kbd "TAB")  'mu4e-headers-toggle-at-point)
 
+  :custom
+  (mu4e-headers-fields '((:empty         .    2)
+                         (:human-date    .   12)
+                         (:flags         .    6)
+                         ;;(:mailing-list  .   10)
+                         (:from          .   22)
+                         (:subject       .   nil)))
+  (mu4e-thread-folding-default-view 'folded)
+  (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
+
+
+;;; Terminal
+;;;----------
 
 (use-package eshell
   :preface
@@ -1253,44 +1231,200 @@ capture was not aborted."
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
 
-(defun tmux-navigate-directions ()
-  (let* ((x (nth 0 (window-edges)))
-         (y (nth 1 (window-edges)))
-         (w (nth 2 (window-edges)))
-         (h (nth 3 (window-edges)))
+;;(use-package eat
+;;  :ensure t
+;;  :config
+;;  (eat-eshell-mode))
+;;  ;;:custom
+;;  ;;(eshell-visual-commands nil))
 
-         (can_go_up (> y 2))
-         (can_go_down (<  (+ y h) (- (frame-height) 2)))
-         (can_go_left (> x 1))
-         (can_go_right (< (+ x w) (frame-width))))
+(use-package vterm
+  :ensure t
+  :defer t
+  :config
+  ;; Fix background
+  (defun old-version-of-vterm--get-color (index &rest args)
+    "This is the old version before it was broken by commit
+https://github.com/akermu/emacs-libvterm/commit/e96c53f5035c841b20937b65142498bd8e161a40.
+Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
+    (cond
+     ((and (>= index 0) (< index 16))
+      (face-foreground
+       (elt vterm-color-palette index)
+       nil 'default))
+     ((= index -11)
+      (face-foreground 'vterm-color-underline nil 'default))
+     ((= index -12)
+      (face-background 'vterm-color-inverse-video nil 'default))
+     (t
+      nil)))
+  (advice-add 'vterm--get-color :override #'old-version-of-vterm--get-color)
+  ;; Use libvterm installed in Guix
+  (advice-add 'vterm-module-compile :around
+              (lambda (f &rest r)
+                (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/libvterm.so.0")
+                                    (file-name-directory (locate-library "vterm.el" t)) t)
+                (make-symbolic-link (expand-file-name "~/.guix-home/profile/lib/vterm-module.so")
+                                    (file-name-directory (locate-library "vterm.el" t)) t)))
+  ;; Disable running process warning when only shell is running
+  ;; TODO: Send PR?
+  (advice-add 'kill-buffer :around
+              (lambda (orig-fun &rest args)
+                (if (eq major-mode 'vterm-mode)
+                    (let* ((proc (get-buffer-process (current-buffer)))
+                           (proc-name (if proc (process-name proc) ""))
+                           (only-shell-running (not (process-running-child-p proc-name))))
+                      (if only-shell-running
+                          (set-process-query-on-exit-flag proc nil))))
+                (apply orig-fun args))))
 
-    (send-string-to-terminal
-     (format "\e]2;emacs %s #%s\a"
-    (buffer-name)
-        (string
-          (if can_go_up    ?U 1)
-          (if can_go_down  ?D 1)
-          (if can_go_left  ?L 1)
-          (if can_go_right ?R 1))))))
+(use-package multi-vterm
+  :ensure t
+  :defer t
+  :after vterm)
 
-(unless (display-graphic-p)
-  (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
 
-(setq custom-file (concat user-emacs-directory "custom.el"))
-(when (file-exists-p custom-file)
-  (load custom-file))
+;;; IRC
+;;;-----
 
-(defun insert-cut-here-start ()
-  "Insert opening \"cut here start\" snippet."
+(use-package erc
+  :defer t
+  :custom
+  (erc-fill-function 'erc-fill-static)
+  (erc-fill-static-center 15)
+  (erc-hide-list '("JOIN" "PART" "QUIT"))
+  (erc-lurker-hide-list '("JOIN" "PART" "QUIT")))
+
+(use-package erc-twitch
+  :ensure t
+  :after erc
+  :defer t
+  :config
+  (erc-twitch-enable))
+
+(use-package erc-hl-nicks
+  :ensure t
+  :after erc
+  :defer t
+  :config
+  (erc-hl-nicks-enable))
+
+(use-package erc-image
+  :ensure t
+  :after erc
+  :defer t
+  :config
+  (erc-image-enable))
+
+
+;;; Dired
+;;;-------
+
+(use-package dired
+  :ensure nil
+  :commands (dired dired-jump)
+  :bind ("C-x C-j" . dired-jump)
+  :custom
+  (dired-listing-switches "-lAh --group-directories-first")
+  :hook
+  (dired-mode . dired-hide-details-mode)
+  :config
+  (evil-collection-define-key 'normal 'dired-mode-map
+    "h" 'dired-up-directory
+    "l" 'dired-find-file))
+
+
+(use-package dired-narrow
+  :ensure t
+  :config
+  (defun my-dired-narrow-and-select ()
+    "Narrow dired to filter results, then select the file at point."
+    (interactive)
+    (call-interactively 'dired-narrow)
+    (dired-find-file)))
+
+;; Open archive files seamlessly in dired
+(use-package dired-avfs
+  :ensure t
+  :after dired)
+
+;; Filetype icons in dired
+(use-package all-the-icons-dired
+  :ensure t
+  :after dired
+  :hook (dired-mode . all-the-icons-dired-mode))
+
+;; Collapse multiple dirctory levels if each only has one dir
+;; Like the file explorer on github does
+(use-package dired-collapse
+  :ensure t
+  :after dired
+  :config
+  (global-dired-collapse-mode))
+
+;; Keep reusing a single dired buffer instead of opening new
+;; every time you navigate to another folder
+;; TODO: Integrate in normal dired commands
+(use-package dired-single
+  :ensure t
+  :after dired)
+
+;; Open some filetypes in external program
+;; TODO: Automatically open correct program through mime/xdg
+(use-package dired-open
+  :ensure t
+  :after dired
+  :custom
+  (dired-open-extensions
+   '(("mp4" . "mpv"))))
+
+(use-package pdf-tools
+  :ensure nil ;; Use package from Guix
+  :hook
+  ;; Disable blinking border around pdf pages (caused by cursor blink)
+  (pdf-view-mode . (lambda ()
+                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
+  :config
+  (pdf-tools-install))
+
+(use-package image-mode
+  :hook
+  ;; Disable blinking border around images (caused by cursor blink)
+  (image-mode . (lambda ()
+                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil)))))
+
+
+
+
+
+;;; EXWM
+;;;------
+
+(defvar my-fullscreen-window-configuration nil
+  "Stores the window configuration before entering fullscreen.")
+
+(defun my-toggle-fullscreen ()
+  "Toggle fullscreen for the current buffer.
+Automatically exits fullscreen if any window-changing command is executed."
   (interactive)
-  (insert "--8<---------------cut here---------------start------------->8---"))
+  (if (= 1 (length (window-list)))
+      (when my-fullscreen-window-configuration
+        (set-window-configuration my-fullscreen-window-configuration)
+        (setq my-fullscreen-window-configuration nil))
+    (setq my-fullscreen-window-configuration (current-window-configuration))
+    (delete-other-windows)))
 
-(defun insert-cut-here-end ()
-  "Insert closing \"cut here end\" snippet."
-  (interactive)
-  (insert "--8<---------------cut here---------------end--------------->8---"))
+(defun my-exit-fullscreen-advice (&rest _)
+  "Advice to exit fullscreen before executing window-changing commands."
+  (when my-fullscreen-window-configuration
+    (my-toggle-fullscreen)))
 
-
+(advice-add 'split-window :before #'my-exit-fullscreen-advice)
+;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
+;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
+;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
 
 (use-package exwm
   :ensure t
@@ -1439,6 +1573,55 @@ capture was not aborted."
 
   (exwm-enable))
 
+(use-package ednc
+  :ensure t
+  :preface
+  (defun my-ednc-notifier (old notification)
+  "Show TEXT in a posframe in the upper right corner of the main frame."
+  (let* ((main-frame (selected-frame))
+         (frame-width (frame-width main-frame))
+         (frame-height (frame-height main-frame))
+         (app-name (ednc-notification-app-name notification))
+         (app-icon (ednc-notification-app-icon notification))
+         (summary (ednc-notification-summary notification))
+         (body (ednc-notification-body notification))
+         (icon-image (if (f-file-p app-icon)
+                         (create-image app-icon nil nil :width 32 :height 32)
+                       ""))
+         (icon-string (propertize "" 'display icon-image))
+         (summary-text (propertize summary 'face 'bold))
+         (body-text (string-trim (string-fill body 40)))
+         (formatted-text
+          (format "%s%s\n%s\n%s"
+                  icon-string app-name summary-text (or body-text ""))))
+    (posframe-show
+     "*my-posframe-buffer*"
+     :string formatted-text
+     :poshandler (lambda (info) '(-1 . 16))
+     :background-color "black"
+     :border-color "red"
+     :border-width 10
+     :accept-focus nil
+     :timeout 10)))
+
+  :config
+  (ednc-mode 1)
+  (add-hook 'ednc-notification-presentation-functions 'my-ednc-notifier))
+
+
+(defun wait-for-exwm-window (window-name)
+  "Wait for an EXWM window with WINDOW-NAME to appear."
+  (interactive "sEnter window name: ")
+  (let ((window-exists nil))
+    (while (not window-exists)
+      (setq window-exists
+            (cl-some (lambda (win)
+                       (string-match-p window-name (exwm--get-window-title win)))
+                     (exwm--list-windows)))
+      (unless window-exists
+        (sit-for 1)))  ; Wait for 1 second before checking again
+    (message "The window '%s' has appeared!" window-name)))
+
 
 ;; Rofi application launcher alternative
 (use-package app-launcher
@@ -1459,34 +1642,6 @@ capture was not aborted."
   :custom
   (buffer-move-behavior 'move))
 
-;; Make vertico display in a floating window
-(use-package vertico-posframe
-  :ensure t
-  :after vertico
-  :preface
-  (defun advise-vertico-posframe-show-with-monitor-awareness (orig-fun buffer window-point &rest args)
-    "Advise `vertico-posframe--show` to position the posframe according to the focused monitor."
-    ;; Extract the focused monitor's geometry
-    (let* ((monitor-geometry (get-focused-monitor-geometry))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry)))
-      ;; Override poshandler buffer-local variable to use monitor-aware positioning
-      (let ((vertico-posframe-poshandler
-             (lambda (info)
-               (let* ((parent-frame-width (plist-get info :parent-frame-width))
-                      (parent-frame-height (plist-get info :parent-frame-height))
-                      (posframe-width (plist-get info :posframe-width))
-                      (posframe-height (plist-get info :posframe-height))
-                      ;; Calculate center position on the focused monitor
-                      (x (+ monitor-x (/ (- parent-frame-width posframe-width) 2)))
-                      (y (+ monitor-y (/ (- parent-frame-height posframe-height) 2))))
-                 (cons x y)))))
-        ;; Call the original function with potentially adjusted poshandler
-        (apply orig-fun buffer window-point args))))
-
-  :config
-  (advice-add 'vertico-posframe--show :around #'advise-vertico-posframe-show-with-monitor-awareness)
-  (vertico-posframe-mode 1))
 
 (use-package tab-bar
   :preface
@@ -1572,6 +1727,9 @@ capture was not aborted."
       (run-with-timer 0 1
                       'force-mode-line-update))
 
+;;; Proced
+;;;--------
+
 ;; Process Editor (htop-like)
 (use-package proced
   :preface
@@ -1603,6 +1761,10 @@ capture was not aborted."
   (proced-show-remote-processes t)
   :hook
   (proced-mode . proced-guix-nix-readable-mode))
+
+
+;;; EMMS
+;;;------
 
 (use-package emms
   :ensure t
@@ -1651,18 +1813,12 @@ and sends a message of the current volume status."
   :custom
   (emms-volume-change-function 'emms-player-mpv-raise-volume))
 
-;; Drag stuff up/down etc with M-<up>, M-<down>...
-(use-package drag-stuff
-  :ensure t
-  :config
-  (drag-stuff-global-mode 1)
-  (drag-stuff-define-keys))
+
+;;; Web
+;;;-----
 
 (use-package qute-launcher
   :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
-
-(use-package consult-mu
-  :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
 
 
 (use-package engine-mode
@@ -1695,18 +1851,27 @@ and sends a message of the current volume status."
     :keybinding "e")
   (engine-mode 1))
 
-(defun wait-for-exwm-window (window-name)
-  "Wait for an EXWM window with WINDOW-NAME to appear."
-  (interactive "sEnter window name: ")
-  (let ((window-exists nil))
-    (while (not window-exists)
-      (setq window-exists
-            (cl-some (lambda (win)
-                       (string-match-p window-name (exwm--get-window-title win)))
-                     (exwm--list-windows)))
-      (unless window-exists
-        (sit-for 1)))  ; Wait for 1 second before checking again
-    (message "The window '%s' has appeared!" window-name)))
+(defvar engine-search-history '())
+
+(defun my-engine-use-completing-read (orig-fun engine-name)
+  "Advice to use completing-read instead of read-string in engine--prompted-search-term."
+  (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
+    (completing-read (engine--search-prompt engine-name current-word)
+                     engine-search-history nil nil nil 'engine-search-history current-word)))
+
+(advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
+
+(defun switch-to-buffer-with-predicate (pred)
+  (switch-to-buffer (read-buffer "Switch to buffer: " nil t pred)))
+
+(defun switch-to-qutebrowser-buffer ()
+  (interactive)
+  (switch-to-buffer-with-predicate
+   (lambda (buf)
+     (string-search "qutebrowser" (car buf)))))
+
+;;; Mobile/touchscreen
+;;;--------------------
 
 (defun toggle-svkbd ()
   (interactive)
@@ -1727,43 +1892,9 @@ and sends a message of the current volume status."
                           (- (frame-pixel-height) 300)
                           nil t)))))
 
-(defun split-window-below-and-switch-buffer ()
-  "Split the window horizontally, focus the new window, and switch to a different buffer."
-  (interactive)
-  (split-window-below)
-  (other-window 1)
-  (switch-to-buffer (other-buffer)))
 
-(defun split-window-right-and-switch-buffer ()
-  "Split the window vertically, focus the new window, and switch to a different buffer."
-  (interactive)
-  (split-window-right)
-  (other-window 1)
-  (switch-to-buffer (other-buffer)))
-
-
-(use-package xkcd
-  :ensure t
-  :init
-  (evil-define-key 'normal xkcd-mode-map (kbd "h") 'xkcd-prev)
-  (evil-define-key 'normal xkcd-mode-map (kbd "l") 'xkcd-next)
-  :hook
-  (xkcd-mode . (lambda ()
-                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
-                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
-  :bind
-  (:map xkcd-mode-map
-        ("h" . xkcd-prev)
-        ("l" . xkcd-next))
-  :config
-  (defun xkcd-protocol-handler (&optional url)
-    (let ((num (string-to-number
-                (cl-remove-if-not #'cl-digit-char-p
-                                  (or url "")))))
-      (if (> num 0)
-          (xkcd-get num)
-        (xkcd)))))
-
+;;; Util funcs
+;;;------------
 
 (require 'async)
 (defun get-package-deps (package)
@@ -1790,101 +1921,19 @@ and sends a message of the current volume status."
    (lambda (result)
      (message "Async export result: %s" result))))
 
-(use-package ednc
-  :ensure t
-  :preface
-  (defun my-ednc-notifier (old notification)
-  "Show TEXT in a posframe in the upper right corner of the main frame."
-  (let* ((main-frame (selected-frame))
-         (frame-width (frame-width main-frame))
-         (frame-height (frame-height main-frame))
-         (app-name (ednc-notification-app-name notification))
-         (app-icon (ednc-notification-app-icon notification))
-         (summary (ednc-notification-summary notification))
-         (body (ednc-notification-body notification))
-         (icon-image (if (f-file-p app-icon)
-                         (create-image app-icon nil nil :width 32 :height 32)
-                       ""))
-         (icon-string (propertize "" 'display icon-image))
-         (summary-text (propertize summary 'face 'bold))
-         (body-text (string-trim (string-fill body 40)))
-         (formatted-text
-          (format "%s%s\n%s\n%s"
-                  icon-string app-name summary-text (or body-text ""))))
-    (posframe-show
-     "*my-posframe-buffer*"
-     :string formatted-text
-     :poshandler (lambda (info) '(-1 . 16))
-     :background-color "black"
-     :border-color "red"
-     :border-width 10
-     :accept-focus nil
-     :timeout 10)))
-
-  :config
-  (ednc-mode 1)
-  (add-hook 'ednc-notification-presentation-functions 'my-ednc-notifier))
-
-
-(defvar engine-search-history '())
-
-(defun my-engine-use-completing-read (orig-fun engine-name)
-  "Advice to use completing-read instead of read-string in engine--prompted-search-term."
-  (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
-    (completing-read (engine--search-prompt engine-name current-word)
-                     engine-search-history nil nil nil 'engine-search-history current-word)))
-
-(advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
-
-;; Enable opening another minibuffer while in minibuffer
-;; Usually recursive, but see below
-(setq enable-recursive-minibuffers t)
-
-;; Replace current minibuffer with a new one
-(add-hook 'minibuffer-setup-hook 'my-minibuffer-unrecursion)
-
-(defun my-minibuffer-unrecursion ()
-  (when (> (minibuffer-depth) 1)
-    (run-with-timer 0 nil 'my-interactive-command
-                    this-command current-prefix-arg)
-    (abort-recursive-edit)))
-(defun switch-to-buffer-with-predicate (pred)
-  (switch-to-buffer (read-buffer "Switch to buffer: " nil t pred)))
-
-(defun my-interactive-command (cmd arg)
-  (let ((current-prefix-arg arg))
-    (call-interactively cmd)))
-(defun switch-to-qutebrowser-buffer ()
+(defun split-window-below-and-switch-buffer ()
+  "Split the window horizontally, focus the new window, and switch to a different buffer."
   (interactive)
-  (switch-to-buffer-with-predicate
-   (lambda (buf)
-     (string-search "qutebrowser" (car buf)))))
+  (split-window-below)
+  (other-window 1)
+  (switch-to-buffer (other-buffer)))
 
-(defvar my-fullscreen-window-configuration nil
-  "Stores the window configuration before entering fullscreen.")
-
-(defun my-toggle-fullscreen ()
-  "Toggle fullscreen for the current buffer.
-Automatically exits fullscreen if any window-changing command is executed."
+(defun split-window-right-and-switch-buffer ()
+  "Split the window vertically, focus the new window, and switch to a different buffer."
   (interactive)
-  (if (= 1 (length (window-list)))
-      (when my-fullscreen-window-configuration
-        (set-window-configuration my-fullscreen-window-configuration)
-        (setq my-fullscreen-window-configuration nil))
-    (setq my-fullscreen-window-configuration (current-window-configuration))
-    (delete-other-windows)))
-
-(defun my-exit-fullscreen-advice (&rest _)
-  "Advice to exit fullscreen before executing window-changing commands."
-  (when my-fullscreen-window-configuration
-    (my-toggle-fullscreen)))
-
-(advice-add 'split-window :before #'my-exit-fullscreen-advice)
-;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
-;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
-;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
-
-
+  (split-window-right)
+  (other-window 1)
+  (switch-to-buffer (other-buffer)))
 
 (defun exwm-list-x-windows ()
   (interactive)
@@ -1919,11 +1968,25 @@ Automatically exits fullscreen if any window-changing command is executed."
 (exwm-list-sound-playing-buffers)
 (get-sink-input-pids)
 
-
-;; Trying to tame emacs window placement (taken from perspective.el readme)
-(customize-set-variable 'display-buffer-base-action
-  '((display-buffer-reuse-window display-buffer-same-window)
-    (reusable-frames . t)))
-(customize-set-variable 'even-window-sizes nil)     ; avoid resizing
-
-
+;;; XKCD
+(use-package xkcd
+  :ensure t
+  :init
+  (evil-define-key 'normal xkcd-mode-map (kbd "h") 'xkcd-prev)
+  (evil-define-key 'normal xkcd-mode-map (kbd "l") 'xkcd-next)
+  :hook
+  (xkcd-mode . (lambda ()
+                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
+  :bind
+  (:map xkcd-mode-map
+        ("h" . xkcd-prev)
+        ("l" . xkcd-next))
+  :config
+  (defun xkcd-protocol-handler (&optional url)
+    (let ((num (string-to-number
+                (cl-remove-if-not #'cl-digit-char-p
+                                  (or url "")))))
+      (if (> num 0)
+          (xkcd-get num)
+        (xkcd)))))
