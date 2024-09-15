@@ -1,26 +1,42 @@
 ;; -*- lexical-binding: t; -*-
 
+
 ;;; Disable stuff
+;;;---------------
+
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 (server-start)
 
+
 ;;; Use-package setup
+;;;-------------------
+
 ;; Set up package.el to work with MELPA
 (require 'package)
 (add-to-list 'package-archives
          '("melpa" . "https://melpa.org/packages/"))
 (package-initialize)
+
+;; Refresh package archives
 (if package-archive-contents
     ;; Do it in the background if we already have it
     (package-refresh-contents t)
   (package-refresh-contents))
 
+;; Used for installing packages from git
 (use-package quelpa-use-package
   :ensure t)
 
+
+
 ;;; Theme
+;;;-------
+
+;; Don't save faces to custom file
+(setq custom-file-save-faces nil)
+
 (use-package solarized-theme
   :ensure t
   :config
@@ -35,6 +51,7 @@
   :config
   (doom-modeline-mode 1))
 
+;; Set default font
 (set-frame-font "DeJavu Sans Mono 10" nil t)
 
 ;; Using this to change the auto-dim-other-bufers-face for solarized
@@ -59,6 +76,23 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
     (advice-remove #'enable-theme fn-name)
     (advice-add #'enable-theme :after fn-name)))
 
+;; Automatically dim the background color of unfocused buffers
+(use-package auto-dim-other-buffers
+  :ensure t
+  :config
+  :init
+  (auto-dim-other-buffers-mode 1))
+
+
+;;;; Theme modifications
+
+;; Fix the unfocused backgrounds of solarized
+(unpackaged/customize-theme-faces 'solarized-dark
+  '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
+(unpackaged/customize-theme-faces 'solarized-light
+  '(auto-dim-other-buffers-face ((t (:background
+                                     "#eee8d5")))))
+
 ;; Swap the modeline bg colors for oksolar-dark
 (unpackaged/customize-theme-faces 'doom-oksolar-dark
   `(mode-line-active
@@ -67,20 +101,12 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   `(mode-line-inactive
     ((t (:background ,(face-attribute 'mode-line-active
                                       :background))))))
-(use-package auto-dim-other-buffers
-  :ensure t
-  :config
-  (unpackaged/customize-theme-faces 'solarized-dark
-    '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
-  (unpackaged/customize-theme-faces 'solarized-light
-    '(auto-dim-other-buffers-face ((t (:background
-                                       "#eee8d5")))))
-  :init
-  (auto-dim-other-buffers-mode 1))
 
-(setq custom-file-save-faces nil)
+
 
 ;;; Evil
+;;;------
+
 (use-package evil
   :ensure t
   :init
@@ -110,17 +136,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
           (require 'evil-terminal-cursor-changer)
           (evil-terminal-cursor-changer-activate)))
 
-
-(use-package goggles
-  :ensure t
-  :config
-  (goggles-mode))
-
-(use-package evil-goggles
-  :ensure t
-  :after (evil goggles)
-  :config
-  (evil-goggles-mode))
 
 ;;; Emacs
 ;;;-------
@@ -333,6 +348,17 @@ characters respectably."
   ;;(server-after-make-frame . set-git-gutter-background)
   ;;(window-setup . set-git-gutter-background))
 
+(use-package goggles
+  :ensure t
+  :config
+  (goggles-mode))
+
+(use-package evil-goggles
+  :ensure t
+  :after (evil goggles)
+  :config
+  (evil-goggles-mode))
+
 (use-package ace-window
   :ensure t
   :bind (("C-x o" . ace-window)
@@ -436,128 +462,202 @@ characters respectably."
    ("C-;" . embark-dwim)
    ("C-h B" . embark-bindings)))
 
+
+
+;;; Completion
+;;;---------------
+
+(use-package corfu
+  :ensure t
+  :preface
+  (defun corfu-enable-in-minibuffer ()
+    "Enable Corfu in the minibuffer."
+    (when (local-variable-p 'completion-at-point-functions)
+      ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
+      (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
+                  corfu-popupinfo-delay nil)
+      (corfu-mode 1)))
+  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
+    "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
+    ;; Get the geometry of the currently focused monitor
+    (let* ((monitor-geometry (get-focused-monitor-geometry))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry))
+           ;; You may want to adjust the logic below if you have specific preferences
+           ;; on where on the monitor the posframe should appear.
+           ;; Currently, it places the posframe at its intended X and Y, but ensures
+           ;; it's within the bounds of the focused monitor.
+           (new-x (+ monitor-x x))
+           (new-y (+ monitor-y y)))
+      ;; Call the original function with potentially adjusted coordinates
+      (funcall orig-fun frame new-x new-y width height buffer)))
+
+
+  :hook
+  (minibuffer-setup . corfu-enable-in-minibuffer)
+  :custom
+  (corfu-auto nil)
+  ;;(corfu-auto-delay 0.6)
+  (corfu-cycle t)
+  (corfu-preview-current t)
+  (corfu-popupinfo-delay 0)
+  (tab-always-indent 'complete)
+  (corfu-history-mode t)
+  :config
+  (with-eval-after-load "sly"
+    (setq sly-symbol-completion-mode nil))
+  (advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
+  (corfu-popupinfo-mode 1)
+  (global-corfu-mode))
+
+
+(use-package cape
+  :ensure t
+  :init
+  ;; Add to the global default value of `completion-at-point-functions' which is
+  ;; used by `completion-at-point'.  The order of the functions matters, the
+  ;; first function returning a result wins.  Note that the list of buffer-local
+  ;; completion functions takes precedence over the global list.
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-file)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
+  ;;(add-to-list 'completion-at-point-functions #'cape-history)
+  (add-to-list 'completion-at-point-functions #'cape-keyword)
+  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
+  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
+  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
+  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
+  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
+  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+  ;;(add-to-list 'completion-at-point-functions #'cape-line)
+  )
+
+;; Completion for shell commands
+(use-package pcmpl-args
+  :ensure t
+  :demand t)
+
+
+;;;; Lisp
+
+(use-package sly
+  :ensure t
+  :defer t
+  :config
+  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<up>") 'sly-mrepl-previous-input-or-button)
+  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<down>") 'sly-mrepl-next-input-or-button))
+
+
+;;;; Scheme
+
+(use-package geiser
+  :ensure t
+  :custom
+  (geiser-default-implementation 'guile)
+  (geiser-active-implementations '(guile))
+  (geiser-implementations-alist '(((regexp "\\.scm$") guile))))
+
+(use-package geiser-guile
+  :ensure t
+  :after geiser
+  :config
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
+
+(with-eval-after-load "geiser-guile"
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
+  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
+
+;;;; Snippets
+
+;;(use-package yasnippet
+;;  :ensure t
+;;  :custom
+;;  (yas-indent-line 'auto)
+;;  (yas-also-auto-indent-first-line t)
+;;  :config
+;;  (yas-global-mode 1))
+;;
+;;(use-package yasnippet-snippets
+;;  :ensure t)
+
+
+;;;; LSP
+
+(use-package lsp-mode
+  :ensure t
+  :defer t
+  :commands (lsp lsp-deferred)
+  :init
+  (setq lsp-keymap-prefix "C-c l")
+  :config
+  (lsp-enable-which-key-integration t))
+
+(use-package dap-mode
+  :ensure t
+  :defer t)
+
+(use-package lsp-latex
+  :ensure t
+  :defer t
+  :after lsp-mode
+  :init
+  (require 'lsp-latex)
+
+  :hook
+  (tex-mode . 'lsp)
+  (latex-mode . 'lsp)
+  (LaTeX-mode . 'lsp)
+  :config
+
+  ;; For YaTeX
+  (with-eval-after-load "yatex"
+    (add-hook 'yatex-mode-hook 'lsp))
+
+  ;; For bibtex
+  (with-eval-after-load "bibtex"
+    (add-hook 'bibtex-mode-hook 'lsp))
+
+  :custom
+  (lsp-latex-forward-search-executable "okular")
+  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
+  (lsp-latex-build-forward-search-after t)
+  (lsp-latex-build-on-save t))
+
+
+
+;;; Git
+;;;-----
+
+(use-package magit
+  :ensure t
+  :demand t)
+
+(use-package magit-todos
+  :ensure t
+  :after magit
+  :config
+  (magit-todos-mode 1))
+
 ;;; Org
 ;;;-----
 
-(use-package org-roam
-  :ensure t
-  :demand t  ;; Ensure org-roam is loaded by default
-  :after org
-  :init
-  (make-directory "~/org-roam" t)
-  (setq org-roam-v2-ack t)
-  :custom
-  (org-roam-directory "~/org-roam")
-  (org-roam-dailies-directory "dailies")
-  (org-roam-completion-everywhere t)
-  (org-roam-capture-templates
-   '(("d" "default" plain "%?"
-      :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}")
-      :unnarrowed t)))
-  (org-roam-dailies-capture-templates
-   '(("d" "default" plain "%?"
-      :target (file+head "%<%Y-%m-%d>.org"
-                         "#+title: %<%Y-%m-%d>")
-      :unnarrowed t)))
-  :bind (("C-c n l" . org-roam-buffer-toggle)
-         ("C-c n f" . org-roam-node-find)
-         ("C-c n i" . org-roam-node-insert)
-         ("C-c n p" . my/org-roam-find-project)
-         :map org-mode-map
-         ("C-M-i" . completion-at-point)
-         :map org-roam-dailies-map
-         ("Y" . org-roam-dailies-capture-yesterday)
-         ("T" . org-roam-dailies-capture-tomorrow))
-  :bind-keymap
-  ("C-c n d" . org-roam-dailies-map)
-  :config
-  (require 'org-roam-dailies) ;; Ensure the keymap is available
-
-  (defun my/org-roam-get-title (file)
-    (save-window-excursion
-      (find-file file)
-      (org-get-title)))
-
-  (defun my/org-roam-filter-by-tag (tag-name)
-    (lambda (node)
-      (member tag-name (org-roam-node-tags node))))
-
-  (defun my/org-roam-list-notes-by-tag (tag-name)
-    (mapcar #'org-roam-node-file
-            (seq-filter
-             (my/org-roam-filter-by-tag tag-name)
-             (org-roam-node-list))))
-
-  (defun my/org-roam-refresh-agenda-list ()
-    (interactive)
-    (setq org-agenda-files (delete-dups (append (my/org-roam-list-notes-by-tag "project")
-                                                (my/org-roam-list-notes-by-tag "todo")))))
-
-  ;; Build the agenda list the first time for the session
-  (my/org-roam-refresh-agenda-list)
-
-  (defun my/org-roam-project-finalize-hook ()
-    "Adds the captured project file to `org-agenda-files' if the
-capture was not aborted."
-    ;; Remove the hook since it was added temporarily
-    (remove-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
-
-    ;; Add project file to the agenda list if the capture was confirmed
-    (unless org-note-abort
-      (with-current-buffer (org-capture-get :buffer)
-        (add-to-list 'org-agenda-files (buffer-file-name)))))
-
-  (defun my/org-roam-find-project ()
-    (interactive)
-    ;; Add the project file to the agenda after capture is finished
-    (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
-
-    ;; Select a project file to open, creating it if necessary
-    (org-roam-node-find
-     nil
-     nil
-     (my/org-roam-filter-by-tag "project")
-     nil
-     :templates
-     '(("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
-        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+category: ${title}\n#+filetags: project")
-        :unnarrowed t))))
-
-  (defun my/org-roam-copy-todo-to-today ()
-    (interactive)
-    (let ((org-refile-keep t) ;; Set this to nil to delete the original!
-          (org-roam-dailies-capture-templates
-           '(("t" "tasks" entry "%?"
-              :if-new (file+head+olp "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n" ("Tasks")))))
-          (org-after-refile-insert-hook #'save-buffer)
-          today-file
-          pos)
-      (save-window-excursion
-        (org-roam-dailies--capture (current-time) t)
-        (setq today-file (buffer-file-name))
-        (setq pos (point)))
-
-      ;; Only refile if the target file is different than the current file
-      (unless (equal (file-truename today-file)
-                     (file-truename (buffer-file-name)))
-        (org-refile nil nil (list "Tasks" today-file nil pos)))))
-
-  (add-to-list 'org-after-todo-state-change-hook
-               (lambda ()
-                 (when (equal org-state "DONE")
-                   (my/org-roam-copy-todo-to-today))))
-  (org-roam-db-autosync-mode))
 (use-package org
   :config
   (require 'org-inlinetask)
+  (with-eval-after-load "org"
+    (add-to-list 'org-modules 'org-checklist)
+    (add-to-list 'org-modules 'org-habit))
   :custom
   (org-ellipsis " ▾")
   (org-hide-emphasis-markers t)
   (org-return-follows-link  t)
   (org-log-done 'time)
   (org-log-into-drawer t)
-  (org-modules (append org-modules '(org-checklist
-                                     org-habit)))
   (org-agenda-window-setup 'current-window)
   (org-agenda-skip-scheduled-if-deadline-is-shown t)
 
@@ -694,11 +794,124 @@ capture was not aborted."
   :config
   (org-edna-mode 1))
 
-
-
 (use-package org-transclusion
   :ensure t
   :after org)
+
+
+;;;; Roam
+
+(use-package org-roam
+  :ensure t
+  :demand t  ;; Ensure org-roam is loaded by default
+  :after org
+  :init
+  (make-directory "~/org-roam" t)
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory "~/org-roam")
+  (org-roam-dailies-directory "dailies")
+  (org-roam-completion-everywhere t)
+  (org-roam-capture-templates
+   '(("d" "default" plain "%?"
+      :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}")
+      :unnarrowed t)))
+  (org-roam-dailies-capture-templates
+   '(("d" "default" plain "%?"
+      :target (file+head "%<%Y-%m-%d>.org"
+                         "#+title: %<%Y-%m-%d>")
+      :unnarrowed t)))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n p" . my/org-roam-find-project)
+         :map org-mode-map
+         ("C-M-i" . completion-at-point)
+         :map org-roam-dailies-map
+         ("Y" . org-roam-dailies-capture-yesterday)
+         ("T" . org-roam-dailies-capture-tomorrow))
+  :bind-keymap
+  ("C-c n d" . org-roam-dailies-map)
+  :config
+  (require 'org-roam-dailies) ;; Ensure the keymap is available
+
+  (defun my/org-roam-get-title (file)
+    (save-window-excursion
+      (find-file file)
+      (org-get-title)))
+
+  (defun my/org-roam-filter-by-tag (tag-name)
+    (lambda (node)
+      (member tag-name (org-roam-node-tags node))))
+
+  (defun my/org-roam-list-notes-by-tag (tag-name)
+    (mapcar #'org-roam-node-file
+            (seq-filter
+             (my/org-roam-filter-by-tag tag-name)
+             (org-roam-node-list))))
+
+  (defun my/org-roam-refresh-agenda-list ()
+    (interactive)
+    (setq org-agenda-files (delete-dups (append (my/org-roam-list-notes-by-tag "project")
+                                                (my/org-roam-list-notes-by-tag "todo")))))
+
+  ;; Build the agenda list the first time for the session
+  (my/org-roam-refresh-agenda-list)
+
+  (defun my/org-roam-project-finalize-hook ()
+    "Adds the captured project file to `org-agenda-files' if the
+capture was not aborted."
+    ;; Remove the hook since it was added temporarily
+    (remove-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
+
+    ;; Add project file to the agenda list if the capture was confirmed
+    (unless org-note-abort
+      (with-current-buffer (org-capture-get :buffer)
+        (add-to-list 'org-agenda-files (buffer-file-name)))))
+
+  (defun my/org-roam-find-project ()
+    (interactive)
+    ;; Add the project file to the agenda after capture is finished
+    (add-hook 'org-capture-after-finalize-hook #'my/org-roam-project-finalize-hook)
+
+    ;; Select a project file to open, creating it if necessary
+    (org-roam-node-find
+     nil
+     nil
+     (my/org-roam-filter-by-tag "project")
+     nil
+     :templates
+     '(("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+category: ${title}\n#+filetags: project")
+        :unnarrowed t))))
+
+  (defun my/org-roam-copy-todo-to-today ()
+    (interactive)
+    (let ((org-refile-keep t) ;; Set this to nil to delete the original!
+          (org-roam-dailies-capture-templates
+           '(("t" "tasks" entry "%?"
+              :if-new (file+head+olp "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n" ("Tasks")))))
+          (org-after-refile-insert-hook #'save-buffer)
+          today-file
+          pos)
+      (save-window-excursion
+        (org-roam-dailies--capture (current-time) t)
+        (setq today-file (buffer-file-name))
+        (setq pos (point)))
+
+      ;; Only refile if the target file is different than the current file
+      (unless (equal (file-truename today-file)
+                     (file-truename (buffer-file-name)))
+        (org-refile nil nil (list "Tasks" today-file nil pos)))))
+
+  (add-to-list 'org-after-todo-state-change-hook
+               (lambda ()
+                 (when (equal org-state "DONE")
+                   (my/org-roam-copy-todo-to-today))))
+  (org-roam-db-autosync-mode))
+
+
+;;;; Thesis
 
 (use-package org-gantt
   :after org
@@ -733,264 +946,11 @@ capture was not aborted."
   (with-eval-after-load "evil"
     (evil-define-key 'normal 'latex-mode-map "gp" 'my-open-citation-at-point)))
 
-;;; Completion
-;;;---------------
-
-(use-package sly
-  :ensure t
-  :defer t
-  :config
-  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<up>") 'sly-mrepl-previous-input-or-button)
-  (evil-define-key 'insert sly-mrepl-mode-map (kbd "<down>") 'sly-mrepl-next-input-or-button))
-
-
-(use-package dap-mode
-  :ensure t
-  :defer t)
-
-(use-package corfu
-  :ensure t
-  :preface
-  (defun corfu-enable-in-minibuffer ()
-    "Enable Corfu in the minibuffer."
-    (when (local-variable-p 'completion-at-point-functions)
-      ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
-      (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
-                  corfu-popupinfo-delay nil)
-      (corfu-mode 1)))
-  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
-    "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
-    ;; Get the geometry of the currently focused monitor
-    (let* ((monitor-geometry (get-focused-monitor-geometry))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry))
-           ;; You may want to adjust the logic below if you have specific preferences
-           ;; on where on the monitor the posframe should appear.
-           ;; Currently, it places the posframe at its intended X and Y, but ensures
-           ;; it's within the bounds of the focused monitor.
-           (new-x (+ monitor-x x))
-           (new-y (+ monitor-y y)))
-      ;; Call the original function with potentially adjusted coordinates
-      (funcall orig-fun frame new-x new-y width height buffer)))
-
-
-  :hook
-  (minibuffer-setup . corfu-enable-in-minibuffer)
-  :custom
-  (corfu-auto nil)
-  ;;(corfu-auto-delay 0.6)
-  (corfu-cycle t)
-  (corfu-preview-current t)
-  (corfu-popupinfo-delay 0)
-  (tab-always-indent 'complete)
-  (corfu-history-mode t)
-  :config
-  (with-eval-after-load "sly"
-    (setq sly-symbol-completion-mode nil))
-  (advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
-  (corfu-popupinfo-mode 1)
-  (global-corfu-mode))
-
-
-(use-package geiser
-  :ensure t
-  :custom
-  (geiser-default-implementation 'guile)
-  (geiser-active-implementations '(guile))
-  (geiser-implementations-alist '(((regexp "\\.scm$") guile))))
-
-(use-package geiser-guile
-  :ensure t
-  :after geiser
-  :config
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
-
-(with-eval-after-load "geiser-guile"
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
-
-(use-package cape
-  :ensure t
-  :init
-  ;; Add to the global default value of `completion-at-point-functions' which is
-  ;; used by `completion-at-point'.  The order of the functions matters, the
-  ;; first function returning a result wins.  Note that the list of buffer-local
-  ;; completion functions takes precedence over the global list.
-  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-file)
-  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-block)
-  ;;(add-to-list 'completion-at-point-functions #'cape-history)
-  (add-to-list 'completion-at-point-functions #'cape-keyword)
-  ;;(add-to-list 'completion-at-point-functions #'cape-tex)
-  ;;(add-to-list 'completion-at-point-functions #'cape-sgml)
-  ;;(add-to-list 'completion-at-point-functions #'cape-rfc1345)
-  ;;(add-to-list 'completion-at-point-functions #'cape-abbrev)
-  ;;(add-to-list 'completion-at-point-functions #'cape-dict)
-  ;;(add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-  ;;(add-to-list 'completion-at-point-functions #'cape-line)
-  )
-
-;;(use-package yasnippet
-;;  :ensure t
-;;  :custom
-;;  (yas-indent-line 'auto)
-;;  (yas-also-auto-indent-first-line t)
-;;  :config
-;;  (yas-global-mode 1))
-;;
-;;(use-package yasnippet-snippets
-;;  :ensure t)
-
-(use-package lsp-mode
-  :ensure t
-  :defer t
-  :commands (lsp lsp-deferred)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :config
-  (lsp-enable-which-key-integration t))
-
-(use-package lsp-latex
-  :ensure t
-  :defer t
-  :after lsp-mode
-  :init
-  (require 'lsp-latex)
-
-  :hook
-  (tex-mode . 'lsp)
-  (latex-mode . 'lsp)
-  (LaTeX-mode . 'lsp)
-  :config
-
-  ;; For YaTeX
-  (with-eval-after-load "yatex"
-    (add-hook 'yatex-mode-hook 'lsp))
-
-  ;; For bibtex
-  (with-eval-after-load "bibtex"
-    (add-hook 'bibtex-mode-hook 'lsp))
-
-  :custom
-  (lsp-latex-forward-search-executable "okular")
-  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
-  (lsp-latex-build-forward-search-after t)
-  (lsp-latex-build-on-save t))
-
-;; Completion for shell commands
-(use-package pcmpl-args
-  :ensure t
-  :demand t)
-
-;;; Git
-;;;-----
-(use-package magit
-  :ensure t
-  :demand t)
-
-(use-package magit-todos
-  :ensure t
-  :after magit
-  :config
-  (magit-todos-mode 1))
-
-;;; Random bullshit
-;;;-----------------
-
-
-(defun tmux-navigate-directions ()
-  (let* ((x (nth 0 (window-edges)))
-         (y (nth 1 (window-edges)))
-         (w (nth 2 (window-edges)))
-         (h (nth 3 (window-edges)))
-
-         (can_go_up (> y 2))
-         (can_go_down (<  (+ y h) (- (frame-height) 2)))
-         (can_go_left (> x 1))
-         (can_go_right (< (+ x w) (frame-width))))
-
-    (send-string-to-terminal
-     (format "\e]2;emacs %s #%s\a"
-    (buffer-name)
-        (string
-          (if can_go_up    ?U 1)
-          (if can_go_down  ?D 1)
-          (if can_go_left  ?L 1)
-          (if can_go_right ?R 1))))))
-
-(unless (display-graphic-p)
-  (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
-
-(setq custom-file (concat user-emacs-directory "custom.el"))
-(when (file-exists-p custom-file)
-  (load custom-file))
-(use-package shrface
-  :ensure t
-  :defer t
-  :config
-  (shrface-basic)
-  (shrface-trial)
-  (shrface-default-keybindings) ; setup default keybindings
-  :custom
-  (shrface-href-versatile t))
-
-(use-package eww
-  :defer t
-  :init
-  (add-hook 'eww-after-render-hook #'shrface-mode)
-  :config
-  (require 'shrface))
-
-;; TODO one of the following options disables shrface conversion to org-mode headings
-;; Figure out what and fix it
-;;(setq mu4e-html2text-command 'mu4e-shr2text)
-(setq shr-color-visible-luminance-min 60)
-(setq shr-color-visible-distance-min 5)
-(setq shr-use-colors nil)
-(advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
-
-(use-package bitbake
-  :ensure t
-  :defer t
-  :mode "bitbake-mode"
-  :init
-  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
-  :config
-  (with-eval-after-load 'lsp-mode
-    (add-to-list 'lsp-language-id-configuration
-      '(bitbake-mode . "bitbake"))
-    (lsp-register-client
-      (make-lsp-client
-      :new-connection (lsp-stdio-connection "bitbake-language-server")
-      :activation-fn (lsp-activate-on "bitbake")
-      :server-id 'bitbake)))
-
-  (with-eval-after-load "bitbake-mode"
-    (add-hook 'bitbake-mode-hook 'lsp)))
-
-(use-package tex
-  :ensure auctex
-  :defer t
-  :config
-  (setq-default TeX-master "main") ; All master files called "main".
-  :custom
-  (TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
-  (TeX-view-program-selection '((output-pdf "Okular"))))
-
-;;
-;;(use-package mastodon-alt
-;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
-
-(use-package scad-dbus
-  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
 
 
 ;;; Projectile
+;;;------------
+
 (use-package projectile
   :ensure t
   :config
@@ -998,131 +958,11 @@ capture was not aborted."
 
 
 
-;;; Mail
-;;;------
-
-(use-package consult-mu
-  :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
-
-(defun insert-cut-here-start ()
-  "Insert opening \"cut here start\" snippet."
-  (interactive)
-  (insert "--8<---------------cut here---------------start------------->8---"))
-
-(defun insert-cut-here-end ()
-  "Insert closing \"cut here end\" snippet."
-  (interactive)
-  (insert "--8<---------------cut here---------------end--------------->8---"))
-
-(use-package mu4e
-  :init
-  ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
-  (require 'mu4e)
-  (require 'mu4e-contrib)
-  :preface
-  ;; Override this to avoid the IDIOTIC mue4 "main window"
-  (defun my-mu4e~headers-quit-buffer (&rest _)
-    "Quit the mu4e-headers buffer and do NOT go back to the main view."
-    (interactive)
-    (mu4e-mark-handle-when-leaving)
-    (quit-window t)
-    (mu4e--query-items-refresh 'reset-baseline))
-  (defun my-disabled-mu4e--main-menu ()
-    "Skip the USELESS main menu."
-    (mu4e-search-maildir "/All Mail"))
-  :config
-  (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
-  (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
-  :hook
-  ;; Don't create tons of "draft" messages
-  (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
-  :custom
-  ;; Don't spam the echo area all the time
-  (mu4e-hide-index-messages t)
-  ;; Don't mess with my window layout
-  (mu4e-split-view 'single-window)
-  ;; Do as I say
-  (mu4e-confirm-quit nil)
-  (mu4e-update-interval 30)
-  ;; Use with font-google-noto, or a later version of font-openmoji
-  (mu4e-headers-unread-mark    '("u" . "📩"))
-  (mu4e-headers-draft-mark     '("D" . "✏️"))
-  (mu4e-headers-flagged-mark   '("F" . "🚩"))
-  (mu4e-headers-new-mark       '("N" . "✨"))
-  (mu4e-headers-passed-mark    '("R" . "↪️"))
-  (mu4e-headers-replied-mark   '("R" . "↩️"))
-  (mu4e-headers-seen-mark      '("S" . "✔️"))
-  (mu4e-headers-trashed-mark   '("T" . "🗑️"))
-  (mu4e-headers-attach-mark    '("a" . "📎"))
-  (mu4e-headers-encrypted-mark '("x" . "🔒"))
-  (mu4e-headers-signed-mark    '("s" . "🔑️"))
-  (mu4e-headers-calendar-mark  '("c" . "📅"))
-  (mu4e-headers-list-mark      '("l" . "📰"))
-  (mu4e-headers-personal-mark  '(""  . ""  )) ; All emails are marked personal; hide this mark
-
-  (mu4e-compose-dont-reply-to-self t)
-
-  (mu4e-attachment-dir "~/Downloads")
-
-  ;; Gmail takes care of sent messages
-  (mu4e-sent-messages-behavior 'delete)
-
-  ;; use mu4e for e-mail in emacs
-  (mail-user-agent 'mu4e-user-agent)
-  (sendmail-program "msmtp")
-  (send-mail-function 'smtpmail-send-it)
-  (message-sendmail-f-is-evil t)
-  (message-sendmail-extra-arguments '("--read-envelope-from"))
-  (message-send-mail-function 'message-send-mail-with-sendmail)
-  ;; these must start with a "/", and must exist
-  ;; (i.e.. /home/user/Maildir/sent must exist)
-  ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
-  ;; already exist
-
-  ;; below are the defaults; if they do not exist yet, mu4e offers to
-  ;; create them. they can also functions; see their docstrings.
-  (mu4e-sent-folder   "/Sent Mail")
-  (mu4e-drafts-folder "/Drafts")
-  (mu4e-trash-folder  "/Trash"))
-
-(defun my-confirm-empty-subject ()
-  "Allow user to quit when current message subject is empty."
-  (or (message-field-value "Subject")
-      (yes-or-no-p "Really send without Subject? ")
-      (keyboard-quit)))
-
-(add-hook 'message-send-hook #'my-confirm-empty-subject)
-
-(use-package mu4e-thread-folding
-  :quelpa (mu4e-thread-folding
-           :fetcher github
-           :repo "rougier/mu4e-thread-folding")
-  :after mu4e
-  :config
-  (add-to-list 'mu4e-header-info-custom
-               '(:empty . (:name "Empty"
-                           :shortname ""
-                           :function (lambda (msg) "  "))))
-
-  (evil-define-key 'normal mu4e-headers-mode-map
-    (kbd "TAB")  'mu4e-headers-toggle-at-point)
-
-  :custom
-  (mu4e-headers-fields '((:empty         .    2)
-                         (:human-date    .   12)
-                         (:flags         .    6)
-                         ;;(:mailing-list  .   10)
-                         (:from          .   22)
-                         (:subject       .   nil)))
-  (mu4e-thread-folding-default-view 'folded)
-  (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
-
-
 ;;; Terminal
 ;;;----------
 
 (use-package eshell
-  :preface
+  :config
   ;; Define a variable to hold the cd history
   (defvar eshell-cd-history nil
     "History of directories visited in EShell.")
@@ -1284,39 +1124,6 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :after vterm)
 
 
-;;; IRC
-;;;-----
-
-(use-package erc
-  :defer t
-  :custom
-  (erc-fill-function 'erc-fill-static)
-  (erc-fill-static-center 15)
-  (erc-hide-list '("JOIN" "PART" "QUIT"))
-  (erc-lurker-hide-list '("JOIN" "PART" "QUIT")))
-
-(use-package erc-twitch
-  :ensure t
-  :after erc
-  :defer t
-  :config
-  (erc-twitch-enable))
-
-(use-package erc-hl-nicks
-  :ensure t
-  :after erc
-  :defer t
-  :config
-  (erc-hl-nicks-enable))
-
-(use-package erc-image
-  :ensure t
-  :after erc
-  :defer t
-  :config
-  (erc-image-enable))
-
-
 ;;; Dired
 ;;;-------
 
@@ -1397,6 +1204,42 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 
 
 
+
+
+;;; Proced
+;;;--------
+
+;; Process Editor (htop-like)
+(use-package proced
+  :preface
+  (defvar proced-guix-nix-readable-mode-keywords
+    '(("\\(/nix/store/[0-9a-z]*-\\)"
+       (1 '(face nil invisible t)))
+      ("\\(/gnu/store/[0-9a-z/\.-]*/\\).* ?.*"
+       (1 '(face nil invisible t)))))
+
+  (define-minor-mode proced-guix-nix-readable-mode
+    "Make proced filenames more readable in Guix and Nix"
+    :lighter " proced-hash-filter-mode"
+    (if proced-guix-nix-readable-mode
+        (progn
+          (make-variable-buffer-local 'font-lock-extra-managed-props)
+          (add-to-list 'font-lock-extra-managed-props 'invisible)
+          (font-lock-add-keywords nil
+                                  proced-guix-nix-readable-mode-keywords)
+          (font-lock-mode t))
+      (progn
+        (font-lock-remove-keywords nil
+                                   proced-guix-nix-readable-mode-keywords)
+        (font-lock-mode t))))
+  :custom
+  (proced-auto-update-flag 'visible)
+  (proced-auto-update-interval 1)
+  (proced-enable-color-flag t)
+  ;; Enable remote proced over tramp
+  (proced-show-remote-processes t)
+  :hook
+  (proced-mode . proced-guix-nix-readable-mode))
 
 
 ;;; EXWM
@@ -1727,42 +1570,6 @@ Automatically exits fullscreen if any window-changing command is executed."
       (run-with-timer 0 1
                       'force-mode-line-update))
 
-;;; Proced
-;;;--------
-
-;; Process Editor (htop-like)
-(use-package proced
-  :preface
-  (defvar proced-guix-nix-readable-mode-keywords
-    '(("\\(/nix/store/[0-9a-z]*-\\)"
-       (1 '(face nil invisible t)))
-      ("\\(/gnu/store/[0-9a-z/\.-]*/\\).* ?.*"
-       (1 '(face nil invisible t)))))
-
-  (define-minor-mode proced-guix-nix-readable-mode
-    "Make proced filenames more readable in Guix and Nix"
-    :lighter " proced-hash-filter-mode"
-    (if proced-guix-nix-readable-mode
-        (progn
-          (make-variable-buffer-local 'font-lock-extra-managed-props)
-          (add-to-list 'font-lock-extra-managed-props 'invisible)
-          (font-lock-add-keywords nil
-                                  proced-guix-nix-readable-mode-keywords)
-          (font-lock-mode t))
-      (progn
-        (font-lock-remove-keywords nil
-                                   proced-guix-nix-readable-mode-keywords)
-        (font-lock-mode t))))
-  :custom
-  (proced-auto-update-flag 'visible)
-  (proced-auto-update-interval 1)
-  (proced-enable-color-flag t)
-  ;; Enable remote proced over tramp
-  (proced-show-remote-processes t)
-  :hook
-  (proced-mode . proced-guix-nix-readable-mode))
-
-
 ;;; EMMS
 ;;;------
 
@@ -1812,6 +1619,159 @@ and sends a message of the current volume status."
     (emms-player-mpv-get-volume))
   :custom
   (emms-volume-change-function 'emms-player-mpv-raise-volume))
+
+
+;;; Mail
+;;;------
+
+(use-package consult-mu
+  :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
+
+(defun insert-cut-here-start ()
+  "Insert opening \"cut here start\" snippet."
+  (interactive)
+  (insert "--8<---------------cut here---------------start------------->8---"))
+
+(defun insert-cut-here-end ()
+  "Insert closing \"cut here end\" snippet."
+  (interactive)
+  (insert "--8<---------------cut here---------------end--------------->8---"))
+
+(use-package mu4e
+  :init
+  ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+  (require 'mu4e)
+  (require 'mu4e-contrib)
+  :preface
+  ;; Override this to avoid the IDIOTIC mue4 "main window"
+  (defun my-mu4e~headers-quit-buffer (&rest _)
+    "Quit the mu4e-headers buffer and do NOT go back to the main view."
+    (interactive)
+    (mu4e-mark-handle-when-leaving)
+    (quit-window t)
+    (mu4e--query-items-refresh 'reset-baseline))
+  (defun my-disabled-mu4e--main-menu ()
+    "Skip the USELESS main menu."
+    (mu4e-search-maildir "/All Mail"))
+  :config
+  (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
+  (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
+  :hook
+  ;; Don't create tons of "draft" messages
+  (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
+  :custom
+  ;; Don't spam the echo area all the time
+  (mu4e-hide-index-messages t)
+  ;; Don't mess with my window layout
+  (mu4e-split-view 'single-window)
+  ;; Do as I say
+  (mu4e-confirm-quit nil)
+  (mu4e-update-interval 30)
+  ;; Use with font-google-noto, or a later version of font-openmoji
+  (mu4e-headers-unread-mark    '("u" . "📩"))
+  (mu4e-headers-draft-mark     '("D" . "✏️"))
+  (mu4e-headers-flagged-mark   '("F" . "🚩"))
+  (mu4e-headers-new-mark       '("N" . "✨"))
+  (mu4e-headers-passed-mark    '("R" . "↪️"))
+  (mu4e-headers-replied-mark   '("R" . "↩️"))
+  (mu4e-headers-seen-mark      '("S" . "✔️"))
+  (mu4e-headers-trashed-mark   '("T" . "🗑️"))
+  (mu4e-headers-attach-mark    '("a" . "📎"))
+  (mu4e-headers-encrypted-mark '("x" . "🔒"))
+  (mu4e-headers-signed-mark    '("s" . "🔑️"))
+  (mu4e-headers-calendar-mark  '("c" . "📅"))
+  (mu4e-headers-list-mark      '("l" . "📰"))
+  (mu4e-headers-personal-mark  '(""  . ""  )) ; All emails are marked personal; hide this mark
+
+  (mu4e-compose-dont-reply-to-self t)
+
+  (mu4e-attachment-dir "~/Downloads")
+
+  ;; Gmail takes care of sent messages
+  (mu4e-sent-messages-behavior 'delete)
+
+  ;; use mu4e for e-mail in emacs
+  (mail-user-agent 'mu4e-user-agent)
+  (sendmail-program "msmtp")
+  (send-mail-function 'smtpmail-send-it)
+  (message-sendmail-f-is-evil t)
+  (message-sendmail-extra-arguments '("--read-envelope-from"))
+  (message-send-mail-function 'message-send-mail-with-sendmail)
+  ;; these must start with a "/", and must exist
+  ;; (i.e.. /home/user/Maildir/sent must exist)
+  ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
+  ;; already exist
+
+  ;; below are the defaults; if they do not exist yet, mu4e offers to
+  ;; create them. they can also functions; see their docstrings.
+  (mu4e-sent-folder   "/Sent Mail")
+  (mu4e-drafts-folder "/Drafts")
+  (mu4e-trash-folder  "/Trash"))
+
+(defun my-confirm-empty-subject ()
+  "Allow user to quit when current message subject is empty."
+  (or (message-field-value "Subject")
+      (yes-or-no-p "Really send without Subject? ")
+      (keyboard-quit)))
+
+(add-hook 'message-send-hook #'my-confirm-empty-subject)
+
+(use-package mu4e-thread-folding
+  :quelpa (mu4e-thread-folding
+           :fetcher github
+           :repo "rougier/mu4e-thread-folding")
+  :after mu4e
+  :config
+  (add-to-list 'mu4e-header-info-custom
+               '(:empty . (:name "Empty"
+                           :shortname ""
+                           :function (lambda (msg) "  "))))
+
+  (evil-define-key 'normal mu4e-headers-mode-map
+    (kbd "TAB")  'mu4e-headers-toggle-at-point)
+
+  :custom
+  (mu4e-headers-fields '((:empty         .    2)
+                         (:human-date    .   12)
+                         (:flags         .    6)
+                         ;;(:mailing-list  .   10)
+                         (:from          .   22)
+                         (:subject       .   nil)))
+  (mu4e-thread-folding-default-view 'folded)
+  (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
+
+
+;;; IRC
+;;;-----
+
+(use-package erc
+  :defer t
+  :custom
+  (erc-fill-function 'erc-fill-static)
+  (erc-fill-static-center 15)
+  (erc-hide-list '("JOIN" "PART" "QUIT"))
+  (erc-lurker-hide-list '("JOIN" "PART" "QUIT")))
+
+(use-package erc-twitch
+  :ensure t
+  :after erc
+  :defer t
+  :config
+  (erc-twitch-enable))
+
+(use-package erc-hl-nicks
+  :ensure t
+  :after erc
+  :defer t
+  :config
+  (erc-hl-nicks-enable))
+
+(use-package erc-image
+  :ensure t
+  :after erc
+  :defer t
+  :config
+  (erc-image-enable))
 
 
 ;;; Web
@@ -1967,6 +1927,97 @@ and sends a message of the current volume status."
 
 (exwm-list-sound-playing-buffers)
 (get-sink-input-pids)
+
+;;; Random bullshit
+;;;-----------------
+
+
+(defun tmux-navigate-directions ()
+  (let* ((x (nth 0 (window-edges)))
+         (y (nth 1 (window-edges)))
+         (w (nth 2 (window-edges)))
+         (h (nth 3 (window-edges)))
+
+         (can_go_up (> y 2))
+         (can_go_down (<  (+ y h) (- (frame-height) 2)))
+         (can_go_left (> x 1))
+         (can_go_right (< (+ x w) (frame-width))))
+
+    (send-string-to-terminal
+     (format "\e]2;emacs %s #%s\a"
+    (buffer-name)
+        (string
+          (if can_go_up    ?U 1)
+          (if can_go_down  ?D 1)
+          (if can_go_left  ?L 1)
+          (if can_go_right ?R 1))))))
+
+(unless (display-graphic-p)
+  (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
+
+(setq custom-file (concat user-emacs-directory "custom.el"))
+(when (file-exists-p custom-file)
+  (load custom-file))
+(use-package shrface
+  :ensure t
+  :defer t
+  :config
+  (shrface-basic)
+  (shrface-trial)
+  (shrface-default-keybindings) ; setup default keybindings
+  :custom
+  (shrface-href-versatile t))
+
+(use-package eww
+  :defer t
+  :init
+  (add-hook 'eww-after-render-hook #'shrface-mode)
+  :config
+  (require 'shrface))
+
+;; TODO one of the following options disables shrface conversion to org-mode headings
+;; Figure out what and fix it
+;;(setq mu4e-html2text-command 'mu4e-shr2text)
+(setq shr-color-visible-luminance-min 60)
+(setq shr-color-visible-distance-min 5)
+(setq shr-use-colors nil)
+(advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
+
+(use-package bitbake
+  :ensure t
+  :defer t
+  :mode "bitbake-mode"
+  :init
+  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
+  :config
+  (with-eval-after-load 'lsp-mode
+    (add-to-list 'lsp-language-id-configuration
+      '(bitbake-mode . "bitbake"))
+    (lsp-register-client
+      (make-lsp-client
+      :new-connection (lsp-stdio-connection "bitbake-language-server")
+      :activation-fn (lsp-activate-on "bitbake")
+      :server-id 'bitbake)))
+
+  (with-eval-after-load "bitbake-mode"
+    (add-hook 'bitbake-mode-hook 'lsp)))
+
+(use-package tex
+  :ensure auctex
+  :defer t
+  :config
+  (setq-default TeX-master "main") ; All master files called "main".
+  :custom
+  (TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
+  (TeX-view-program-selection '((output-pdf "Okular"))))
+
+;;
+;;(use-package mastodon-alt
+;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
+
+(use-package scad-dbus
+  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
+
 
 ;;; XKCD
 (use-package xkcd
