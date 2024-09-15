@@ -1692,6 +1692,18 @@ and sends a message of the current volume status."
     :keybinding "e")
   (engine-mode 1))
 
+(defun wait-for-exwm-window (window-name)
+  "Wait for an EXWM window with WINDOW-NAME to appear."
+  (interactive "sEnter window name: ")
+  (let ((window-exists nil))
+    (while (not window-exists)
+      (setq window-exists
+            (cl-some (lambda (win)
+                       (string-match-p window-name (exwm--get-window-title win)))
+                     (exwm--list-windows)))
+      (unless window-exists
+        (sit-for 1)))  ; Wait for 1 second before checking again
+    (message "The window '%s' has appeared!" window-name)))
 
 (defun toggle-svkbd ()
   (interactive)
