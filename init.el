@@ -1612,9 +1612,15 @@ capture was not aborted."
     (with-temp-buffer
       (call-process "yt-dlp" nil t nil "--get-title" url)
       (string-trim (buffer-string))))
-
   (advice-add 'emms-format-url-track-name :override #'my/get-youtube-title)
-
+  (defun advise-emms-playlist-mode-kill-track (orig-fun &rest args)
+    "Get the actual track name, instead of the formatted name."
+    (cl-letf (((symbol-function 'kill-line)
+               (lambda ()
+                 (delete-line)
+                 (kill-new (emms-track-get track 'name)))))
+      (funcall orig-fun args)))
+  (advice-add 'emms-playlist-mode-killtrack :around #'advise-emms-playlist-mode-kill-track)
   (defvar emms-player-mpv-volume 100)
   (defun emms-player-mpv-get-volume ()
     "Sets `emms-player-mpv-volume' to the current volume value
@@ -1624,7 +1630,7 @@ and sends a message of the current volume status."
                              (unless err
                                (let ((vol (truncate vol)))
                                  (setq emms-player-mpv-volume vol)
-                                 (message "Music volume: %s%%"
+                                 (message "Volume: %s%%"
                                           vol))))))
 
   (defun emms-player-mpv-raise-volume (&optional amount)
