@@ -581,6 +581,26 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
 
+;; TODO: Make package of this
+;; Show function signatures in a popup instead of echo area
+(defun my-eldoc-posframe-show (&rest args)
+  (when (car args)
+    (posframe-show "*eldoc-posframe*"
+                   :string (apply 'format args)
+                   :position (point)
+                   :max-width 100
+                   :background-color "#333333"
+                   :foreground-color "#eeeeee"
+                   :internal-border-width 1
+                   :internal-border-color "#777777")
+    (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
+(defun my-eldoc-posframe-hide ()
+  (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
+  (posframe-hide "*eldoc-posframe*"))
+(setq eldoc-message-function #'my-eldoc-posframe-show)
+(setq eldoc-idle-delay 1)
+;; Only trigger after any editing
+(setq eldoc-print-after-edit t)
 
 (use-package mu4e
   :init
