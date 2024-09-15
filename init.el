@@ -108,6 +108,24 @@
   :config
   (which-key-mode 1))
 
+(use-package which-key-posframe
+  :ensure t
+  :custom
+  (which-key-posframe-border-width 2)
+  :config
+  (which-key-posframe-mode 1)
+  (defun my/focus-which-key-posframe ()
+    "Focus the which-key posframe when it appears."
+    (select-frame which-key--frame t))
+  (advice-add 'which-key-posframe--show-buffer :after #'my/focus-which-key-posframe)
+  (defun my-which-key-posframe--max-dimensions (_)
+    "Return max-dimensions of posframe.
+The returned value has the form (HEIGHT . WIDTH) in lines and
+characters respectably."
+    (cons (- (frame-height) 2) ; account for mode-line and minibuffer
+          (min 300 (frame-width))))
+  (advice-add 'which-key-posframe--max-dimensions :override #'my-which-key-posframe--max-dimensions))
+
 (use-package sly
   :ensure t
   :defer t
