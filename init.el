@@ -114,10 +114,6 @@
   (which-key-posframe-border-width 2)
   :config
   (which-key-posframe-mode 1)
-  (defun my/focus-which-key-posframe ()
-    "Focus the which-key posframe when it appears."
-    (select-frame which-key--frame t))
-  (advice-add 'which-key-posframe--show-buffer :after #'my/focus-which-key-posframe)
   (defun my-which-key-posframe--max-dimensions (_)
     "Return max-dimensions of posframe.
 The returned value has the form (HEIGHT . WIDTH) in lines and
