@@ -1829,8 +1829,46 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
 
+
+
+(defun exwm-list-x-windows ()
+  (interactive)
+  (seq-filter (lambda (buf)
+                (with-current-buffer buf
+                  (eq major-mode 'exwm-mode)))
+              (buffer-list)))
+
+(defun exwm-buffer->pid (buf)
+  (let* ((id (exwm--buffer->id buf))
+         (resp (xcb:+request-unchecked+reply
+                   exwm--connection
+                   (make-instance 'xcb:ewmh:get-_NET_WM_PID
+                                  :window id))))
+    (slot-value resp 'value)))
+
+(defun get-sink-input-pids ()
+  "Get list of PIDs for active PulseAudio sink inputs."
+  (let ((output (shell-command-to-string "pacmd list-sink-inputs"))
+        (pids '()))
+    (with-temp-buffer
+      (insert output)
+      (goto-char (point-min))
+      (while (re-search-forward "application.process.id = \"\\([0-9]+\\)\"" nil t)
+        (push (string-to-number (match-string 1)) pids)))
+    pids))
+
+(defun exwm-list-sound-playing-buffers ()
+  (let ((window-pids (mapcar #'exwm-buffer->pid (exwm-list-x-windows))))
+    (cl-intersection window-pids (get-sink-input-pids))))
+
+(exwm-list-sound-playing-buffers)
+(get-sink-input-pids)
+
+
 ;; Trying to tame emacs window placement (taken from perspective.el readme)
 (customize-set-variable 'display-buffer-base-action
   '((display-buffer-reuse-window display-buffer-same-window)
     (reusable-frames . t)))
 (customize-set-variable 'even-window-sizes nil)     ; avoid resizing
+
+
