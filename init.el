@@ -1735,6 +1735,31 @@ and sends a message of the current volume status."
         (xkcd)))))
 
 
+(require 'async)
+(defun get-package-deps (package)
+  (mapcar #'car (package-desc-reqs (cadr (assq package package-alist)))))
+(defun async-export ()
+  (interactive)
+  (async-start
+   `(lambda ()
+      (setq load-path ',load-path)
+      (require 'org)
+      (require 'ox-latex)
+      (require 'org-ref)
+      (require 'engrave-faces)
+      (require 'org-inlinetask)
+      (require 'solarized-theme)
+      (load-theme 'solarized-dark t)
+      (setq engrave-faces-themes ',engrave-faces-themes)
+      (setq default-directory ,(file-name-directory (buffer-file-name)))
+      (find-file ,(buffer-file-name))
+      (setq enable-local-variables :all)
+      (hack-local-variables)
+      (org-latex-export-to-pdf)
+      "Export completed")
+   (lambda (result)
+     (message "Async export result: %s" result))))
+
 (use-package ednc
   :ensure t
   :preface
