@@ -9,6 +9,7 @@
 (scroll-bar-mode -1)
 (server-start)
 
+(setq gc-cons-threshold 500000000) ; Set to 500MB
 
 ;;; Use-package setup
 ;;;-------------------
