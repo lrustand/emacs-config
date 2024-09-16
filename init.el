@@ -1261,8 +1261,10 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (defun my-exit-fullscreen-advice (&rest _)
   "Advice to exit fullscreen before executing window-changing commands."
-  (when my-fullscreen-window-configuration
-    (my-toggle-fullscreen)))
+  (when (and my-fullscreen-window-configuration
+             (eq (selected-frame)
+                 (window-configuration-frame my-fullscreen-window-configuration))
+    (my-toggle-fullscreen))))
 
 (advice-add 'split-window :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
