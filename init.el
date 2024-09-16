@@ -1479,7 +1479,17 @@ Automatically exits fullscreen if any window-changing command is executed."
 (use-package framemove
   :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
   :init
-  (setq framemove-hook-into-windmove t))
+  (setq framemove-hook-into-windmove t)
+  :config
+  (defun my-fm-frame-bbox (frame)
+    (let* ((geometry (exwm-workspace--get-geometry frame))
+           (yl (slot-value geometry 'y))
+           (xl (slot-value geometry 'x)))
+      (list xl
+            yl
+            (+ xl (frame-pixel-width frame))
+            (+ yl (frame-pixel-height frame)))))
+  (advice-add 'fm-frame-bbox :override #'my-fm-frame-bbox))
 
 ;; Move a buffer to a different window without swapping
 ;; TODO: Integrate with framemove
