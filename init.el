@@ -199,21 +199,117 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;; Interface
 ;;;-----------
 
+
+;;;; Navigation
+
+(use-package ace-window
+  :ensure t
+  :bind (("C-x o" . ace-window)
+         ("C-x O" . ace-swap-window))
+  :config
+  (defun my/aw-window-list-advice (orig-fun &rest args)
+    "Advice to use EXWM-aware frame visibility check in aw-window-list."
+    (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
+      (apply orig-fun args)))
+
+  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
+  (defun my-aw-poshandler (info)
+    (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry))
+           (window-left (plist-get info :parent-window-left))
+           (window-top (plist-get info :parent-window-top))
+           (window-width (plist-get info :parent-window-width))
+           (window-height (plist-get info :parent-window-height))
+           (posframe-width (plist-get info :posframe-width))
+           (posframe-height (plist-get info :posframe-height))
+           (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
+           (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
+      (cons x y)))
+  (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
+    (let ((aw-posframe-position-handler #'my-aw-poshandler))
+      (apply orig-fun args)))
+  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (orig-fun &rest args)
+    "Don't reuse posframes, they get mangled on multi-monitor"
+    (mapc #'posframe-delete aw--posframe-frames)
+    (setq aw--posframe-frames nil))
+
+  :config
+  (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
+  (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
+  (set-face-attribute 'aw-leading-char-face nil :height 200)
+  (ace-window-posframe-mode 1)
+  :custom
+  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+
+;; Let windmove move to other frames as well
+;; TODO Send PR. I have modified framemove to get correct frame coords in EXWM
+;; Lines 45-48 in framemove.el. Use exwm-workspace--get-geometry.
+(use-package framemove
+  :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
+  :init
+  (setq framemove-hook-into-windmove t)
+  :config
+  (defun my-fm-frame-bbox (frame)
+    (let* ((geometry (exwm-workspace--get-geometry frame))
+           (yl (slot-value geometry 'y))
+           (xl (slot-value geometry 'x)))
+      (list xl
+            yl
+            (+ xl (frame-pixel-width frame))
+            (+ yl (frame-pixel-height frame)))))
+  (advice-add 'fm-frame-bbox :override #'my-fm-frame-bbox))
+
+;; Move a buffer to a different window without swapping
+;; TODO: Integrate with framemove
+(use-package buffer-move
+  :ensure t
+  :custom
+  (buffer-move-behavior 'move))
+
+
+;;;; Help
+
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode 1))
+
+(defun my-eldoc-posframe-show (&rest args)
+  (when (car args)
+    (posframe-show "*eldoc-posframe*"
+                   :string (apply 'format args)
+                   :position (point)
+                   :max-width 100
+                   :background-color "#333333"
+                   :foreground-color "#eeeeee"
+                   :internal-border-width 1
+                   :internal-border-color "#777777")
+    (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
+(defun my-eldoc-posframe-hide ()
+  (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
+  (posframe-hide "*eldoc-posframe*"))
+(setq eldoc-message-function #'my-eldoc-posframe-show)
+(setq eldoc-idle-delay 1)
+;; Only trigger after any editing
+(setq eldoc-print-after-edit t)
+
+;;;; Window layout and positioning
 ;; Trying to tame emacs window placement (taken from perspective.el readme)
 (customize-set-variable 'display-buffer-base-action
   '((display-buffer-reuse-window display-buffer-same-window)
     (reusable-frames . t)))
 (customize-set-variable 'even-window-sizes nil)     ; avoid resizing
-;; Enable opening another minibuffer while in minibuffer
-
-;; Usually recursive, but see below
-(use-package drag-stuff
+;;;; Posframe
+(use-package posframe
   :ensure t
   :config
-  (drag-stuff-global-mode 1)
-  (drag-stuff-define-keys))
+  ;; Set border color of posframes. The supposed option of
+  ;; make-posframe doesn't work, we have to do this instead
+  (set-face-background 'internal-border "gray50"))
 
-;; Make vertico display in a floating window
+
 (use-package vertico-posframe
   :ensure t
   :after vertico
@@ -244,29 +340,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 ;; TODO: Make package of this
 ;; Show function signatures in a popup instead of echo area
-(defun my-eldoc-posframe-show (&rest args)
-  (when (car args)
-    (posframe-show "*eldoc-posframe*"
-                   :string (apply 'format args)
-                   :position (point)
-                   :max-width 100
-                   :background-color "#333333"
-                   :foreground-color "#eeeeee"
-                   :internal-border-width 1
-                   :internal-border-color "#777777")
-    (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
-(defun my-eldoc-posframe-hide ()
-  (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
-  (posframe-hide "*eldoc-posframe*"))
-(setq eldoc-message-function #'my-eldoc-posframe-show)
-(setq eldoc-idle-delay 1)
-;; Only trigger after any editing
-(setq eldoc-print-after-edit t)
-(use-package which-key
-  :ensure t
-  :config
-  (which-key-mode 1))
-
 (use-package which-key-posframe
   :ensure t
   :custom
@@ -282,29 +355,19 @@ characters respectably."
   (advice-add 'which-key-posframe--max-dimensions :override #'my-which-key-posframe--max-dimensions))
 
 ;; Copy to system clipboard
+
+;;;; Other stuff
+(use-package drag-stuff
+  :ensure t
+  :config
+  (drag-stuff-global-mode 1)
+  (drag-stuff-define-keys))
+
+;; Make vertico display in a floating window
 (use-package xclip
   :ensure t
   :config
   (xclip-mode 1))
-
-(defun get-focused-monitor-geometry (&optional frame)
-  "Get the geometry of the monitor displaying the selected frame in EXWM."
-  (let* ((monitor-attrs (frame-monitor-attributes frame))
-         (workarea (assoc 'workarea monitor-attrs))
-         (geometry (cdr workarea)))
-    (list (nth 0 geometry) ; X
-          (nth 1 geometry) ; Y
-          (nth 2 geometry) ; Width
-          (nth 3 geometry) ; Height
-          )))
-
-(use-package posframe
-  :ensure t
-  :config
-  ;; Set border color of posframes. The supposed option of
-  ;; make-posframe doesn't work, we have to do this instead
-  (set-face-background 'internal-border "gray50"))
-
 
 (use-package hl-todo
   :ensure t
@@ -360,48 +423,11 @@ characters respectably."
   :config
   (evil-goggles-mode))
 
-(use-package ace-window
-  :ensure t
-  :bind (("C-x o" . ace-window)
-         ("C-x O" . ace-swap-window))
-  :config
-  (defun my/aw-window-list-advice (orig-fun &rest args)
-    "Advice to use EXWM-aware frame visibility check in aw-window-list."
-    (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
-      (apply orig-fun args)))
-
-  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
-  (defun my-aw-poshandler (info)
-    (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry))
-           (window-left (plist-get info :parent-window-left))
-           (window-top (plist-get info :parent-window-top))
-           (window-width (plist-get info :parent-window-width))
-           (window-height (plist-get info :parent-window-height))
-           (posframe-width (plist-get info :posframe-width))
-           (posframe-height (plist-get info :posframe-height))
-           (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
-           (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
-      (cons x y)))
-  (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
-    (let ((aw-posframe-position-handler #'my-aw-poshandler))
-      (apply orig-fun args)))
-  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (orig-fun &rest args)
-    "Don't reuse posframes, they get mangled on multi-monitor"
-    (mapc #'posframe-delete aw--posframe-frames)
-    (setq aw--posframe-frames nil))
-
-  :config
-  (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
-  (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
-  (set-face-attribute 'aw-leading-char-face nil :height 200)
-  (ace-window-posframe-mode 1)
-  :custom
-  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
-
 
 ;;;; Minibuffer
+
+;; Enable opening another minibuffer while in minibuffer
+;; Usually recursive, but see below
 (setq enable-recursive-minibuffers t)
 
 (defun my-minibuffer-unrecursion ()
@@ -914,6 +940,32 @@ capture was not aborted."
 
 ;;;; Thesis
 
+(require 'async)
+(defun get-package-deps (package)
+  (mapcar #'car (package-desc-reqs (cadr (assq package package-alist)))))
+(defun async-export ()
+  (interactive)
+  (async-start
+   `(lambda ()
+      (setq load-path ',load-path)
+      (require 'org)
+      (require 'ox-latex)
+      (require 'org-ref)
+      (require 'engrave-faces)
+      (require 'org-inlinetask)
+      (require 'solarized-theme)
+      (load-theme 'solarized-dark t)
+      (setq engrave-faces-themes ',engrave-faces-themes)
+      (setq default-directory ,(file-name-directory (buffer-file-name)))
+      (find-file ,(buffer-file-name))
+      (setq enable-local-variables :all)
+      (hack-local-variables)
+      (org-latex-export-to-pdf)
+      "Export completed")
+   (lambda (result)
+     (message "Async export result: %s" result))))
+
+
 (use-package org-gantt
   :after org
   :defer t
@@ -962,6 +1014,7 @@ capture was not aborted."
 ;;; Terminal
 ;;;----------
 
+;;;; Eshell
 (use-package eshell
   :config
   ;; Define a variable to hold the cd history
@@ -1072,6 +1125,7 @@ capture was not aborted."
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
 
+;;;; Eat
 ;;(use-package eat
 ;;  :ensure t
 ;;  :config
@@ -1079,6 +1133,7 @@ capture was not aborted."
 ;;  ;;:custom
 ;;  ;;(eshell-visual-commands nil))
 
+;;;; Vterm
 (use-package vterm
   :ensure t
   :defer t
@@ -1354,6 +1409,10 @@ Automatically exits fullscreen if any window-changing command is executed."
      ([?\s-k] . windmove-up)
      ([?\s-j] . windmove-down)
 
+     ;; Next/prev buffer in window
+     ([?\s-n] . next-buffer)
+     ([?\s-p] . previous-buffer)
+
      ;; Move buffers
      ([S-s-left] . buf-move-left)
      ([S-s-right] . buf-move-right)
@@ -1474,31 +1533,9 @@ Automatically exits fullscreen if any window-changing command is executed."
 (use-package app-launcher
   :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
 
-;; Let windmove move to other frames as well
-;; TODO Send PR. I have modified framemove to get correct frame coords in EXWM
-;; Lines 45-48 in framemove.el. Use exwm-workspace--get-geometry.
-(use-package framemove
-  :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
-  :init
-  (setq framemove-hook-into-windmove t)
-  :config
-  (defun my-fm-frame-bbox (frame)
-    (let* ((geometry (exwm-workspace--get-geometry frame))
-           (yl (slot-value geometry 'y))
-           (xl (slot-value geometry 'x)))
-      (list xl
-            yl
-            (+ xl (frame-pixel-width frame))
-            (+ yl (frame-pixel-height frame)))))
-  (advice-add 'fm-frame-bbox :override #'my-fm-frame-bbox))
 
-;; Move a buffer to a different window without swapping
-;; TODO: Integrate with framemove
-(use-package buffer-move
-  :ensure t
-  :custom
-  (buffer-move-behavior 'move))
 
+;;;; Statusbar
 
 (use-package tab-bar
   :preface
@@ -1791,9 +1828,6 @@ and sends a message of the current volume status."
 ;;; Web
 ;;;-----
 
-(use-package qute-launcher
-  :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
-
 
 (use-package engine-mode
   :ensure t
@@ -1823,17 +1857,23 @@ and sends a message of the current volume status."
   (defengine ebay
     "https://ebay.com/sch/i.html?_nkw=%s"
     :keybinding "e")
+
+  (defvar engine-search-history '())
+
+  (defun my-engine-use-completing-read (orig-fun engine-name)
+    "Advice to use completing-read instead of read-string in engine--prompted-search-term."
+    (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
+      (completing-read (engine--search-prompt engine-name current-word)
+                       engine-search-history nil nil nil 'engine-search-history current-word)))
+
+  (advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
   (engine-mode 1))
 
-(defvar engine-search-history '())
 
-(defun my-engine-use-completing-read (orig-fun engine-name)
-  "Advice to use completing-read instead of read-string in engine--prompted-search-term."
-  (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
-    (completing-read (engine--search-prompt engine-name current-word)
-                     engine-search-history nil nil nil 'engine-search-history current-word)))
+;;;; Qutebrowser
 
-(advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
+(use-package qute-launcher
+  :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
 
 (defun switch-to-buffer-with-predicate (pred)
   (switch-to-buffer (read-buffer "Switch to buffer: " nil t pred)))
@@ -1870,30 +1910,16 @@ and sends a message of the current volume status."
 ;;; Util funcs
 ;;;------------
 
-(require 'async)
-(defun get-package-deps (package)
-  (mapcar #'car (package-desc-reqs (cadr (assq package package-alist)))))
-(defun async-export ()
-  (interactive)
-  (async-start
-   `(lambda ()
-      (setq load-path ',load-path)
-      (require 'org)
-      (require 'ox-latex)
-      (require 'org-ref)
-      (require 'engrave-faces)
-      (require 'org-inlinetask)
-      (require 'solarized-theme)
-      (load-theme 'solarized-dark t)
-      (setq engrave-faces-themes ',engrave-faces-themes)
-      (setq default-directory ,(file-name-directory (buffer-file-name)))
-      (find-file ,(buffer-file-name))
-      (setq enable-local-variables :all)
-      (hack-local-variables)
-      (org-latex-export-to-pdf)
-      "Export completed")
-   (lambda (result)
-     (message "Async export result: %s" result))))
+(defun get-focused-monitor-geometry (&optional frame)
+  "Get the geometry of the monitor displaying the selected frame in EXWM."
+  (let* ((monitor-attrs (frame-monitor-attributes frame))
+         (workarea (assoc 'workarea monitor-attrs))
+         (geometry (cdr workarea)))
+    (list (nth 0 geometry) ; X
+          (nth 1 geometry) ; Y
+          (nth 2 geometry) ; Width
+          (nth 3 geometry) ; Height
+          )))
 
 (defun split-window-below-and-switch-buffer ()
   "Split the window horizontally, focus the new window, and switch to a different buffer."
