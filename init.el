@@ -1,6 +1,8 @@
 ;;; init.el --- My Emacs config     -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
+;; Needs to be set EARLY
+(setq use-package-enable-imenu-support t)
 
 ;;; Disable stuff
 ;;;---------------
