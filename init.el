@@ -1894,6 +1894,9 @@ and sends a message of the current volume status."
 ;;; IRC
 ;;;-----
 
+(use-package ement
+  :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
+
 (use-package erc
   :defer t
   :custom
