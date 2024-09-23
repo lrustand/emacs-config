@@ -154,6 +154,14 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;; Emacs
 ;;;-------
 
+(use-package recentf
+  :config
+  (recentf-mode 1)
+  :custom
+  (recentf-max-menu-items 500)
+  (recentf-max-saved-items 500))
+
+
 (use-package emacs
   ;; Silence flymake error
   :defines
@@ -166,7 +174,6 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (global-hl-line-mode 1)
   (global-auto-revert-mode 1)
   (save-place-mode 1)
-  (recentf-mode 1)
 
   (window-divider-mode 1)
   (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
@@ -193,12 +200,13 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (setq custom-file-save-faces nil)
   (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
   (create-lockfiles nil)
-
   (x-select-enable-clipboard t)
   (indent-tabs-mode nil)
-
   (auto-revert-use-notify nil)
-  (recentf-max-menu-items 250)
+  ;; Length of any type of history
+  ;; Stored in ~/.emacs.d/history
+  (history-length 1000)
+
   :hook
   (prog-mode . (lambda ()
                  (setq-local show-trailing-whitespace t)))
