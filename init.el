@@ -205,18 +205,17 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (x-select-enable-clipboard t)
   (indent-tabs-mode nil)
   (auto-revert-use-notify nil)
+  (native-comp-async-report-warnings-errors 'silent)
   ;; Length of any type of history
   ;; Stored in ~/.emacs.d/history
   (history-length 1000)
 
   :hook
   (prog-mode . (lambda ()
-                 (setq-local show-trailing-whitespace t)))
-  (prog-mode . display-line-numbers-mode)
+                 (setq-local show-trailing-whitespace t)
+                 (display-line-numbers-mode))))
   ;;(server-after-make-frame . set-line-number-background)
   ;;(window-setup . set-line-number-background)
-  :custom
-  (native-comp-async-report-warnings-errors 'silent))
 
 ;; Provides only the command “restart-emacs”.
 (use-package restart-emacs
