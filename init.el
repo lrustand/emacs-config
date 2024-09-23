@@ -2190,6 +2190,14 @@ Might give duplicates, if a process has multiple windows."
   :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
 
 
+(use-package chess
+  :ensure t
+  :custom
+  (chess-images-separate-frame nil)
+  :config
+  (evil-define-key 'normal chess-display-mode-map (kbd "<down-mouse-1>") 'chess-display-mouse-select-piece))
+
+
 ;;; XKCD
 (use-package xkcd
   :ensure t
