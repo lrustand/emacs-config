@@ -1411,6 +1411,15 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
 
+(defun qutebrowser-propertize-buffer-name (window-title)
+  (let ((mid (string-match " - https?://.*$"
+                           window-title)))
+    (if mid
+        (let ((title (substring window-title 0 mid))
+              (url (substring window-title (+ 3 mid))))
+          (propertize title 'url url))
+      window-title)))
+
 (use-package exwm
   :ensure t
   :demand t
@@ -1419,7 +1428,10 @@ Automatically exits fullscreen if any window-changing command is executed."
   (exwm-randr-mode 1)
   :config
   (defun efs/exwm-update-class ()
-    (exwm-workspace-rename-buffer exwm-title))
+    (if (string-equal "qutebrowser" exwm-class-name)
+        (exwm-workspace-rename-buffer
+         (qutebrowser-propertize-buffer-name exwm-title))
+      (exwm-workspace-rename-buffer exwm-title)))
 
   (defun lr/exwm-resize-left ()
     (interactive)
