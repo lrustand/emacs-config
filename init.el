@@ -1703,8 +1703,21 @@ Automatically exits fullscreen if any window-changing command is executed."
       (run-with-timer 0 1
                       'force-mode-line-update))
 
-;;; EMMS
+;;; Media players
 ;;;------
+
+(use-package empv
+  :ensure t
+  :custom
+  (empv-invidious-instance "https://invidious.nerdvpn.de/api/v1")
+  (empv-mpv-args '("--no-terminal" "--idle" "--stream-buffer-size=20MiB"
+                   "--input-ipc-server=/tmp/empv-socket")))
+
+(use-package elfeed-tube
+  :ensure t)
+
+(use-package elfeed-tube-mpv
+  :ensure t)
 
 (use-package emms
   :ensure t
