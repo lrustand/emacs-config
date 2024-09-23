@@ -1,5 +1,6 @@
-;; -*- lexical-binding: t; -*-
-
+;;; init.el --- My Emacs config     -*- lexical-binding: t; -*-
+;;; Commentary:
+;;; Code:
 
 ;;; Disable stuff
 ;;;---------------
@@ -35,8 +36,6 @@
 ;;; Theme
 ;;;-------
 
-;; Don't save faces to custom file
-(setq custom-file-save-faces nil)
 
 (use-package solarized-theme
   :ensure t
@@ -47,6 +46,8 @@
   :ensure t
   :init
   (require 'doom-modeline)
+  ;; Fix flymake error
+  :functions doom-modeline-mode
   :custom
   (doom-modeline-workspace-name nil)
   :config
@@ -80,7 +81,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;; Automatically dim the background color of unfocused buffers
 (use-package auto-dim-other-buffers
   :ensure t
-  :config
+  ;; Fix flymake error
+  :functions auto-dim-other-buffers-mode
   :init
   (auto-dim-other-buffers-mode 1))
 
@@ -113,6 +115,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :init
   (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
   (setq evil-want-keybinding nil)
+  ;; Silence flymake errors
+  :functions
+  evil-global-set-key
+  evil-mode
+  evil-set-undo-system
   :config
   ;; Use visual line motions even outside of visual-line-mode buffers
   (evil-global-set-key 'motion "j" 'evil-next-visual-line)
@@ -126,12 +133,18 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (use-package evil-collection
   :ensure t
   :after evil
+  ;; Silence flymake errors
+  :functions
+  evil-collection-init
   :config
   (evil-collection-init))
 
 (use-package evil-terminal-cursor-changer
   :ensure t
   :after evil
+  ;; Silence flymake errors
+  :functions
+  evil-terminal-cursor-changer-activate
   :config
   (unless (display-graphic-p)
           (require 'evil-terminal-cursor-changer)
@@ -142,6 +155,9 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;;-------
 
 (use-package emacs
+  ;; Silence flymake error
+  :defines
+  tramp-remote-path
   :config
   (require 'tramp)
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path) ;; Fix tramp for Guix
@@ -164,12 +180,17 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   ;;(defun set-line-number-background ()
   ;;  (set-face-background 'line-number (face-attribute 'mode-line :background)))
 
+  :preface
   ;; Fix load-theme
-  (defun disable-all-themes-before-load (theme &rest _)
+  (defun disable-all-themes-before-load (&rest _)
     "Disable all themes before loading a new one."
     (mapcar #'disable-theme custom-enabled-themes))
+  :config
   (advice-add 'load-theme :before #'disable-all-themes-before-load)
+
   :custom
+  ;; Don't save faces to custom file
+  (setq custom-file-save-faces nil)
   (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
   (create-lockfiles nil)
 
@@ -200,19 +221,37 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;;-----------
 
 
+;;;; Workspace/project management
+
+(use-package perspective-tabs
+  :quelpa (perspective-tabs :fetcher sourcehut :repo "woozong/perspective-tabs"))
+
+;; Fix posframes in persp-mode
+;(add-hook
+; 'persp-restore-window-conf-filter-functions
+;   #'(lambda (f _ _)
+;        (with-selected-frame f
+;          (or (eq f posframe--frame) (window-dedicated-p)))))
+
 ;;;; Navigation
 
 (use-package ace-window
   :ensure t
   :bind (("C-x o" . ace-window)
          ("C-x O" . ace-swap-window))
-  :config
+  ;; Silence flymake errors
+  :functions
+  exwm-workspace--active-p
+  posframe-delete
+  ace-window-posframe-mode
+  :defines
+  aw--posframe-frames
+  aw-posframe-position-handler
+  :preface
   (defun my/aw-window-list-advice (orig-fun &rest args)
     "Advice to use EXWM-aware frame visibility check in aw-window-list."
     (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
       (apply orig-fun args)))
-
-  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
   (defun my-aw-poshandler (info)
     (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
            (monitor-x (nth 0 monitor-geometry))
@@ -229,12 +268,13 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
     (let ((aw-posframe-position-handler #'my-aw-poshandler))
       (apply orig-fun args)))
-  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (orig-fun &rest args)
+  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (&rest _)
     "Don't reuse posframes, they get mangled on multi-monitor"
     (mapc #'posframe-delete aw--posframe-frames)
     (setq aw--posframe-frames nil))
 
   :config
+  (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
   (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
   (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
   (set-face-attribute 'aw-leading-char-face nil :height 200)
@@ -250,7 +290,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
   :init
   (setq framemove-hook-into-windmove t)
-  :config
+  :preface
   (defun my-fm-frame-bbox (frame)
     (let* ((geometry (exwm-workspace--get-geometry frame))
            (yl (slot-value geometry 'y))
@@ -259,6 +299,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
             yl
             (+ xl (frame-pixel-width frame))
             (+ yl (frame-pixel-height frame)))))
+  :config
   (advice-add 'fm-frame-bbox :override #'my-fm-frame-bbox))
 
 ;; Move a buffer to a different window without swapping
@@ -276,7 +317,10 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :config
   (which-key-mode 1))
 
+;; TODO: Make package of this
+;; Show function signatures in a popup instead of echo area
 (defun my-eldoc-posframe-show (&rest args)
+  "Show eldoc posframe containing ARGS."
   (when (car args)
     (posframe-show "*eldoc-posframe*"
                    :string (apply 'format args)
@@ -288,6 +332,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
                    :internal-border-color "#777777")
     (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
 (defun my-eldoc-posframe-hide ()
+  "Hide eldoc posframe."
   (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
   (posframe-hide "*eldoc-posframe*"))
 (setq eldoc-message-function #'my-eldoc-posframe-show)
@@ -295,13 +340,18 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;; Only trigger after any editing
 (setq eldoc-print-after-edit t)
 
+
 ;;;; Window layout and positioning
+
 ;; Trying to tame emacs window placement (taken from perspective.el readme)
 (customize-set-variable 'display-buffer-base-action
   '((display-buffer-reuse-window display-buffer-same-window)
     (reusable-frames . t)))
 (customize-set-variable 'even-window-sizes nil)     ; avoid resizing
+
+
 ;;;; Posframe
+
 (use-package posframe
   :ensure t
   :config
@@ -313,9 +363,11 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (use-package vertico-posframe
   :ensure t
   :after vertico
+  :functions
+  vertico-posframe-mode
   :preface
   (defun advise-vertico-posframe-show-with-monitor-awareness (orig-fun buffer window-point &rest args)
-    "Advise `vertico-posframe--show` to position the posframe according to the focused monitor."
+    "Advise `vertico-posframe--show` for multimonitor."
     ;; Extract the focused monitor's geometry
     (let* ((monitor-geometry (get-focused-monitor-geometry))
            (monitor-x (nth 0 monitor-geometry))
@@ -338,20 +390,21 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (advice-add 'vertico-posframe--show :around #'advise-vertico-posframe-show-with-monitor-awareness)
   (vertico-posframe-mode 1))
 
-;; TODO: Make package of this
-;; Show function signatures in a popup instead of echo area
 (use-package which-key-posframe
   :ensure t
   :custom
   (which-key-posframe-border-width 2)
-  :config
-  (which-key-posframe-mode 1)
+  :functions
+  which-key-posframe-mode
+  :preface
   (defun my-which-key-posframe--max-dimensions (_)
     "Return max-dimensions of posframe.
 The returned value has the form (HEIGHT . WIDTH) in lines and
 characters respectably."
     (cons (- (frame-height) 2) ; account for mode-line and minibuffer
           (min 300 (frame-width))))
+  :config
+  (which-key-posframe-mode 1)
   (advice-add 'which-key-posframe--max-dimensions :override #'my-which-key-posframe--max-dimensions))
 
 ;; Copy to system clipboard
@@ -359,6 +412,9 @@ characters respectably."
 ;;;; Other stuff
 (use-package drag-stuff
   :ensure t
+  :functions
+  drag-stuff-global-mode
+  drag-stuff-define-keys
   :config
   (drag-stuff-global-mode 1)
   (drag-stuff-define-keys))
@@ -376,6 +432,8 @@ characters respectably."
 
 (use-package undo-tree
   :ensure t
+  :functions
+  global-undo-tree-mode
   :config
   (global-undo-tree-mode 1)
   :custom
@@ -386,6 +444,8 @@ characters respectably."
 
 (use-package git-gutter
   :ensure t
+  :functions
+  git-gutter-mode
   :preface
   (defun rpo/git-gutter-mode ()
     "Enable git-gutter mode if current buffer's file is under version control."
@@ -414,15 +474,25 @@ characters respectably."
 
 (use-package goggles
   :ensure t
+  :functions
+  goggles-mode
   :config
   (goggles-mode))
 
 (use-package evil-goggles
   :ensure t
   :after (evil goggles)
+  :functions
+  evil-goggles-mode
   :config
   (evil-goggles-mode))
 
+;; Highlight outline headings
+(use-package outline-minor-faces
+  :ensure t
+  :after outline
+  :hook
+  (outline-minor-mode-hook . outline-minor-faces-mode))
 
 ;;;; Minibuffer
 
@@ -431,12 +501,14 @@ characters respectably."
 (setq enable-recursive-minibuffers t)
 
 (defun my-minibuffer-unrecursion ()
+  "Replace running minibuffer."
   (when (> (minibuffer-depth) 1)
     (run-with-timer 0 nil 'my-interactive-command
                     this-command current-prefix-arg)
     (abort-recursive-edit)))
 
 (defun my-interactive-command (cmd arg)
+  "Call new minibuffer CMD with ARG."
   (let ((current-prefix-arg arg))
     (call-interactively cmd)))
 
@@ -446,16 +518,22 @@ characters respectably."
 
 (use-package vertico
   :ensure t
+  :functions
+  vertico-mode
   :init
   (vertico-mode))
 
 (use-package marginalia
   :ensure t
+  :functions
+  marginalia-mode
   :init
   (marginalia-mode))
 
 (use-package consult
   :ensure t
+  :functions
+  consult-org-heading
   :preface
   (defun my/consult-org-headings ()
     "Switch to any top-level org heading"
@@ -496,6 +574,8 @@ characters respectably."
 
 (use-package corfu
   :ensure t
+  :functions
+  corfu-mode
   :preface
   (defun corfu-enable-in-minibuffer ()
     "Enable Corfu in the minibuffer."
@@ -505,7 +585,7 @@ characters respectably."
                   corfu-popupinfo-delay nil)
       (corfu-mode 1)))
   (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
-    "Advise `corfu--make-frame` to be monitor-aware, adjusting X and Y according to the focused monitor."
+    "Advise `corfu--make-frame` to be monitor-aware."
     ;; Get the geometry of the currently focused monitor
     (let* ((monitor-geometry (get-focused-monitor-geometry))
            (monitor-x (nth 0 monitor-geometry))
@@ -667,11 +747,14 @@ characters respectably."
 (use-package magit-todos
   :ensure t
   :after magit
+  :functions
+  magit-todos-mode
   :config
   (magit-todos-mode 1))
 
 ;;; Org
 ;;;-----
+
 
 (use-package org
   :config
@@ -736,7 +819,7 @@ characters respectably."
 
   :hook (org-mode . (lambda ()
                       (visual-line-mode 1)
-                      (org-hide-drawer-all)
+                      (org-fold-hide-drawer-all)
                       (org-fold-all-done-entries)))
 
   :preface
@@ -780,7 +863,7 @@ characters respectably."
 
   (add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
 
-  (defun org-summary-todo (n-done n-not-done)
+  (defun org-summary-todo (_ n-not-done)
     "Switch entry to DONE when all subentries are done."
     (if (= n-not-done 0) (org-todo "DONE")))
 
@@ -1332,7 +1415,6 @@ Automatically exits fullscreen if any window-changing command is executed."
   :ensure t
   :demand t
   :init
-  (require 'exwm)
   (require 'exwm-randr)
   (exwm-randr-mode 1)
   :config
@@ -1693,6 +1775,10 @@ and sends a message of the current volume status."
   ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
   (require 'mu4e)
   (require 'mu4e-contrib)
+  :functions
+  mu4e-mark-handle-when-leaving
+  mu4e-search-maildir
+  mu4e--query-items-refresh
   :preface
   ;; Override this to avoid the IDIOTIC mue4 "main window"
   (defun my-mu4e~headers-quit-buffer (&rest _)
@@ -1807,6 +1893,8 @@ and sends a message of the current volume status."
   :ensure t
   :after erc
   :defer t
+  :functions
+  erc-twitch-enable
   :config
   (erc-twitch-enable))
 
@@ -1814,6 +1902,8 @@ and sends a message of the current volume status."
   :ensure t
   :after erc
   :defer t
+  :functions
+  erc-hl-nicks-enable
   :config
   (erc-hl-nicks-enable))
 
@@ -1821,6 +1911,8 @@ and sends a message of the current volume status."
   :ensure t
   :after erc
   :defer t
+  :functions
+  erc-image-enable
   :config
   (erc-image-enable))
 
@@ -1831,8 +1923,20 @@ and sends a message of the current volume status."
 
 (use-package engine-mode
   :ensure t
+  :functions
+  engine-mode
+  engine--search-prompt
   :custom
   (engine/browser-function 'qute-launcher)
+  :preface
+
+  (defvar engine-search-history '())
+
+  (defun my-engine-use-completing-read (engine-name)
+    "Advice to use completing-read instead of read-string in engine-mode."
+    (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
+      (completing-read (engine--search-prompt engine-name current-word)
+                       engine-search-history nil nil nil 'engine-search-history current-word)))
   :config
   (defengine github
     "https://github.com/search?ref=simplesearch&q=%s"
@@ -1840,7 +1944,7 @@ and sends a message of the current volume status."
 
   (defengine google
     "https://google.com/search?q=%s"
-    :keybinding "d")
+    :keybinding "g")
 
   (defengine duckduckgo
     "https://duckduckgo.com/?q=%s"
@@ -1858,15 +1962,7 @@ and sends a message of the current volume status."
     "https://ebay.com/sch/i.html?_nkw=%s"
     :keybinding "e")
 
-  (defvar engine-search-history '())
-
-  (defun my-engine-use-completing-read (orig-fun engine-name)
-    "Advice to use completing-read instead of read-string in engine--prompted-search-term."
-    (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
-      (completing-read (engine--search-prompt engine-name current-word)
-                       engine-search-history nil nil nil 'engine-search-history current-word)))
-
-  (advice-add 'engine--prompted-search-term :around #'my-engine-use-completing-read)
+  (advice-add 'engine--prompted-search-term :override #'my-engine-use-completing-read)
   (engine-mode 1))
 
 
@@ -1888,6 +1984,7 @@ and sends a message of the current volume status."
 ;;;--------------------
 
 (defun toggle-svkbd ()
+  "Toggle onscreen keyboard."
   (interactive)
   (let* ((proc (get-process "svkbd"))
          (monitor-geometry (get-focused-monitor-geometry))
@@ -1911,7 +2008,7 @@ and sends a message of the current volume status."
 ;;;------------
 
 (defun get-focused-monitor-geometry (&optional frame)
-  "Get the geometry of the monitor displaying the selected frame in EXWM."
+  "Get the geometry of the monitor displaying FRAME in EXWM."
   (let* ((monitor-attrs (frame-monitor-attributes frame))
          (workarea (assoc 'workarea monitor-attrs))
          (geometry (cdr workarea)))
@@ -1922,20 +2019,21 @@ and sends a message of the current volume status."
           )))
 
 (defun split-window-below-and-switch-buffer ()
-  "Split the window horizontally, focus the new window, and switch to a different buffer."
+  "Make a new window below and focus it."
   (interactive)
   (split-window-below)
   (other-window 1)
   (switch-to-buffer (other-buffer)))
 
 (defun split-window-right-and-switch-buffer ()
-  "Split the window vertically, focus the new window, and switch to a different buffer."
+  "Make a new window to the right and focus it."
   (interactive)
   (split-window-right)
   (other-window 1)
   (switch-to-buffer (other-buffer)))
 
 (defun exwm-list-x-windows ()
+  "List all EXWM mode buffers."
   (interactive)
   (seq-filter (lambda (buf)
                 (with-current-buffer buf
@@ -1943,6 +2041,7 @@ and sends a message of the current volume status."
               (buffer-list)))
 
 (defun exwm-buffer->pid (buf)
+  "Get the PID of an EXWM buffer BUF."
   (let* ((id (exwm--buffer->id buf))
          (resp (xcb:+request-unchecked+reply
                    exwm--connection
@@ -1962,6 +2061,8 @@ and sends a message of the current volume status."
     pids))
 
 (defun exwm-list-sound-playing-buffers ()
+  "List buffers playing sound.
+Might give duplicates, if a process has multiple windows."
   (let ((window-pids (mapcar #'exwm-buffer->pid (exwm-list-x-windows))))
     (cl-intersection window-pids (get-sink-input-pids))))
 
@@ -1973,6 +2074,7 @@ and sends a message of the current volume status."
 
 
 (defun tmux-navigate-directions ()
+  "Navigate in tmux."
   (let* ((x (nth 0 (window-edges)))
          (y (nth 1 (window-edges)))
          (w (nth 2 (window-edges)))
@@ -1995,12 +2097,19 @@ and sends a message of the current volume status."
 (unless (display-graphic-p)
   (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
 
+
 (setq custom-file (concat user-emacs-directory "custom.el"))
 (when (file-exists-p custom-file)
   (load custom-file))
+
+
 (use-package shrface
   :ensure t
   :defer t
+  :functions
+  shrface-basic
+  shrface-trial
+  shrface-default-keybindings
   :config
   (shrface-basic)
   (shrface-trial)
@@ -2008,12 +2117,14 @@ and sends a message of the current volume status."
   :custom
   (shrface-href-versatile t))
 
+
 (use-package eww
   :defer t
-  :init
-  (add-hook 'eww-after-render-hook #'shrface-mode)
+  :require
+  shrface
   :config
-  (require 'shrface))
+  (add-hook 'eww-after-render-hook #'shrface-mode))
+
 
 ;; TODO one of the following options disables shrface conversion to org-mode headings
 ;; Figure out what and fix it
@@ -2022,6 +2133,7 @@ and sends a message of the current volume status."
 (setq shr-color-visible-distance-min 5)
 (setq shr-use-colors nil)
 (advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
+
 
 (use-package bitbake
   :ensure t
@@ -2042,6 +2154,7 @@ and sends a message of the current volume status."
   (with-eval-after-load "bitbake-mode"
     (add-hook 'bitbake-mode-hook 'lsp)))
 
+
 (use-package tex
   :ensure auctex
   :defer t
@@ -2051,9 +2164,11 @@ and sends a message of the current volume status."
   (TeX-view-program-list '(("Okular" "okular --noraise --unique file:%o#src%n%a")))
   (TeX-view-program-selection '((output-pdf "Okular"))))
 
+
 ;;
 ;;(use-package mastodon-alt
 ;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
+
 
 (use-package scad-dbus
   :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
@@ -2065,6 +2180,9 @@ and sends a message of the current volume status."
   :init
   (evil-define-key 'normal xkcd-mode-map (kbd "h") 'xkcd-prev)
   (evil-define-key 'normal xkcd-mode-map (kbd "l") 'xkcd-next)
+  :functions
+  xkcd
+  xkcd-get
   :hook
   (xkcd-mode . (lambda ()
                      (set (make-local-variable 'evil-normal-state-cursor) (list nil))
@@ -2081,3 +2199,4 @@ and sends a message of the current volume status."
       (if (> num 0)
           (xkcd-get num)
         (xkcd)))))
+;;; init.el ends here
