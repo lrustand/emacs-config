@@ -1,11 +1,11 @@
 ;;; init.el --- My Emacs config     -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;;; Code:
+;;; Bootstrap
+;;;---------------
+
 ;; Needs to be set EARLY
 (setq use-package-enable-imenu-support t)
-
-;;; Disable stuff
-;;;---------------
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -14,8 +14,9 @@
 
 (setq gc-cons-threshold 500000000) ; Set to 500MB
 
-;;; Use-package setup
-;;;-------------------
+
+;;;; Use-package setup
+;;;;-------------------
 
 ;; Set up package.el to work with MELPA
 (require 'package)
@@ -90,6 +91,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 
 ;;;; Theme modifications
+;;;;----------------------
 
 ;; Fix the unfocused backgrounds of solarized
 (unpackaged/customize-theme-faces 'solarized-dark
@@ -164,6 +166,10 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (recentf-max-saved-items 500))
 
 
+(setq custom-file (concat user-emacs-directory "custom.el"))
+(when (file-exists-p custom-file)
+  (load custom-file))
+
 (use-package emacs
   ;; Silence flymake error
   :defines
@@ -231,6 +237,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 
 ;;;; Workspace/project management
+;;;;--------------------------------
 
 (use-package perspective-tabs
   :quelpa (perspective-tabs :fetcher sourcehut :repo "woozong/perspective-tabs"))
@@ -243,6 +250,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;          (or (eq f posframe--frame) (window-dedicated-p)))))
 
 ;;;; Navigation
+;;;;-----------
 
 (use-package ace-window
   :ensure t
@@ -320,6 +328,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 
 ;;;; Help
+;;;;------
 
 (use-package which-key
   :ensure t
@@ -351,6 +360,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 
 ;;;; Window layout and positioning
+;;;;-------------------------------
 
 ;; Trying to tame emacs window placement (taken from perspective.el readme)
 (customize-set-variable 'display-buffer-base-action
@@ -360,6 +370,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 
 ;;;; Posframe
+;;;;-----------
 
 (use-package posframe
   :ensure t
@@ -418,7 +429,10 @@ characters respectably."
 
 ;; Copy to system clipboard
 
+
 ;;;; Other stuff
+;;;;-------------
+
 (use-package drag-stuff
   :ensure t
   :functions
@@ -504,6 +518,7 @@ characters respectably."
   (outline-minor-mode-hook . outline-minor-faces-mode))
 
 ;;;; Minibuffer
+;;;;------------
 
 ;; Enable opening another minibuffer while in minibuffer
 ;; Usually recursive, but see below
@@ -575,6 +590,16 @@ characters respectably."
   (("C-." . embark-act)
    ("C-;" . embark-dwim)
    ("C-h B" . embark-bindings)))
+
+
+
+;;;; Projectile
+;;;;------------
+
+(use-package projectile
+  :ensure t
+  :config
+  (projectile-mode 1))
 
 
 
@@ -655,6 +680,7 @@ characters respectably."
 
 
 ;;;; Lisp
+;;;;-----
 
 (use-package sly
   :ensure t
@@ -665,6 +691,7 @@ characters respectably."
 
 
 ;;;; Scheme
+;;;;---------
 
 (use-package geiser
   :ensure t
@@ -688,7 +715,9 @@ characters respectably."
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
   (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
 
+
 ;;;; Snippets
+;;;;----------
 
 ;;(use-package yasnippet
 ;;  :ensure t
@@ -703,6 +732,7 @@ characters respectably."
 
 
 ;;;; LSP
+;;;;-----
 
 (use-package lsp-mode
   :ensure t
@@ -760,6 +790,7 @@ characters respectably."
   magit-todos-mode
   :config
   (magit-todos-mode 1))
+
 
 ;;; Org
 ;;;-----
@@ -919,6 +950,7 @@ characters respectably."
 
 
 ;;;; Roam
+;;;;-------
 
 (use-package org-roam
   :ensure t
@@ -1031,6 +1063,7 @@ capture was not aborted."
 
 
 ;;;; Thesis
+;;;;--------
 
 (require 'async)
 (defun get-package-deps (package)
@@ -1093,20 +1126,20 @@ capture was not aborted."
 
 
 
-;;; Projectile
-;;;------------
-
-(use-package projectile
-  :ensure t
-  :config
-  (projectile-mode 1))
+;;; System
+;;;---------
 
 
+;;;; Terminal
+;;;;----------
 
-;;; Terminal
-;;;----------
+;; This section contains all terminal emulators and shells such as
+;; vterm, eat, and eshell.
 
-;;;; Eshell
+
+;;;;; Eshell
+;;;;;-------
+
 (use-package eshell
   :config
   ;; Define a variable to hold the cd history
@@ -1217,7 +1250,15 @@ capture was not aborted."
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
 
-;;;; Eat
+(use-package eshell-fringe-status
+  :ensure t
+  :hook
+  (eshell-mode-hook . eshell-fringe-status-mode))
+
+
+;;;;; Eat
+;;;;;-----
+
 ;;(use-package eat
 ;;  :ensure t
 ;;  :config
@@ -1225,7 +1266,10 @@ capture was not aborted."
 ;;  ;;:custom
 ;;  ;;(eshell-visual-commands nil))
 
-;;;; Vterm
+
+;;;;; Vterm
+;;;;;--------
+
 (use-package vterm
   :ensure t
   :defer t
@@ -1272,8 +1316,8 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :after vterm)
 
 
-;;; Dired
-;;;-------
+;;;; Dired
+;;;;-------
 
 (use-package dired
   :ensure nil
@@ -1354,8 +1398,8 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 
 
 
-;;; Proced
-;;;--------
+;;;; Proced
+;;;;--------
 
 ;; Process Editor (htop-like)
 (use-package proced
@@ -1390,8 +1434,10 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   (proced-mode . proced-guix-nix-readable-mode))
 
 
+
+
 ;;; EXWM
-;;;------
+;;;--------
 
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
@@ -1639,6 +1685,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 
 ;;;; Statusbar
+;;;;-----------
 
 (use-package tab-bar
   :preface
@@ -1724,8 +1771,9 @@ Automatically exits fullscreen if any window-changing command is executed."
       (run-with-timer 0 1
                       'force-mode-line-update))
 
+
 ;;; Media players
-;;;------
+;;;----------------
 
 (use-package empv
   :ensure t
@@ -1788,8 +1836,10 @@ and sends a message of the current volume status."
   (emms-volume-change-function 'emms-player-mpv-raise-volume))
 
 
-;;; Mail
-;;;------
+;;; Communication
+;;;-----------------
+;;;; Mail
+;;;;------
 
 (use-package consult-mu
   :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
@@ -1912,8 +1962,8 @@ and sends a message of the current volume status."
   (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
 
 
-;;; IRC
-;;;-----
+;;;; Chat
+;;;;-----
 
 (use-package ement
   :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
@@ -2004,6 +2054,7 @@ and sends a message of the current volume status."
 
 
 ;;;; Qutebrowser
+;;;;--------------
 
 (use-package qute-launcher
   :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
@@ -2041,71 +2092,6 @@ and sends a message of the current volume status."
                           nil t)))))
 
 
-;;; Util funcs
-;;;------------
-
-(defun get-focused-monitor-geometry (&optional frame)
-  "Get the geometry of the monitor displaying FRAME in EXWM."
-  (let* ((monitor-attrs (frame-monitor-attributes frame))
-         (workarea (assoc 'workarea monitor-attrs))
-         (geometry (cdr workarea)))
-    (list (nth 0 geometry) ; X
-          (nth 1 geometry) ; Y
-          (nth 2 geometry) ; Width
-          (nth 3 geometry) ; Height
-          )))
-
-(defun split-window-below-and-switch-buffer ()
-  "Make a new window below and focus it."
-  (interactive)
-  (split-window-below)
-  (other-window 1)
-  (switch-to-buffer (other-buffer)))
-
-(defun split-window-right-and-switch-buffer ()
-  "Make a new window to the right and focus it."
-  (interactive)
-  (split-window-right)
-  (other-window 1)
-  (switch-to-buffer (other-buffer)))
-
-(defun exwm-list-x-windows ()
-  "List all EXWM mode buffers."
-  (interactive)
-  (seq-filter (lambda (buf)
-                (with-current-buffer buf
-                  (eq major-mode 'exwm-mode)))
-              (buffer-list)))
-
-(defun exwm-buffer->pid (buf)
-  "Get the PID of an EXWM buffer BUF."
-  (let* ((id (exwm--buffer->id buf))
-         (resp (xcb:+request-unchecked+reply
-                   exwm--connection
-                   (make-instance 'xcb:ewmh:get-_NET_WM_PID
-                                  :window id))))
-    (slot-value resp 'value)))
-
-(defun get-sink-input-pids ()
-  "Get list of PIDs for active PulseAudio sink inputs."
-  (let ((output (shell-command-to-string "pacmd list-sink-inputs"))
-        (pids '()))
-    (with-temp-buffer
-      (insert output)
-      (goto-char (point-min))
-      (while (re-search-forward "application.process.id = \"\\([0-9]+\\)\"" nil t)
-        (push (string-to-number (match-string 1)) pids)))
-    pids))
-
-(defun exwm-list-sound-playing-buffers ()
-  "List buffers playing sound.
-Might give duplicates, if a process has multiple windows."
-  (let ((window-pids (mapcar #'exwm-buffer->pid (exwm-list-x-windows))))
-    (cl-intersection window-pids (get-sink-input-pids))))
-
-(exwm-list-sound-playing-buffers)
-(get-sink-input-pids)
-
 ;;; Random bullshit
 ;;;-----------------
 
@@ -2134,10 +2120,6 @@ Might give duplicates, if a process has multiple windows."
 (unless (display-graphic-p)
   (add-hook 'buffer-list-update-hook 'tmux-navigate-directions))
 
-
-(setq custom-file (concat user-emacs-directory "custom.el"))
-(when (file-exists-p custom-file)
-  (load custom-file))
 
 
 (use-package shrface
@@ -2219,7 +2201,7 @@ Might give duplicates, if a process has multiple windows."
   (evil-define-key 'normal chess-display-mode-map (kbd "<down-mouse-1>") 'chess-display-mouse-select-piece))
 
 
-;;; XKCD
+
 (use-package xkcd
   :ensure t
   :init
@@ -2244,4 +2226,70 @@ Might give duplicates, if a process has multiple windows."
       (if (> num 0)
           (xkcd-get num)
         (xkcd)))))
+
+
+
+(defun get-focused-monitor-geometry (&optional frame)
+  "Get the geometry of the monitor displaying FRAME in EXWM."
+  (let* ((monitor-attrs (frame-monitor-attributes frame))
+         (workarea (assoc 'workarea monitor-attrs))
+         (geometry (cdr workarea)))
+    (list (nth 0 geometry) ; X
+          (nth 1 geometry) ; Y
+          (nth 2 geometry) ; Width
+          (nth 3 geometry) ; Height
+          )))
+
+(defun split-window-below-and-switch-buffer ()
+  "Make a new window below and focus it."
+  (interactive)
+  (split-window-below)
+  (other-window 1)
+  (switch-to-buffer (other-buffer)))
+
+(defun split-window-right-and-switch-buffer ()
+  "Make a new window to the right and focus it."
+  (interactive)
+  (split-window-right)
+  (other-window 1)
+  (switch-to-buffer (other-buffer)))
+
+(defun exwm-list-x-windows ()
+  "List all EXWM mode buffers."
+  (interactive)
+  (seq-filter (lambda (buf)
+                (with-current-buffer buf
+                  (eq major-mode 'exwm-mode)))
+              (buffer-list)))
+
+(defun exwm-buffer->pid (buf)
+  "Get the PID of an EXWM buffer BUF."
+  (let* ((id (exwm--buffer->id buf))
+         (resp (xcb:+request-unchecked+reply
+                   exwm--connection
+                   (make-instance 'xcb:ewmh:get-_NET_WM_PID
+                                  :window id))))
+    (slot-value resp 'value)))
+
+(defun get-sink-input-pids ()
+  "Get list of PIDs for active PulseAudio sink inputs."
+  (let ((output (shell-command-to-string "pacmd list-sink-inputs"))
+        (pids '()))
+    (with-temp-buffer
+      (insert output)
+      (goto-char (point-min))
+      (while (re-search-forward "application.process.id = \"\\([0-9]+\\)\"" nil t)
+        (push (string-to-number (match-string 1)) pids)))
+    pids))
+
+(defun exwm-list-sound-playing-buffers ()
+  "List buffers playing sound.
+Might give duplicates, if a process has multiple windows."
+  (let ((window-pids (mapcar #'exwm-buffer->pid (exwm-list-x-windows))))
+    (cl-intersection window-pids (get-sink-input-pids))))
+
+(exwm-list-sound-playing-buffers)
+(get-sink-input-pids)
+
+
 ;;; init.el ends here
