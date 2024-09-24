@@ -510,12 +510,22 @@ characters respectably."
   :config
   (evil-goggles-mode))
 
-;; Highlight outline headings
-(use-package outline-minor-faces
+(use-package outshine
   :ensure t
-  :after outline
   :hook
-  (outline-minor-mode-hook . outline-minor-faces-mode))
+  (emacs-lisp-mode . (lambda ()
+                       (outshine-mode)
+                       (add-to-list 'imenu-generic-expression
+                                    '("Headings" "^;;; \\([^\n]+\\)" 1)
+                                    t))))
+
+;; Highlight outline headings
+;;(use-package outline-minor-faces
+;;  :ensure t
+;;  :after outline
+;;  :hook
+;;  (outline-minor-mode-hook . outline-minor-faces-mode))
+
 
 ;;;; Minibuffer
 ;;;;------------
