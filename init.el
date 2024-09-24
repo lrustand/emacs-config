@@ -427,8 +427,11 @@ characters respectably."
   (which-key-posframe-mode 1)
   (advice-add 'which-key-posframe--max-dimensions :override #'my-which-key-posframe--max-dimensions))
 
-;; Copy to system clipboard
-
+;; Show magit popups etc in posframe
+(use-package transient-posframe
+  :ensure t
+  :config
+  (transient-posframe-mode))
 
 ;;;; Other stuff
 ;;;;-------------
