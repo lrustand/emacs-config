@@ -2153,7 +2153,7 @@ and sends a message of the current volume status."
 
 (use-package eww
   :defer t
-  :require
+  :requires
   shrface
   :config
   (add-hook 'eww-after-render-hook #'shrface-mode))
