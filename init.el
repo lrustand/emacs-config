@@ -2059,14 +2059,6 @@ and sends a message of the current volume status."
 (use-package qute-launcher
   :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
 
-(defun switch-to-buffer-with-predicate (pred)
-  (switch-to-buffer (read-buffer "Switch to buffer: " nil t pred)))
-
-(defun switch-to-qutebrowser-buffer ()
-  (interactive)
-  (switch-to-buffer-with-predicate
-   (lambda (buf)
-     (string-search "qutebrowser" (car buf)))))
 
 ;;; Mobile/touchscreen
 ;;;--------------------
