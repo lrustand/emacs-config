@@ -779,6 +779,10 @@ characters respectably."
 ;;; Git
 ;;;-----
 
+;; Open the current file on Github or similar
+(use-package browse-at-remote
+  :ensure t)
+
 (use-package magit
   :ensure t
   :demand t)
