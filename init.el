@@ -1580,6 +1580,10 @@ Automatically exits fullscreen if any window-changing command is executed."
      ([?\s-n] . next-buffer)
      ([?\s-p] . previous-buffer)
 
+     ;; Next/prev tabs
+     ([?\H-j] . tab-next)
+     ([?\H-k] . tab-previous)
+
      ;; Move buffers
      ([S-s-left] . buf-move-left)
      ([S-s-right] . buf-move-right)
