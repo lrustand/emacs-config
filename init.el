@@ -1401,6 +1401,10 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :config
   (pdf-tools-install))
 
+(use-package saveplace-pdf-view
+  :ensure t
+  :demand t)
+
 (use-package image-mode
   :hook
   ;; Disable blinking border around images (caused by cursor blink)
