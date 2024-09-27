@@ -34,6 +34,12 @@
 (use-package quelpa-use-package
   :ensure t)
 
+(defun dont-upgrade-external (orig-fun name)
+  (if (package--user-installed-p name)
+      (apply orig-fun (list name))
+    (message "Package %s is external, not deleting" name)))
+
+(advice-add 'package-upgrade :around #'dont-upgrade-external)
 
 
 ;;; Theme
