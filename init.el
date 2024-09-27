@@ -563,8 +563,15 @@ characters respectably."
   :ensure t
   :functions
   vertico-mode
+  :custom
+  (vertico-multiform-commands
+   '((consult-imenu buffer (:not posframe))
+     (consult-grep buffer (:not posframe))
+     (consult-outline buffer (:not posframe))))
+  (vertico-sort-function #'vertico-sort-history-alpha)
   :init
-  (vertico-mode))
+  (vertico-mode)
+  (vertico-multiform-mode))
 
 (use-package prescient
   :ensure t
