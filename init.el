@@ -566,6 +566,24 @@ characters respectably."
   :init
   (vertico-mode))
 
+(use-package prescient
+  :ensure t
+  :custom
+  (prescient-history-length 500)
+  (prescient-sort-full-matches-first t)
+  (prescient-sort-length-enable t)
+  (prescient-tiebreaker nil)
+  (prescient-aggressive-file-save t)
+  :config
+  (prescient-persist-mode 1))
+
+(use-package vertico-prescient
+  :ensure t
+  :custom
+  (vertico-prescient-enable-filtering nil)
+  :config
+  (vertico-prescient-mode 1))
+
 (use-package marginalia
   :ensure t
   :functions
