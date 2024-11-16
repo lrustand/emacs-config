@@ -662,7 +662,7 @@ characters respectably."
       (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
                   corfu-popupinfo-delay nil)
       (corfu-mode 1)))
-  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height buffer)
+  (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height)
     "Advise `corfu--make-frame` to be monitor-aware."
     ;; Get the geometry of the currently focused monitor
     (let* ((monitor-geometry (get-focused-monitor-geometry))
@@ -675,7 +675,7 @@ characters respectably."
            (new-x (+ monitor-x x))
            (new-y (+ monitor-y y)))
       ;; Call the original function with potentially adjusted coordinates
-      (funcall orig-fun frame new-x new-y width height buffer)))
+      (funcall orig-fun frame new-x new-y width height)))
 
 
   :hook
