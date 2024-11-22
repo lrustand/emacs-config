@@ -625,7 +625,21 @@ characters respectably."
     "Switch to any top-level org heading"
     (interactive)
     (consult-org-heading "LEVEL=1"))
+  (defun my/consult-buffer (&optional sources)
+    (interactive)
+    (let ((selected (consult--multi (or sources consult-buffer-sources)
+                                    :require-match
+                                    (confirm-nonexistent-file-or-buffer)
+                                    :prompt "Switch to: "
+                                    :history nil
+                                    :sort nil)))
+      ;; For non-matching candidates, fall back to buffer creation.
+      (unless (plist-get (cdr selected) :match)
+        (consult--buffer-action (car selected)))))
+  :config
+  (advice-add 'consult-buffer :override #'my/consult-buffer)
   :custom
+  (confirm-nonexistent-file-or-buffer t)
   ;; Disable autmatic previewing
   (consult-preview-key nil)
   :bind (("C-x b" . consult-buffer)))
