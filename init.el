@@ -1582,8 +1582,16 @@ Automatically exits fullscreen if any window-changing command is executed."
       ;; Wait until monitors are done un/re-connecting
       (run-with-timer 5 nil #'exwm-randr-refresh)
       (exwm-randr-refresh)))
-  :init
-  (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap")
+
+  (defun xmodmap ()
+    (interactive)
+    (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap"))
+  (xmodmap)
+  (defun xinput-finger-disable ()
+    (interactive)
+    (start-process-shell-command "xinput" nil
+                                 "xinput disable \"Wacom HID 5256 Finger\""))
+  (xinput-finger-disable)
   :custom
   ;; Set the default number of workspaces
   (exwm-workspace-number 5)
