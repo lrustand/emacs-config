@@ -451,14 +451,17 @@ characters respectably."
   (drag-stuff-global-mode 1)
   (drag-stuff-define-keys))
 
-;; Make vertico display in a floating window
 (use-package xclip
   :ensure t
+  :functions
+  xclip-mode
   :config
   (xclip-mode 1))
 
 (use-package hl-todo
   :ensure t
+  :functions
+  global-hl-todo-mode
   :config
   (global-hl-todo-mode 1))
 
