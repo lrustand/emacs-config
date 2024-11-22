@@ -567,8 +567,10 @@ characters respectably."
   (vertico-multiform-commands
    '((consult-imenu buffer (:not posframe))
      (consult-grep buffer (:not posframe))
-     (consult-outline buffer (:not posframe))))
+     (consult-outline buffer (:not posframe))
+     (my/consult-org-headings buffer (:not posframe))))
   (vertico-sort-function #'vertico-sort-history-alpha)
+  (vertico-buffer-display-action '(display-buffer-same-window))
   :init
   (vertico-mode)
   (vertico-multiform-mode))
