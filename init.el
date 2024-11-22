@@ -1287,6 +1287,15 @@ capture was not aborted."
         (propertize " " 'face default-prompt-face)))))
   (eshell-prompt-regexp "^ -> "))
 
+(use-package eshell-toggle
+  :ensure t
+  :preface
+  (defun eshell-toggle--hide-buffers (orig-fun &rest args)
+    "Make eshell-toggle buffers hidden."
+    (concat " " (funcall orig-fun)))
+  :config
+  (advice-add 'eshell-toggle--make-buffer-name :around #'eshell-toggle--hide-buffers))
+
 ;; Highlight command names in eshell
 (use-package eshell-syntax-highlighting
   :after eshell
@@ -1598,7 +1607,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
      ([?\H-d] . app-launcher-run-app)
      ([s-backspace] . kill-current-buffer)
-     ([s-return] . multi-vterm-dedicated-toggle)
+     ([s-return] . eshell-toggle)
 
      ;; Move focus between windows
      ([s-left] . windmove-left)
