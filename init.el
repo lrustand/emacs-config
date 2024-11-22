@@ -332,6 +332,13 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :custom
   (buffer-move-behavior 'move))
 
+(use-package ibuffer
+  :hook
+  (ibuffer-mode . ibuffer-auto-mode)
+  :custom
+  (ibuffer-default-sorting-mode 'major-mode)
+  :bind
+  ("C-x C-b" . ibuffer))
 
 ;;;; Help
 ;;;;------
