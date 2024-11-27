@@ -2449,8 +2449,5 @@ Might give duplicates, if a process has multiple windows."
   (let ((window-pids (mapcar #'exwm-buffer->pid (exwm-list-x-windows))))
     (cl-intersection window-pids (get-sink-input-pids))))
 
-(exwm-list-sound-playing-buffers)
-(get-sink-input-pids)
-
 
 ;;; init.el ends here
