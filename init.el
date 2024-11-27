@@ -2131,7 +2131,7 @@ and sends a message of the current volume status."
   engine-mode
   engine--search-prompt
   :custom
-  (engine/browser-function 'qute-launcher)
+  (engine/browser-function 'qutebrowser-launcher)
   :preface
 
   (defvar engine-search-history '())
@@ -2173,8 +2173,10 @@ and sends a message of the current volume status."
 ;;;; Qutebrowser
 ;;;;--------------
 
-(use-package qute-launcher
-  :quelpa (qute-launcher :fetcher github :repo "lrustand/qute-launcher"))
+(use-package qutebrowser
+  :quelpa (qutebrowser :fetcher github :repo "lrustand/qutebrowser.el")
+  :config
+  (qutebrowser-theme-export-mode 1))
 
 
 ;;; Mobile/touchscreen
