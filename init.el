@@ -2245,7 +2245,11 @@ and sends a message of the current volume status."
                                monitor-y))
         (sleep-for 0.1)
         (set-frame-height (selected-frame)
-                          (- (frame-pixel-height) 300)
+                          (- (frame-pixel-height)
+                             300
+                             (if tab-bar-mode
+                                 (tab-bar-height nil t)
+                               0))
                           nil t)))))
 
 
