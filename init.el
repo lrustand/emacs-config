@@ -603,18 +603,14 @@ characters respectably."
   :preface
   (defun dont-remember-urls (orig-fun &rest args)
     "Exclude urls from prescient history."
-    (if (string-match-p "^https?://" (minibuffer-contents-no-properties))
-        (message "Selected entry is a url, not saving")
+    (unless (string-match-p "^https?://" (minibuffer-contents-no-properties))
       (funcall orig-fun)))
   (defun dont-remember-qutebrowser-buffers (orig-fun &rest args)
     "Exclude qutebrowser buffers from prescient history."
-    (if-let* ((selected-candidate (substring (minibuffer-contents-no-properties) 0 -1))
-              (selected-buffer (get-buffer selected-candidate))
-              (selected-buffer-x11-class (buffer-local-value 'exwm-class-name
-                                                             selected-buffer))
-              (is-qb (string= "qutebrowser" selected-buffer-x11-class)))
-        (message "Selected buffer is QB, not saving")
-      (funcall orig-fun)))
+    (let* ((selected-candidate (substring (minibuffer-contents-no-properties) 0 -1))
+           (selected-buffer (get-buffer selected-candidate)))
+      (unless (qutebrowser-exwm-p selected-buffer)
+        (funcall orig-fun))))
   :config
   (advice-add 'vertico-prescient--remember-minibuffer-contents :around #'dont-remember-qutebrowser-buffers)
   (advice-add 'vertico-prescient--remember-minibuffer-contents :around #'dont-remember-urls)
