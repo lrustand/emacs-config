@@ -242,6 +242,15 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;;-----------
 
 
+;;;; GPG
+
+(use-package pinentry
+  :ensure t
+  :custom
+  (epg-pinentry-mode 'loopback)
+  :config
+  (pinentry-start))
+
 ;;;; Workspace/project management
 ;;;;--------------------------------
 
