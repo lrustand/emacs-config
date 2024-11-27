@@ -1381,6 +1381,11 @@ capture was not aborted."
   :config
   (advice-add 'eshell-toggle--make-buffer-name :around #'eshell-toggle--hide-buffers))
 
+(use-package eshell-outline
+  :ensure t
+  :hook
+  (eshell-mode-hook . eshell-outline-mode))
+
 ;; Highlight command names in eshell
 (use-package eshell-syntax-highlighting
   :after eshell
