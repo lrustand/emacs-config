@@ -1918,9 +1918,23 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package empv
   :ensure t
+  :preface
+  (defun empv-set-background (color)
+    (empv--send-command-sync (list "set_property" "background-color" color)))
+  (defun lr/empv-undim (orig-fun &rest next-window args)
+    (when (string= "mpv"  exwm-class-name)
+      (empv-set-background (face-background 'default))))
+  (defun lr/empv-dim (orig-fun &rest next-window args)
+    (when (string= "mpv"  exwm-class-name)
+      (empv-set-background (face-background 'auto-dim-other-buffers-face))))
+  :config
+  ;;(advice-add #'adob--dim-buffer :
+  (advice-add #'select-window :before #'lr/empv-dim)
+  (advice-add #'select-window :after #'lr/empv-undim)
   :custom
   (empv-invidious-instance "https://invidious.nerdvpn.de/api/v1")
-  (empv-mpv-args '("--no-terminal" "--idle" "--stream-buffer-size=20MiB"
+  (empv-mpv-args `(,(format "--background-color=%s" (face-background 'default))
+                   "--no-terminal" "--idle" "--stream-buffer-size=20MiB"
                    "--input-ipc-server=/tmp/empv-socket")))
 
 (use-package elfeed-tube
