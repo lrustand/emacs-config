@@ -609,20 +609,7 @@ characters respectably."
   :ensure t
   :custom
   (vertico-prescient-enable-filtering nil)
-  :preface
-  (defun dont-remember-urls (orig-fun &rest args)
-    "Exclude urls from prescient history."
-    (unless (string-match-p "^https?://" (minibuffer-contents-no-properties))
-      (funcall orig-fun)))
-  (defun dont-remember-qutebrowser-buffers (orig-fun &rest args)
-    "Exclude qutebrowser buffers from prescient history."
-    (let* ((selected-candidate (substring (minibuffer-contents-no-properties) 0 -1))
-           (selected-buffer (get-buffer selected-candidate)))
-      (unless (qutebrowser-exwm-p selected-buffer)
-        (funcall orig-fun))))
   :config
-  (advice-add 'vertico-prescient--remember-minibuffer-contents :around #'dont-remember-qutebrowser-buffers)
-  (advice-add 'vertico-prescient--remember-minibuffer-contents :around #'dont-remember-urls)
   (vertico-prescient-mode 1))
 
 
@@ -1616,15 +1603,6 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
-
-(defun qutebrowser-propertize-buffer-name (window-title)
-  (let ((mid (string-match " - https?://.*$"
-                           window-title)))
-    (if mid
-        (let ((title (substring window-title 0 mid))
-              (url (substring window-title (+ 3 mid))))
-          (propertize title 'url url))
-      window-title)))
 
 (use-package exwm
   :ensure t
