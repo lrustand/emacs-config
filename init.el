@@ -2155,7 +2155,7 @@ and sends a message of the current volume status."
   engine-mode
   engine--search-prompt
   :custom
-  (engine/browser-function 'qutebrowser-launcher)
+  (engine/browser-function 'qutebrowser-open-url)
   :preface
 
   (defvar engine-search-history '())
