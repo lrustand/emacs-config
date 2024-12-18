@@ -2211,7 +2211,7 @@ and sends a message of the current volume status."
 ;;;;--------------
 
 (use-package qutebrowser
-  :quelpa (qutebrowser :fetcher github :repo "lrustand/qutebrowser.el")
+  :quelpa (qutebrowser :fetcher github :repo "lrustand/qutebrowser.el" :files (:defaults "*.py"))
   :config
   (qutebrowser-theme-export-mode 1))
 
