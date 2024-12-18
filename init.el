@@ -1798,7 +1798,7 @@ Automatically exits fullscreen if any window-changing command is executed."
      :poshandler (lambda (info) '(-1 . 16))
      :background-color "black"
      :border-color "red"
-     :border-width 10
+     :border-width 2
      :accept-focus nil
      :timeout 10)))
 
