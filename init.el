@@ -1316,6 +1316,7 @@ capture was not aborted."
                    (add-hook 'evil-insert-state-entry-hook
                              #'my-eshell-evil-insert nil t)))
   :custom
+  (eshell-history-size 10000)
   (eshell-prompt-function
    (lambda ()
      (let* ((green (face-foreground 'term-color-green))
