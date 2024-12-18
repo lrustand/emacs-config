@@ -2212,6 +2212,9 @@ and sends a message of the current volume status."
 
 (use-package qutebrowser
   :quelpa (qutebrowser :fetcher github :repo "lrustand/qutebrowser.el" :files (:defaults "*.py"))
+  :hook
+  (qutebrowser-exwm-mode . (lambda ()
+                             (setq-local doom-modeline-buffer-state-icon nil)))
   :config
   (qutebrowser-theme-export-mode 1))
 
