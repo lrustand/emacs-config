@@ -1614,10 +1614,7 @@ Automatically exits fullscreen if any window-changing command is executed."
   (exwm-randr-mode 1)
   :config
   (defun efs/exwm-update-class ()
-    (if (string-equal "qutebrowser" exwm-class-name)
-        (exwm-workspace-rename-buffer
-         (qutebrowser-propertize-buffer-name exwm-title))
-      (exwm-workspace-rename-buffer exwm-title)))
+    (exwm-workspace-rename-buffer (truncate-string-to-width exwm-title 100)))
 
   (defun lr/exwm-resize-left ()
     (interactive)
