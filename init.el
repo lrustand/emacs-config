@@ -214,6 +214,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (setq custom-file-save-faces nil)
   (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
   (create-lockfiles nil)
+  (x-underline-at-descent-line t)
   (x-select-enable-clipboard t)
   (indent-tabs-mode nil)
   (auto-revert-use-notify nil)
