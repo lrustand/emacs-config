@@ -515,7 +515,7 @@ characters respectably."
   :custom
   (git-gutter:hide-gutter t)
   (git-gutter:update-interval 2)
-  ;;(git-gutter:unchanged-sign nil)
+  (git-gutter:unchanged-sign " ")
 
   :config
   (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
