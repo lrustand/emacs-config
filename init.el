@@ -821,17 +821,7 @@ targets."
   :ensure t
   :after geiser
   :config
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
-
-(with-eval-after-load "geiser-guile"
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/guix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/guix-config/src")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/nonguix")
-  (add-to-list 'geiser-guile-load-path "/home/lars/code/forks/rde/src"))
-
+  (add-to-list 'geiser-guile-load-path "~/.config/guix/current/share/guile/"))
 
 ;;;; Snippets
 ;;;;----------
