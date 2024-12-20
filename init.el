@@ -310,7 +310,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
   (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
   (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
-  (set-face-attribute 'aw-leading-char-face nil :height 200)
+  (set-face-attribute 'aw-leading-char-face nil :height 400)
   (ace-window-posframe-mode 1)
   :custom
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
