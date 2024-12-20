@@ -211,7 +211,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
   :custom
   ;; Don't save faces to custom file
-  (setq custom-file-save-faces nil)
+  (custom-file-save-faces nil)
   (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
   (create-lockfiles nil)
   (x-underline-at-descent-line t)
