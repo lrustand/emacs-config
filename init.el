@@ -2010,6 +2010,7 @@ and sends a message of the current volume status."
   :config
   (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
   (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
+  (mu4e-modeline-mode -1)
   :hook
   ;; Don't create tons of "draft" messages
   (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
