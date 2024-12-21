@@ -502,35 +502,13 @@ characters respectably."
   (undo-tree-auto-save-history t)
   (undo-tree-history-directory-alist '(("." . "~/.emacs.d/undo"))))
 
-(use-package git-gutter
+(use-package git-gutter-fringe
   :ensure t
   :functions
-  git-gutter-mode
-  :preface
-  (defun rpo/git-gutter-mode ()
-    "Enable git-gutter mode if current buffer's file is under version control."
-    (if (and (buffer-file-name)
-             (vc-backend (buffer-file-name))
-             ;; Skip filetypes where git-gutter makes problems
-             (not (cl-some (lambda (suffix) (string-suffix-p suffix (buffer-file-name)))
-                           '(".pdf" ".svg" ".png"))))
-        (git-gutter-mode 1)))
-  ;;(defun set-git-gutter-background ()
-  ;;  ;;(set-face-background 'git-gutter:unchanged (face-attribute 'mode-line :background))
-  ;;  (set-face-background 'git-gutter:modified (face-attribute 'mode-line :background))
-  ;;  (set-face-background 'git-gutter:added (face-attribute 'mode-line :background))
-  ;;  (set-face-background 'git-gutter:deleted (face-attribute 'mode-line :background)))
-  :custom
-  (git-gutter:hide-gutter t)
-  (git-gutter:update-interval 2)
-  (git-gutter:unchanged-sign " ")
-
+  global-git-gutter-mode
   :config
   (add-to-list 'git-gutter:update-hooks 'focus-in-hook)
-  :hook
-  (prog-mode . rpo/git-gutter-mode))
-  ;;(server-after-make-frame . set-git-gutter-background)
-  ;;(window-setup . set-git-gutter-background))
+  (global-git-gutter-mode))
 
 (use-package goggles
   :ensure t
