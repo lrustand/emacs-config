@@ -92,7 +92,15 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :ensure t
   ;; Fix flymake error
   :functions auto-dim-other-buffers-mode
-  :init
+  :custom
+  (auto-dim-other-buffers-afftected-faces
+   '((default . (auto-dim-other-buffers-face . nil))
+     (org-block . (auto-dim-other-buffers-face . nil))
+     (org-hide . (auto-dim-other-buffers-hide-face . nil))
+     (fringe . (auto-dim-other-buffers-face . nil))
+     (line-number . (auto-dim-other-buffers-face . nil))
+     (line-number-current-line . (auto-dim-other-buffers-face . nil))))
+  :config
   (auto-dim-other-buffers-mode 1))
 
 
