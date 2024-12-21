@@ -534,6 +534,9 @@ characters respectably."
                                     '("Headings" "^;;; \\([^\n]+\\)" 1)
                                     t))))
 
+(use-package olivetti
+  :ensure t)
+
 ;; Highlight outline headings
 ;;(use-package outline-minor-faces
 ;;  :ensure t
@@ -2341,6 +2344,7 @@ and sends a message of the current volume status."
   xkcd
   xkcd-get
   :hook
+  (xkcd-mode . olivetti-mode)
   (xkcd-mode . (lambda ()
                      (set (make-local-variable 'evil-normal-state-cursor) (list nil))
                      (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
