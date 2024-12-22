@@ -93,7 +93,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   ;; Fix flymake error
   :functions auto-dim-other-buffers-mode
   :custom
-  (auto-dim-other-buffers-afftected-faces
+  (auto-dim-other-buffers-affected-faces
    '((default . (auto-dim-other-buffers-face . nil))
      (org-block . (auto-dim-other-buffers-face . nil))
      (org-hide . (auto-dim-other-buffers-hide-face . nil))
