@@ -231,6 +231,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   ;; Stored in ~/.emacs.d/history
   (history-length 1000)
 
+  (window-restore-killed-buffer-windows 'dedicated)
   :hook
   (prog-mode . (lambda ()
                  (setq-local show-trailing-whitespace t)
@@ -1838,6 +1839,8 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;; Set the tab-bar face to use the custom face
   (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
   :custom
+  ;; Disable stupid "This window displayed buffer" in deleted buffers
+  (tab-bar-select-restore-windows nil)
   (tab-bar-format '(tab-bar-format-history
                     tab-bar-format-tabs
                     tab-bar-separator
