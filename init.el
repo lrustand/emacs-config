@@ -2198,6 +2198,7 @@ and sends a message of the current volume status."
   :config
   (qutebrowser-theme-export-mode 1)
   (global-qutebrowser-doom-modeline-mode 1)
+  (qutebrowser-evil-state-mode 1)
   (global-qutebrowser-exwm-mode 1))
 
 
