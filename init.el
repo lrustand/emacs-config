@@ -186,6 +186,21 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (when (file-exists-p custom-file)
   (load custom-file))
 
+;; Make C-i and Tab separate. Without this hack it is impossible to
+;; distinguish between Tab and C-i
+(defun my-translate-C-i (_prompt)
+  (if (and (= (length (this-single-command-raw-keys)) 1)
+           (eql (aref (this-single-command-raw-keys) 0) ?\C-i)
+           (bound-and-true-p evil-mode)
+           (eq evil-state 'normal))
+      (kbd "<C-i>")
+    (kbd "TAB")))
+
+(define-key key-translation-map (kbd "TAB") 'my-translate-C-i)
+
+(with-eval-after-load 'evil-maps
+  (define-key evil-motion-state-map (kbd "<C-i>") 'evil-jump-forward))
+
 (use-package emacs
   ;; Silence flymake error
   :defines
