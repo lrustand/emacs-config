@@ -884,6 +884,18 @@ targets."
   (lsp-latex-build-forward-search-after t)
   (lsp-latex-build-on-save t))
 
+(use-package eglot
+  :ensure t
+  :config
+  (setq-default eglot-workspace-configuration
+                '(:pylsp
+                  (:plugins
+                   (:pylint (:enabled t)
+                    :pycodestyle (:enabled :json-false)))))
+  :custom
+  (eglot-extend-to-xref t))
+
+
 
 
 ;;; Git
