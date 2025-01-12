@@ -138,6 +138,8 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   evil-global-set-key
   evil-mode
   evil-set-undo-system
+  :custom
+  (evil-want-fine-undo t)
   :config
   ;; Use visual line motions even outside of visual-line-mode buffers
   (evil-global-set-key 'motion "j" 'evil-next-visual-line)
