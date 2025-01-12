@@ -590,7 +590,7 @@ characters respectably."
 (use-package prescient
   :ensure t
   :custom
-  (prescient-history-length 500)
+  (prescient-history-length 5000)
   (prescient-sort-full-matches-first t)
   (prescient-sort-length-enable t)
   (prescient-tiebreaker nil)
