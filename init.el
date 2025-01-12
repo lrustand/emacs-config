@@ -1424,6 +1424,8 @@ capture was not aborted."
 (use-package vterm
   :ensure t
   :defer t
+  :custom
+  (vterm-buffer-name-string "VTerm: %s")
   :config
   ;; Fix background
   (defun old-version-of-vterm--get-color (index &rest args)
