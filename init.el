@@ -641,6 +641,16 @@ characters respectably."
   (confirm-nonexistent-file-or-buffer t)
   ;; Disable autmatic previewing
   (consult-preview-key nil)
+  (consult-imenu-config
+   `((emacs-lisp-mode :toplevel "Functions" :types
+                      ((?h "Headings" ((t :inherit outline-1
+                                          :height ,(face-attribute 'default :height)
+                                          :weight bold)))
+                       (?f "Functions" font-lock-function-name-face)
+                       (?m "Macros" font-lock-function-name-face)
+                       (?p "Packages" font-lock-constant-face)
+                       (?t "Types" font-lock-type-face)
+                       (?v "Variables" font-lock-variable-name-face)))))
   :bind (("C-x b" . consult-buffer)))
 
 (use-package consult-projectile
