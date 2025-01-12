@@ -575,6 +575,8 @@ characters respectably."
   :ensure t
   :functions
   vertico-mode
+  :bind (:map vertico-map
+              ("M-RET" . vertico-exit-input))
   :custom
   (vertico-multiform-commands
    '((consult-imenu buffer (:not posframe))
