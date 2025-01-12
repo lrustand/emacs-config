@@ -1476,6 +1476,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :bind ("C-x C-j" . dired-jump)
   :custom
   (dired-listing-switches "-lAh --group-directories-first")
+  (dired-kill-when-opening-new-dired-buffer t)
   :hook
   (dired-mode . dired-hide-details-mode)
   :config
@@ -1483,6 +1484,13 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
     "h" 'dired-up-directory
     "l" 'dired-find-file))
 
+(use-package dired-imenu
+  :ensure t
+  :hook (dired-mode . dired-setup-imenu))
+
+(use-package dired-git-info
+  :ensure t
+  :hook (dired-after-readin . dired-git-info-auto-enable))
 
 (use-package dired-narrow
   :ensure t
