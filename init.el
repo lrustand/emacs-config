@@ -2072,7 +2072,9 @@ Automatically exits fullscreen if any window-changing command is executed."
       ;; Wait until monitors are done un/re-connecting
       (run-with-timer 5 nil #'exwm-randr-refresh)
       (exwm-randr-refresh)))
-
+  (defun i3lock ()
+    (interactive)
+    (start-process-shell-command "i3lock" nil "i3lock -c 000000 -n"))
   (defun xmodmap ()
     (interactive)
     (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap"))
