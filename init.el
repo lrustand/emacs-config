@@ -1280,6 +1280,11 @@ capture was not aborted."
 ;;; System
 ;;;---------
 
+;;;; D-Bus and Power
+;;;;------------------
+
+(use-package dbus
+  :ensure t)
 
 ;;;; Terminal
 ;;;;----------
