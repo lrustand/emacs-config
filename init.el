@@ -1727,6 +1727,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
      ([?\H-d] . app-launcher-run-app)
      ([s-backspace] . kill-current-buffer)
+     ([S-s-backspace] . delete-window)
      ([s-return] . eshell-toggle)
 
      ;; Move focus between windows
