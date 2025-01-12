@@ -713,6 +713,15 @@ targets."
   (projectile-mode 1))
 
 
+;;; Python
+
+(use-package pyvenv
+  :ensure t)
+
+(use-package pyvenv-auto
+  :ensure t
+  :hook ((python-mode . pyvenv-auto-run)))
+
 
 ;;; Completion
 ;;;---------------
