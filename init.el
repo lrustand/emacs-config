@@ -58,6 +58,8 @@
   ;; Fix flymake error
   :functions doom-modeline-mode
   :custom
+  (doom-modeline-buffer-encoding 'nondefault)
+  (doom-modeline-percent-position nil)
   (doom-modeline-workspace-name nil)
   :config
   (doom-modeline-mode 1))
