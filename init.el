@@ -742,6 +742,10 @@ targets."
   (advice-add #'embark-completing-read-prompter
               :around #'embark-hide-which-key-indicator))
 
+(use-package consult-embark
+   :ensure t)
+
+
 ;;;; Projectile
 ;;;;------------
 
