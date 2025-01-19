@@ -898,16 +898,33 @@ targets."
 ;;;; Snippets
 ;;;;----------
 
-;;(use-package yasnippet
-;;  :ensure t
-;;  :custom
-;;  (yas-indent-line 'auto)
-;;  (yas-also-auto-indent-first-line t)
-;;  :config
-;;  (yas-global-mode 1))
-;;
-;;(use-package yasnippet-snippets
-;;  :ensure t)
+(use-package yasnippet
+  :ensure t
+  :demand t
+  :custom
+  (yas-indent-line 'auto)
+  (yas-also-auto-indent-first-line t)
+  :bind (:map yas-minor-mode-map
+         ("TAB" . nil)
+         ("<tab>" . nil))
+  :config
+  (yas-global-mode 1))
+
+;; List all snippets with M-x `yas-describe-tables'
+;; Or use `consult-yasnippet' installed below
+(use-package yasnippet-snippets
+  :ensure t
+  :after yasnippet
+  :config
+  (yas-reload-all))
+
+(use-package yasnippet-capf
+  :ensure t
+  :after yasnippet)
+
+(use-package consult-yasnippet
+  :ensure t
+  :after (yasnippet consult))
 
 
 ;;;; LSP
