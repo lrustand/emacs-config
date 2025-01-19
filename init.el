@@ -930,45 +930,46 @@ targets."
 ;;;; LSP
 ;;;;-----
 
-(use-package lsp-mode
-  :ensure t
-  :defer t
-  :commands (lsp lsp-deferred)
-  :init
-  (setq lsp-keymap-prefix "C-c l")
-  :config
-  (lsp-enable-which-key-integration t))
+;; Disabled in favor of eglot
+;;(use-package lsp-mode
+;;  :ensure t
+;;  :defer t
+;;  :commands (lsp lsp-deferred)
+;;  :init
+;;  (setq lsp-keymap-prefix "C-c l")
+;;  :config
+;;  (lsp-enable-which-key-integration t))
 
 (use-package dap-mode
   :ensure t
   :defer t)
 
-(use-package lsp-latex
-  :ensure t
-  :defer t
-  :after lsp-mode
-  :init
-  (require 'lsp-latex)
-
-  :hook
-  (tex-mode . 'lsp)
-  (latex-mode . 'lsp)
-  (LaTeX-mode . 'lsp)
-  :config
-
-  ;; For YaTeX
-  (with-eval-after-load "yatex"
-    (add-hook 'yatex-mode-hook 'lsp))
-
-  ;; For bibtex
-  (with-eval-after-load "bibtex"
-    (add-hook 'bibtex-mode-hook 'lsp))
-
-  :custom
-  (lsp-latex-forward-search-executable "okular")
-  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
-  (lsp-latex-build-forward-search-after t)
-  (lsp-latex-build-on-save t))
+;;(use-package lsp-latex
+;;  :ensure t
+;;  :defer t
+;;  :after lsp-mode
+;;  :init
+;;  (require 'lsp-latex)
+;;
+;;  :hook
+;;  (tex-mode . 'lsp)
+;;  (latex-mode . 'lsp)
+;;  (LaTeX-mode . 'lsp)
+;;  :config
+;;
+;;  ;; For YaTeX
+;;  (with-eval-after-load "yatex"
+;;    (add-hook 'yatex-mode-hook 'lsp))
+;;
+;;  ;; For bibtex
+;;  (with-eval-after-load "bibtex"
+;;    (add-hook 'bibtex-mode-hook 'lsp))
+;;
+;;  :custom
+;;  (lsp-latex-forward-search-executable "okular")
+;;  (lsp-latex-forward-search-args '("--noraise" "--unique" "file:%p#src:%l%f"))
+;;  (lsp-latex-build-forward-search-after t)
+;;  (lsp-latex-build-on-save t))
 
 (use-package eglot
   :ensure t
