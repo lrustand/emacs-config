@@ -785,7 +785,7 @@ targets."
                   corfu-popupinfo-delay nil)
       (corfu-mode 1)))
   (defun advise-corfu-make-frame-with-monitor-awareness (orig-fun frame x y width height)
-    "Advise `corfu--make-frame` to be monitor-aware."
+    "Advise `corfu--make-frame' to be monitor-aware."
     ;; Get the geometry of the currently focused monitor
     (let* ((monitor-geometry (get-focused-monitor-geometry))
            (monitor-x (nth 0 monitor-geometry))
@@ -798,8 +798,6 @@ targets."
            (new-y (+ monitor-y y)))
       ;; Call the original function with potentially adjusted coordinates
       (funcall orig-fun frame new-x new-y width height)))
-
-
   :hook
   (minibuffer-setup . corfu-enable-in-minibuffer)
   :custom
@@ -807,15 +805,40 @@ targets."
   ;;(corfu-auto-delay 0.6)
   (corfu-cycle t)
   (corfu-preview-current t)
-  (corfu-popupinfo-delay 0)
+  ; Don't freeze quick scrolling through candidates
+  (corfu-popupinfo-delay 0.1)
   (tab-always-indent 'complete)
-  (corfu-history-mode t)
   :config
   (with-eval-after-load "sly"
-    (setq sly-symbol-completion-mode nil))
+    (sly-symbol-completion-mode -1))
   (advice-add 'corfu--make-frame :around #'advise-corfu-make-frame-with-monitor-awareness)
+  (corfu-history-mode 1)
   (corfu-popupinfo-mode 1)
-  (global-corfu-mode))
+  (global-corfu-mode 1))
+
+
+(use-package corfu-prescient
+  :ensure t
+  :after (corfu prescient)
+  :custom
+  (corfu-prescient-enable-filtering nil)
+  :config
+  (corfu-prescient-mode 1))
+
+(use-package nerd-icons-corfu
+  :ensure t
+  :after corfu
+  :config
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+;; Disabled for performance issues
+;;(use-package corfu-candidate-overlay
+;;  :ensure t
+;;  :after corfu
+;;  :custom-face
+;;  (corfu-candidate-overlay-face ((t :foreground nil :inherit font-lock-comment-face)))
+;;  :config
+;;  (corfu-candidate-overlay-mode 1))
 
 
 (use-package cape
@@ -1947,7 +1970,7 @@ Automatically exits fullscreen if any window-changing command is executed."
                     net
                     ram
                     cpu
-                    ,(when (lemon-battery-present?) bat)
+                    ,(when (lemon-battery-present?) 'bat)
                     lr/tab-bar-separator
                     lr/tab-bar-time-and-date)))
 
