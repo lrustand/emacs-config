@@ -1417,6 +1417,13 @@ capture was not aborted."
         (propertize " " 'face default-prompt-face)))))
   (eshell-prompt-regexp "^ -> "))
 
+(use-package eshell-vterm
+  :ensure t
+  :after
+  vterm
+  :config
+  (eshell-vterm-mode 1))
+
 (use-package eshell-toggle
   :ensure t
   :preface
