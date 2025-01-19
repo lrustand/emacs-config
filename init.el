@@ -852,7 +852,7 @@ targets."
   :custom
   (completion-at-point-functions
    (list (cape-capf-super #'cape-keyword #'yasnippet-capf)
-         (cape-capf-super #'cape-dict #'cape-dabbrev))))
+         (cape-capf-super #'cape-dict #'cape-dabbrev)))
   ;; #'cape-file)
   ;; #'cape-elisp-block)
   ;; #'cape-history)
@@ -863,12 +863,158 @@ targets."
   ;; #'cape-dict)
   ;; #'cape-elisp-symbol)
   ;; #'cape-line)
+  :preface
+  (defun my/use-package-at-point ()
+    "Return the use-package form around point, or nil."
+    ;; Doesn't handle unbalanced parenthesis
+    (save-excursion
+      (beginning-of-defun)
+      (let ((sexp (list-at-point t))) ;; Ignores comments and strings
+        (when (eq 'use-package (car sexp))
+          sexp))))
+
+  ;; Checks previous form if not inside a form
+  (defun my/inside-use-package-p ()
+    "Check if point is inside a use-package form."
+    (save-excursion
+      (beginning-of-defun)
+      (forward-to-word)
+      (eq 'use-package (read (current-buffer)))))
+
+  (defun my/use-package-heading-at-point (&optional return-marker)
+    "Return the current use-package heading at point."
+    (when (my/inside-use-package-p)
+      (let* ((point (point)))
+        (save-excursion
+          (beginning-of-defun)
+          ;; Enter the use-package form
+          (forward-to-word)
+          (let ((sexp-marker (point-marker))
+                keyword-marker)       ; Point of last keyword
+            (ignore-errors            ; We may encounter an unclosed paren
+              (while (< (marker-position sexp-marker) point)
+                (when (keywordp (read sexp-marker))
+                  (setq keyword-marker (point-marker)))
+                (goto-char sexp-marker)))
+            (or (and return-marker keyword-marker)
+                (and keyword-marker (read keyword-marker))))))))
+
+  (defun my/use-package-first-level-sexp-at-point ()
+    "Return a 'first level' sexp inside a use-package form."
+    (when-let* ((marker (my/use-package-heading-at-point t))
+                (keyword (read marker))
+                (completion-point (point)))
+      (save-excursion
+        (condition-case err
+            ;; Skip over sexps until we reach completion-point
+            (while (< (marker-position marker) completion-point)
+              (goto-char marker)
+              (read marker)) ; We return the sexp containing point
+          ;; Or try to close it
+          (t (read (concat (buffer-substring-no-properties
+                            (point) completion-point)
+                           ;; HAHA: make sure sexp is closed
+                           ")))))))))))))))))))))))))))))")))))))
+
+  (defun my/use-package-completion-at-point ()
+    "Completion at point function for use-package forms."
+    (when-let* ((marker (my/use-package-heading-at-point t))
+                (keyword (read marker))
+                (completion-point (point)))
+      (save-excursion
+        ;;(beginning-of-defun)
+        ;;(forward-to-word) ; Enter the use-package form
+        ;;(ignore-errors ; We may encounter an unclosed parenthesis
+        ;;  (while (< (point) completion-point)
+        ;;    (setq sexp (read (current-buffer)))
+        ;;    (when (keywordp sexp)
+        ;;      (setq keyword sexp))))
+        ;;(when (keywordp keyword)
+        ;;  (backward-sexp)   ; Start of exp containing point
+        ;;  (forward-to-word) ; Start of first element in sexp
+        ;;  (forward-sexp)    ; End of first element in sexp
+        (goto-char marker) ; Start of first sexp after keyword
+        ;; Try to find start of containing sexp.
+        ;; We might fail if the sexp is unclosed
+        (ignore-errors
+          (progn
+            (while (< (point) completion-point)
+              (read (current-buffer)))
+            (backward-sexp)   ; Beginning of containing sexp
+            (forward-to-word) ; First element
+            (forward-sexp)))  ; End of first element
+        (pcase keyword
+          ;; Completion point is inside a :custom heading
+          (:custom
+           (and (= (point) completion-point) ; Completing a var name
+                (my/cape-elisp-variables)))
+          ;; Completion point is inside a :hook heading
+          (:hook
+           (if (= (point) completion-point)
+               ;; Completing a hook name
+               (my/cape-elisp-hooks-strip-suffix)
+             ;; Completing a hook value
+             ;; TODO: This fails to run
+             (my/cape-elisp-functions)))))))
+
+  (defun my/hook-p (symbol)
+    "Return non-nil if SYMBOL is a hook."
+    (and (boundp symbol)
+         (string-suffix-p "-hook"
+                          (symbol-name symbol))))
+
+  (defalias 'my/cape-elisp-hooks
+    (cape-capf-inside-code
+     (cape-capf-predicate #'cape-elisp-symbol
+                          #'my/hook-p)))
+
+  ;; Completion function for hook names in use-package :hook section
+  ;; Strips the -hook suffix, as use-package requires
+  (defalias 'my/cape-elisp-hooks-strip-suffix
+    (cape-capf-properties #'my/cape-elisp-hooks
+                          ;; TODO: Use affixation function or
+                          ;; something to strip the suffix inside the
+                          ;; completion list instead
+                          :affixation-function
+                          (lambda (completions)
+                            (mapcar (lambda (cand)
+                                      (let ((base-name (string-remove-suffix "-hook" cand))
+                                            (suffix (propertize "-hook" 'face 'font-lock-comment-face)))
+                                        (list (concat base-name suffix) "" "")))
+                                    completions))
+                          :exit-function
+                          (lambda (string status)
+                            (let ((end (point-marker)))
+                              (backward-to-word)
+                              (delete-region (point) end)))))
+
+  (defalias 'my/cape-elisp-functions
+    (cape-capf-inside-code
+     (cape-capf-predicate #'cape-elisp-symbol
+                          #'fboundp)))
+
+  (defalias 'my/cape-elisp-variables
+    (cape-capf-inside-code
+     (cape-capf-predicate #'cape-elisp-symbol
+                          #'boundp)))
+
+  (defalias 'my/cape-elisp-super-capf
+    (cape-capf-nonexclusive
+     (cape-capf-super #'yasnippet-capf
+                      #'my/use-package-completion-at-point
+                      #'elisp-completion-at-point)))
+
+  (defun my/setup-elisp-capf ()
+    (setq-local completion-at-point-functions
+                #'my/cape-elisp-super-capf))
+  :hook
+  (emacs-lisp-mode . my/setup-elisp-capf))
+
 
 ;; Completion for shell commands
 (use-package pcmpl-args
   :ensure t
   :demand t)
-
 
 ;;;; Lisp
 ;;;;-----
