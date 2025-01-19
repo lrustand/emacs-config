@@ -994,7 +994,10 @@ targets."
 
 (use-package magit
   :ensure t
-  :demand t)
+  :demand t
+  :config
+  ;; Create "commits" in reflog of uncommitted changes
+  (magit-wip-mode 1))
 
 (use-package magit-todos
   :ensure t
