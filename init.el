@@ -678,7 +678,8 @@ characters respectably."
                        (?p "Packages" font-lock-constant-face)
                        (?t "Types" font-lock-type-face)
                        (?v "Variables" font-lock-variable-name-face)))))
-  :bind (("C-x b" . consult-buffer)))
+  :bind (("C-x b" . consult-buffer)
+         ("C-h i" . consult-info)))
 
 (use-package consult-projectile
   :ensure t
