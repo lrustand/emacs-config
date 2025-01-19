@@ -378,6 +378,16 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   :bind
   ("C-x C-b" . ibuffer))
 
+(use-package nerd-icons-ibuffer
+  :ensure t
+  :hook (ibuffer-mode . nerd-icons-ibuffer-mode))
+
+;;(use-package ibuffer-tramp
+;;  :ensure t)
+;;
+;;(use-package ibuffer-project
+;;  :ensure t)
+
 ;;;; Help
 ;;;;------
 
