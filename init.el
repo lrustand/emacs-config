@@ -1939,7 +1939,7 @@ Automatically exits fullscreen if any window-changing command is executed."
   :custom
   ;; Disable stupid "This window displayed buffer" in deleted buffers
   (tab-bar-select-restore-windows nil)
-  (tab-bar-format '(tab-bar-format-history
+  (tab-bar-format `(tab-bar-format-history
                     tab-bar-format-tabs
                     tab-bar-separator
                     tab-bar-format-add-tab
@@ -1947,7 +1947,7 @@ Automatically exits fullscreen if any window-changing command is executed."
                     net
                     ram
                     cpu
-                    bat
+                    ,(when (lemon-battery-present?) bat)
                     lr/tab-bar-separator
                     lr/tab-bar-time-and-date)))
 
