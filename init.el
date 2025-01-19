@@ -683,7 +683,7 @@ characters respectably."
 
 (use-package consult-projectile
   :ensure t
-  :after consult
+  :after (consult projectile)
   :bind (("C-c p p" . consult-projectile-switch-project)
          ("C-c p f" . consult-projectile)))
 
@@ -762,6 +762,8 @@ targets."
 
 (use-package pyvenv-auto
   :ensure t
+  :after
+  pyvenv
   :hook ((python-mode . pyvenv-auto-run)))
 
 
@@ -770,6 +772,8 @@ targets."
 
 (use-package corfu
   :ensure t
+  ;; use-package defers it automatically because of the hook
+  :demand t
   :functions
   corfu-mode
   :preface
@@ -1525,14 +1529,17 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 
 (use-package dired-imenu
   :ensure t
+  :after dired
   :hook (dired-mode . dired-setup-imenu))
 
 (use-package dired-git-info
   :ensure t
+  :after dired
   :hook (dired-after-readin . dired-git-info-auto-enable))
 
 (use-package dired-narrow
   :ensure t
+  :after dired
   :config
   (defun my-dired-narrow-and-select ()
     "Narrow dired to filter results, then select the file at point."
@@ -1587,6 +1594,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 
 (use-package saveplace-pdf-view
   :ensure t
+  :after pdf-tools
   :demand t)
 
 (use-package image-mode
