@@ -20,19 +20,32 @@
 
 ;; Set up package.el to work with MELPA
 (require 'package)
+(setq package-quickstart t)
 (add-to-list 'package-archives
          '("melpa" . "https://melpa.org/packages/"))
-(package-initialize)
 
-;; Refresh package archives
-(if package-archive-contents
-    ;; Do it in the background if we already have it
-    (package-refresh-contents t)
-  (package-refresh-contents))
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(eval-when-compile
+  (require 'use-package))
 
 ;; Used for installing packages from git
 (use-package quelpa-use-package
-  :ensure t)
+  :ensure t
+  :config
+  ;; Avoid loading quelpa if not necessary
+  (setq quelpa-use-package-inhibit-loading-quelpa t)
+  :custom
+  ;; We don't use quelpa to checkout things from melpa.
+  ;; This avoids the extremely annoying "contacting melpa"
+  ;; when starting emacs.
+  (quelpa-update-melpa-p nil)
+  (quelpa-checkout-melpa-p nil)
+  (quelpa-verbose nil)
+  (quelpa-build-verbose nil))
 
 (defun dont-upgrade-external (orig-fun name)
   (if (package--user-installed-p name)
