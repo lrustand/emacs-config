@@ -1731,12 +1731,28 @@ capture was not aborted."
         (propertize " " 'face default-prompt-face)))))
   (eshell-prompt-regexp "^ -> "))
 
-(use-package eshell-vterm
+;; Disable in favor of `eat'
+;;(use-package eshell-vterm
+;;  :ensure t
+;;  :after
+;;  vterm
+;;  :config
+;;  (eshell-vterm-mode 1))
+
+(use-package eat
   :ensure t
-  :after
-  vterm
+  :defer 2
+  :hook
+  (eat-exit . (lambda (process)
+                (kill-buffer (process-buffer process))))
+  :custom
+  ;; This may cause problems for commands run with sudo.
+  ;; The TERMINFO may not be passed through.
+  (eat-term-name 'eat-term-get-suitable-term-name)
+  ;; Disable this, since eshell is running inside eat now.
+  (eshell-visual-commands nil)
   :config
-  (eshell-vterm-mode 1))
+  (eat-eshell-mode 1))
 
 (use-package eshell-toggle
   :ensure t
@@ -1765,21 +1781,13 @@ capture was not aborted."
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
 
-(use-package eshell-fringe-status
-  :ensure t
-  :hook
-  (eshell-mode-hook . eshell-fringe-status-mode))
-
-
-;;;;; Eat
-;;;;;-----
-
-;;(use-package eat
+;; BUG: Messes up `eshell-previous-matching-input-from-input'.
+;; The fringe symbols seem to be saved to history
+;; See `eshell-list-history'.
+;;(use-package eshell-fringe-status
 ;;  :ensure t
-;;  :config
-;;  (eat-eshell-mode))
-;;  ;;:custom
-;;  ;;(eshell-visual-commands nil))
+;;  :hook
+;;  (eshell-mode . eshell-fringe-status-mode))
 
 
 ;;;;; Vterm
