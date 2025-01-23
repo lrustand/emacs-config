@@ -1066,7 +1066,24 @@ targets."
   (defun my/setup-elisp-capf ()
     (setq-local completion-at-point-functions
                 #'my/cape-elisp-super-capf))
+
+  (defalias 'my/cape-python-super-capf
+    (cape-capf-nonexclusive
+     (cape-capf-super #'yasnippet-capf
+                      #'eglot-completion-at-point
+                      #'python-completion-at-point)))
+
+  (defalias 'my/cape-snippets-super-capf
+    (cape-capf-interactive
+    (cape-capf-nonexclusive
+     (cape-capf-super #'yasnippet-capf
+                      #'tempel-complete))))
+
+  (defun my/setup-python-capf ()
+    (setq-local completion-at-point-functions
+                #'my/cape-python-super-capf))
   :hook
+  ((python-mode python-ts-mode) . my/setup-python-capf)
   (emacs-lisp-mode . my/setup-elisp-capf))
 
 
