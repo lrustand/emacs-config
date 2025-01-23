@@ -1153,6 +1153,13 @@ targets."
   :after (yasnippet consult))
 
 
+(use-package tempel
+  :ensure t)
+
+(use-package tempel-collection
+  :ensure t
+  :after tempel)
+
 ;;;; LSP
 ;;;;-----
 
