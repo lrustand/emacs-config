@@ -1674,14 +1674,19 @@ capture was not aborted."
 
   (defun git-status--dirty-p ()
     (not (string-blank-p (git-status))))
+
   :hook
   (eshell-mode . (lambda ()
                    (setenv "TERM" "xterm-256color")
                    ;; Buffer local hook
                    (add-hook 'evil-insert-state-entry-hook
                              #'my-eshell-evil-insert nil t)))
+  :bind
+  (:map eshell-mode-map
+        ("C-r" . eshell-isearch-backward))
   :custom
   (eshell-history-size 10000)
+  ;;(setq eshell-visual-commands
   (eshell-prompt-function
    (lambda ()
      (let* ((green (face-foreground 'term-color-green))
