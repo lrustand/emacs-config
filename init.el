@@ -66,8 +66,7 @@
 
 (use-package doom-modeline
   :ensure t
-  :init
-  (require 'doom-modeline)
+  :demand t
   ;; Fix flymake error
   :functions doom-modeline-mode
   :custom
@@ -177,13 +176,12 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (use-package evil-terminal-cursor-changer
   :ensure t
   :after evil
+  :unless (display-graphic-p)
   ;; Silence flymake errors
   :functions
   evil-terminal-cursor-changer-activate
   :config
-  (unless (display-graphic-p)
-          (require 'evil-terminal-cursor-changer)
-          (evil-terminal-cursor-changer-activate)))
+  (evil-terminal-cursor-changer-activate))
 
 
 ;;; Emacs
@@ -216,13 +214,12 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 (with-eval-after-load 'evil-maps
   (define-key evil-motion-state-map (kbd "<C-i>") 'evil-jump-forward))
 
-(use-package emacs
-  ;; Silence flymake error
-  :defines
-  tramp-remote-path
+(use-package tramp
   :config
-  (require 'tramp)
-  (add-to-list 'tramp-remote-path 'tramp-own-remote-path) ;; Fix tramp for Guix
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path)) ;; Fix tramp for Guix
+
+(use-package emacs
+  :config
   (xterm-mouse-mode 1)
   (savehist-mode 1)
   (global-hl-line-mode 1)
@@ -486,6 +483,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 
 (use-package which-key-posframe
   :ensure t
+  :after which-key
   :custom
   (which-key-posframe-border-width 2)
   :functions
@@ -578,7 +576,8 @@ characters respectably."
                                     t))))
 
 (use-package olivetti
-  :ensure t)
+  :ensure t
+  :defer t)
 
 ;; Highlight outline headings
 ;;(use-package outline-minor-faces
@@ -613,6 +612,7 @@ characters respectably."
 
 (use-package vertico
   :ensure t
+  :demand t
   :functions
   vertico-mode
   :bind (:map vertico-map
@@ -625,7 +625,7 @@ characters respectably."
      (my/consult-org-headings buffer (:not posframe))))
   (vertico-sort-function #'vertico-sort-history-alpha)
   (vertico-buffer-display-action '(display-buffer-same-window))
-  :init
+  :config
   (vertico-mode)
   (vertico-multiform-mode))
 
@@ -642,6 +642,7 @@ characters respectably."
 
 (use-package vertico-prescient
   :ensure t
+  :after (vertico prescient)
   :custom
   (vertico-prescient-enable-filtering nil)
   :config
@@ -755,8 +756,9 @@ targets."
   (advice-add #'embark-completing-read-prompter
               :around #'embark-hide-which-key-indicator))
 
-(use-package consult-embark
-   :ensure t)
+(use-package embark-consult
+  :ensure t
+  :after (consult embark))
 
 
 ;;;; Projectile
@@ -785,8 +787,7 @@ targets."
 
 (use-package corfu
   :ensure t
-  ;; use-package defers it automatically because of the hook
-  :demand t
+  :defer 2
   :functions
   corfu-mode
   :preface
@@ -853,9 +854,9 @@ targets."
 ;;  :config
 ;;  (corfu-candidate-overlay-mode 1))
 
-
 (use-package cape
   :ensure t
+  :defer 2
   :init
   ;; Add to the global default value of `completion-at-point-functions' which is
   ;; used by `completion-at-point'.  The order of the functions matters, the
@@ -1045,6 +1046,7 @@ targets."
 
 (use-package geiser
   :ensure t
+  :defer t
   :custom
   (geiser-default-implementation 'guile)
   (geiser-active-implementations '(guile))
@@ -1061,7 +1063,8 @@ targets."
 
 (use-package yasnippet
   :ensure t
-  :demand t
+  ;; Load after idle 2 sec
+  :defer 2
   :custom
   (yas-indent-line 'auto)
   (yas-also-auto-indent-first-line t)
@@ -1134,6 +1137,7 @@ targets."
 
 (use-package eglot
   :ensure t
+  :defer t
   :config
   (setq-default eglot-workspace-configuration
                 '(:pylsp
@@ -1151,11 +1155,15 @@ targets."
 
 ;; Open the current file on Github or similar
 (use-package browse-at-remote
-  :ensure t)
+  :ensure t
+  :defer t)
 
 (use-package magit
   :ensure t
-  :demand t
+  :defer t
+  :autoload
+  ;; Used in eshell prompt
+  magit-get-current-branch
   :config
   ;; Create "commits" in reflog of uncommitted changes
   (magit-wip-mode 1))
@@ -1631,6 +1639,7 @@ capture was not aborted."
 
 (use-package eshell-toggle
   :ensure t
+  :after eshell
   :preface
   (defun eshell-toggle--hide-buffers (orig-fun &rest args)
     "Make eshell-toggle buffers hidden."
@@ -1640,16 +1649,17 @@ capture was not aborted."
 
 (use-package eshell-outline
   :ensure t
+  :after eshell
   :hook
-  (eshell-mode-hook . eshell-outline-mode))
+  (eshell-mode . eshell-outline-mode))
 
 ;; Highlight command names in eshell
 (use-package eshell-syntax-highlighting
-  :after eshell
   :ensure t
-  :custom
+  :after eshell
+  ;;:custom
   ;; Do not print the "nobreak" character
-  (nobreak-char-display nil)
+  ;; (nobreak-char-display nil)
   :config
   ;; Enable in all Eshell buffers.
   (eshell-syntax-highlighting-global-mode 1))
@@ -1781,9 +1791,9 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 ;; Keep reusing a single dired buffer instead of opening new
 ;; every time you navigate to another folder
 ;; TODO: Integrate in normal dired commands
-(use-package dired-single
-  :ensure t
-  :after dired)
+;;(use-package dired-single
+;;  :ensure t
+;;  :after dired)
 
 ;; Open some filetypes in external program
 ;; TODO: Automatically open correct program through mime/xdg
@@ -1891,10 +1901,9 @@ Automatically exits fullscreen if any window-changing command is executed."
 (use-package exwm
   :ensure t
   :demand t
-  :init
+  :config
   (require 'exwm-randr)
   (exwm-randr-mode 1)
-  :config
   (defun efs/exwm-update-class ()
     (exwm-workspace-rename-buffer (truncate-string-to-width exwm-title 100)))
 
@@ -2053,6 +2062,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package ednc
   :ensure t
+  :after exwm
   :preface
   (defun my-ednc-notifier (old notification)
   "Show TEXT in a posframe in the upper right corner of the main frame."
@@ -2103,6 +2113,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 ;; Rofi application launcher alternative
 (use-package app-launcher
+  :after exwm
   :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
 
 
@@ -2111,6 +2122,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;;;-----------
 
 (use-package tab-bar
+  :after exwm
   :preface
   (defun lr/tab-bar-time-and-date ()
     (let* ((tab-bar-time-face '(:weight bold))
@@ -2136,9 +2148,10 @@ Automatically exits fullscreen if any window-changing command is executed."
   (defface my-tab-bar-face
     '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
     "Face for the tab bar.")
-  :config
-  (tab-bar-mode 1)
+  :hook
+  (exwm-init . tab-bar-mode)
 
+  :config
   ;; Set the tab-bar face to use the custom face
   (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
   :custom
@@ -2157,6 +2170,7 @@ Automatically exits fullscreen if any window-changing command is executed."
                     lr/tab-bar-time-and-date)))
 
 (use-package lemon
+  :after exwm
   :quelpa (lemon :fetcher codeberg :repo "emacs-weirdware/lemon"))
 
 (setq my/battery-monitor
@@ -2202,6 +2216,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package empv
   :ensure t
+  :defer t
   :preface
   (defun empv-set-background (color)
     (empv--send-command-sync (list "set_property" "background-color" color)))
@@ -2222,14 +2237,17 @@ Automatically exits fullscreen if any window-changing command is executed."
                    "--input-ipc-server=/tmp/empv-socket")))
 
 (use-package elfeed-tube
-  :ensure t)
+  :ensure t
+  :defer t)
 
 (use-package elfeed-tube-mpv
-  :ensure t)
+  :ensure t
+  :after elfeed-tube)
 
 (use-package emms
   :ensure t
-  :init
+  :defer t
+  :config
   (require 'emms-player-mpv)
   (add-to-list 'emms-player-list 'emms-player-mpv)
   :preface
@@ -2281,6 +2299,7 @@ and sends a message of the current volume status."
 ;;;;------
 
 (use-package consult-mu
+  :after (consult mu4e)
   :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
 
 (defun insert-cut-here-start ()
@@ -2294,10 +2313,13 @@ and sends a message of the current volume status."
   (insert "--8<---------------cut here---------------end--------------->8---"))
 
 (use-package mu4e
-  :init
+  :ensure nil
+  ;;:init
   ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
-  (require 'mu4e)
+  :config
   (require 'mu4e-contrib)
+  :commands
+  mu4e
   :functions
   mu4e-mark-handle-when-leaving
   mu4e-search-maildir
@@ -2406,6 +2428,7 @@ and sends a message of the current volume status."
 ;;;;-----
 
 (use-package ement
+  :defer t
   :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
 
 (use-package erc
@@ -2419,7 +2442,6 @@ and sends a message of the current volume status."
 (use-package erc-twitch
   :ensure t
   :after erc
-  :defer t
   :functions
   erc-twitch-enable
   :config
@@ -2428,7 +2450,6 @@ and sends a message of the current volume status."
 (use-package erc-hl-nicks
   :ensure t
   :after erc
-  :defer t
   :functions
   erc-hl-nicks-enable
   :config
@@ -2437,7 +2458,6 @@ and sends a message of the current volume status."
 (use-package erc-image
   :ensure t
   :after erc
-  :defer t
   :functions
   erc-image-enable
   :config
@@ -2625,17 +2645,14 @@ and sends a message of the current volume status."
   (TeX-view-program-selection '((output-pdf "Okular"))))
 
 
-;;
-;;(use-package mastodon-alt
-;;  :quelpa (mastodon-alt :fetcher github :repo "rougier/mastodon-alt"))
-
-
 (use-package scad-dbus
+  :defer t
   :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
 
 
 (use-package chess
   :ensure t
+  :defer t
   :custom
   (chess-images-separate-frame nil)
   :config
@@ -2645,9 +2662,7 @@ and sends a message of the current volume status."
 
 (use-package xkcd
   :ensure t
-  :init
-  (evil-define-key 'normal xkcd-mode-map (kbd "h") 'xkcd-prev)
-  (evil-define-key 'normal xkcd-mode-map (kbd "l") 'xkcd-next)
+  :defer t
   :functions
   xkcd
   xkcd-get
