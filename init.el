@@ -1217,7 +1217,34 @@ targets."
   (eglot-extend-to-xref t))
 
 
+(use-package eldoc-box
+  :ensure t
+  :after eglot
+  :config
+  (evil-define-key 'normal eglot-mode-map (kbd "K") 'eldoc-box-help-at-point))
+  ;;:hook
+  ;;(eglot-managed-mode . eldoc-box-hover-at-point-mode))
 
+;; NOTE: Already handled by `eldoc-box'.
+;; Show flymake error on hover
+;;(use-package flymake-popon
+;;  :ensure t
+;;  :config
+;;  (global-flymake-popon-mode 1))
+
+;; This is awesome!
+;; NOTE: Needs support in the LSP.
+;; pylsp doesn't support it, but pyright and
+;; jedi-language-server does.
+(use-package consult-eglot
+  :ensure t
+  :after (consult eglot))
+
+(use-package consult-eglot-embark
+  :ensure t
+  :after (consult eglot embark)
+  :config
+  (consult-eglot-embark-mode 1))
 
 ;;; Git
 ;;;-----
