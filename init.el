@@ -794,15 +794,38 @@ targets."
 
 ;;; Python
 
-(use-package pyvenv
-  :ensure t)
+;; NOTE: Deactivate in favor of auto-virtualenvwrapper
+;;(use-package pyvenv
+;;  :ensure t)
+;;
+;;(use-package pyvenv-auto
+;;  :ensure t
+;;  :after
+;;  pyvenv
+;;  :hook ((python-mode . pyvenv-auto-run)))
 
-(use-package pyvenv-auto
+;; Multiline support for Inferior Python
+(use-package python-mls
   :ensure t
-  :after
-  pyvenv
-  :hook ((python-mode . pyvenv-auto-run)))
+  :hook
+  (inferior-python-mode . python-mls-mode))
 
+(use-package auto-virtualenvwrapper
+  :ensure t
+  ;; Avoid :custom being overwritten
+  ;; These variables are using defvar instead of defcustom
+  :config
+  (setq auto-virtualenvwrapper-auto-deactivate t)
+  (setq auto-virtualenvwrapper-verbose nil)
+  :hook
+  (python-base-mode . auto-virtualenvwrapper-activate)
+  (window-configuration-change . auto-virtualenvwrapper-activate)
+  (eshell-directory-change . (lambda ()
+                               (auto-virtualenvwrapper-activate)
+                               ;; Recalculate eshell path
+                               (setq eshell-path-env-list nil)
+                               (eshell-get-path)))
+  (focus-in . auto-virtualenvwrapper-activate))
 
 ;;; Completion
 ;;;---------------
