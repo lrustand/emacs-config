@@ -731,7 +731,19 @@ characters respectably."
   :ensure t
   :after (consult projectile)
   :bind (("C-c p p" . consult-projectile-switch-project)
-         ("C-c p f" . consult-projectile)))
+         ("C-c p f" . consult-projectile)
+         ("C-c p b" . consult-projectile-switch-to-buffer)))
+
+(use-package consult-dir
+  :ensure t
+  :after consult
+  :autoload
+  eshell/j
+  consult-dir--pick
+  :preface
+  (defun eshell/j ()
+    "Jump to a directory in eshell using consult-dir."
+    (eshell/cd (substring-no-properties (consult-dir--pick "cd: ")))))
 
 (use-package orderless
   :ensure t
