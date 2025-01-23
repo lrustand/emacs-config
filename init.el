@@ -701,6 +701,16 @@ characters respectably."
   :config
   (advice-add 'consult-buffer :override #'my/consult-buffer)
   :custom
+  (consult-buffer-sources
+   '(consult--source-hidden-buffer
+     consult--source-modified-buffer
+     consult--source-buffer
+     consult--source-recent-file
+     consult--source-file-register
+     consult--source-bookmark
+     consult--source-project-buffer-hidden
+     consult--source-project-recent-file
+     consult--source-project-root))
   (confirm-nonexistent-file-or-buffer t)
   ;; Disable autmatic previewing
   (consult-preview-key nil)
