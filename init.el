@@ -74,6 +74,8 @@
   (doom-modeline-percent-position nil)
   (doom-modeline-workspace-name nil)
   :config
+  (unless (display-graphic-p)
+    (setq doom-modeline-icon nil))
   (doom-modeline-mode 1))
 
 ;; Set default font
@@ -104,6 +106,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;; Automatically dim the background color of unfocused buffers
 (use-package auto-dim-other-buffers
   :ensure t
+  :when (display-graphic-p)
   ;; Fix flymake error
   :functions auto-dim-other-buffers-mode
   :custom
@@ -358,6 +361,7 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;; TODO Send PR. I have modified framemove to get correct frame coords in EXWM
 ;; Lines 45-48 in framemove.el. Use exwm-workspace--get-geometry.
 (use-package framemove
+  :when (display-graphic-p)
   :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
   :init
   (setq framemove-hook-into-windmove t)
@@ -397,6 +401,21 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;
 ;;(use-package ibuffer-project
 ;;  :ensure t)
+
+(use-package emacs
+  :unless (display-graphic-p)
+  :demand t
+  :bind*
+  (("M-h" . windmove-left)
+   ("M-j" . windmove-down)
+   ("M-k" . windmove-up)
+   ("M-l" . windmove-right)
+   ("M-S-h" . bufmove-left)
+   ("M-S-j" . bufmove-down)
+   ("M-S-k" . bufmove-up)
+   ("M-S-l" . bufmove-right)
+   ("M-DEL" . delete-window)
+   ("M-RET" . eshell-toggle)))
 
 ;;;; Help
 ;;;;------
@@ -519,6 +538,7 @@ characters respectably."
 
 (use-package xclip
   :ensure t
+  :when (eq window-system 'x)
   :functions
   xclip-mode
   :config
@@ -568,6 +588,8 @@ characters respectably."
 
 (use-package outshine
   :ensure t
+  ;; Avoid this overriding terminal mode keybindings
+  :when (display-graphic-p)
   :hook
   (emacs-lisp-mode . (lambda ()
                        (outshine-mode)
@@ -1900,6 +1922,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package exwm
   :ensure t
+  :when (eq window-system 'x)
   :demand t
   :config
   (require 'exwm-randr)
