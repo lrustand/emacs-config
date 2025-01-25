@@ -20,9 +20,11 @@
 
 ;; Set up package.el to work with MELPA
 (require 'package)
-(setq package-quickstart t)
 (add-to-list 'package-archives
          '("melpa" . "https://melpa.org/packages/"))
+
+(async-bytecomp-package-mode 1)
+(setq package-quickstart t)
 
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package)
