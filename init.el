@@ -59,6 +59,7 @@
   ;; when starting emacs.
   (quelpa-update-melpa-p nil)
   (quelpa-checkout-melpa-p nil)
+  (quelpa-async-p t)
   (quelpa-verbose nil)
   (quelpa-build-verbose nil))
 
