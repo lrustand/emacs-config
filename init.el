@@ -349,6 +349,21 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;; Ctrl+Q will enable the next key to be sent directly
   (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
 
+   (defun my/posframe-refposhandler (&optional frame)
+     "Get a correct reference position for posframe under EXWM."
+     (let* ((monitor-geometry (get-focused-monitor-geometry frame))
+            (monitor-x (nth 0 monitor-geometry))
+            (monitor-y (nth 1 monitor-geometry)))
+       (cons monitor-x monitor-y)))
+
+   (defun my/posframe-set-refposhandler (args)
+     "Fix position reference for all posframes."
+     (let ((props (cdr args))
+           (posframe (car args)))
+       (plist-put props :refposhandler #'my/posframe-refposhandler)
+       (cons posframe props)))
+   (advice-add 'posframe-show :filter-args #'my/posframe-set-refposhandler)
+
   ;; Make posframe appear in front of X11 windows
   (with-eval-after-load 'posframe
     (define-advice posframe-show (:filter-return (frame) exwm-deparent)
@@ -701,41 +716,14 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;; Silence flymake errors
   :functions
   exwm-workspace--active-p
-  posframe-delete
   ace-window-posframe-mode
-  :defines
-  aw--posframe-frames
-  aw-posframe-position-handler
   :preface
   (defun my/aw-window-list-advice (orig-fun &rest args)
     "Advice to use EXWM-aware frame visibility check in aw-window-list."
     (cl-letf (((symbol-function 'frame-visible-p) #'exwm-workspace--active-p))
       (apply orig-fun args)))
-  (defun my-aw-poshandler (info)
-    (let* ((monitor-geometry (get-focused-monitor-geometry (plist-get info :parent-frame)))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry))
-           (window-left (plist-get info :parent-window-left))
-           (window-top (plist-get info :parent-window-top))
-           (window-width (plist-get info :parent-window-width))
-           (window-height (plist-get info :parent-window-height))
-           (posframe-width (plist-get info :posframe-width))
-           (posframe-height (plist-get info :posframe-height))
-           (x (max 0 (+ monitor-x window-left (/ (- window-width posframe-width) 2))))
-           (y (max 0 (+ monitor-y window-top (/ (- window-height posframe-height) 2)))))
-      (cons x y)))
-  (defun advise-aw--lead-overlay-posframe-with-monitor-awareness (orig-fun &rest args)
-    (let ((aw-posframe-position-handler #'my-aw-poshandler))
-      (apply orig-fun args)))
-  (defun advise-aw--remove-leading-chars-posframe-with-monitor-awareness (&rest _)
-    "Don't reuse posframes, they get mangled on multi-monitor"
-    (mapc #'posframe-delete aw--posframe-frames)
-    (setq aw--posframe-frames nil))
-
   :config
   (advice-add 'aw-window-list :around #'my/aw-window-list-advice)
-  (advice-add 'aw--lead-overlay-posframe :around #'advise-aw--lead-overlay-posframe-with-monitor-awareness)
-  (advice-add 'aw--remove-leading-chars-posframe :around #'advise-aw--remove-leading-chars-posframe-with-monitor-awareness)
   (set-face-attribute 'aw-leading-char-face nil :height 400)
   (ace-window-posframe-mode 1)
   :custom
@@ -861,28 +849,6 @@ Automatically exits fullscreen if any window-changing command is executed."
   :functions
   vertico-posframe-mode
   :preface
-  (defun advise-vertico-posframe-show-with-monitor-awareness (orig-fun buffer window-point &rest args)
-    "Advise `vertico-posframe--show` for multimonitor."
-    ;; Extract the focused monitor's geometry
-    (let* ((monitor-geometry (get-focused-monitor-geometry))
-           (monitor-x (nth 0 monitor-geometry))
-           (monitor-y (nth 1 monitor-geometry)))
-      ;; Override poshandler buffer-local variable to use monitor-aware positioning
-      (let ((vertico-posframe-poshandler
-             (lambda (info)
-               (let* ((parent-frame-width (plist-get info :parent-frame-width))
-                      (parent-frame-height (plist-get info :parent-frame-height))
-                      (posframe-width (plist-get info :posframe-width))
-                      (posframe-height (plist-get info :posframe-height))
-                      ;; Calculate center position on the focused monitor
-                      (x (+ monitor-x (/ (- parent-frame-width posframe-width) 2)))
-                      (y (+ monitor-y (/ (- parent-frame-height posframe-height) 2))))
-                 (cons x y)))))
-        ;; Call the original function with potentially adjusted poshandler
-        (apply orig-fun buffer window-point args))))
-
-  :config
-  (advice-add 'vertico-posframe--show :around #'advise-vertico-posframe-show-with-monitor-awareness)
   (vertico-posframe-mode 1))
 
 (use-package which-key-posframe
@@ -1293,8 +1259,8 @@ targets."
            ;; on where on the monitor the posframe should appear.
            ;; Currently, it places the posframe at its intended X and Y, but ensures
            ;; it's within the bounds of the focused monitor.
-           (new-x (+ monitor-x x))
-           (new-y (+ monitor-y y)))
+           (new-x (if (< x monitor-x) (+ monitor-x x) x))
+           (new-y (if (< y monitor-y) (+ monitor-y y) y)))
       ;; Call the original function with potentially adjusted coordinates
       (funcall orig-fun frame new-x new-y width height)))
   :hook
@@ -2946,14 +2912,9 @@ and sends a message of the current volume status."
 
 (defun get-focused-monitor-geometry (&optional frame)
   "Get the geometry of the monitor displaying FRAME in EXWM."
-  (let* ((monitor-attrs (frame-monitor-attributes frame))
-         (workarea (assoc 'workarea monitor-attrs))
-         (geometry (cdr workarea)))
-    (list (nth 0 geometry) ; X
-          (nth 1 geometry) ; Y
-          (nth 2 geometry) ; Width
-          (nth 3 geometry) ; Height
-          )))
+  (let* ((monitor-attrs (frame-monitor-attributes frame)))
+    ;; Returns (x y width height)
+    (alist-get 'workarea monitor-attrs)))
 
 (defun split-window-below-and-switch-buffer ()
   "Make a new window below and focus it."
