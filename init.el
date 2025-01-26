@@ -10,7 +10,15 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
-(server-start)
+
+;; Enabled/disable various groups of packages
+;; Use :when (memq 'feature my/enabled-features) in use-package
+(setq my/enabled-features
+      '(chat
+        mail
+        web
+        eglot
+        exwm))
 
 
 
@@ -131,7 +139,9 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
      (org-hide . (auto-dim-other-buffers-hide-face . nil))
      (fringe . (auto-dim-other-buffers-face . nil))
      (line-number . (auto-dim-other-buffers-face . nil))
-     (line-number-current-line . (auto-dim-other-buffers-face . nil))))
+     (line-number-current-line . (auto-dim-other-buffers-face . nil))
+     (magit-diff-context-highlight . (auto-dim-other-buffers-face . nil))
+     (magit-section-highlight . (auto-dim-other-buffers-face . nil))))
   :config
   (auto-dim-other-buffers-mode 1))
 
@@ -154,6 +164,360 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   `(mode-line-inactive
     ((t (:background ,(face-attribute 'mode-line-active
                                       :background))))))
+
+;;; EXWM
+;;;--------
+
+(defvar my-fullscreen-window-configuration nil
+  "Stores the window configuration before entering fullscreen.")
+
+(defun my-toggle-fullscreen ()
+  "Toggle fullscreen for the current buffer.
+Automatically exits fullscreen if any window-changing command is executed."
+  (interactive)
+  (if (= 1 (length (window-list)))
+      (when my-fullscreen-window-configuration
+        (set-window-configuration my-fullscreen-window-configuration)
+        (setq my-fullscreen-window-configuration nil)
+        (advice-remove 'split-window #'my-exit-fullscreen-advice))
+    (setq my-fullscreen-window-configuration (current-window-configuration))
+    (delete-other-windows)
+    (advice-add 'split-window :before #'my-exit-fullscreen-advice)))
+
+(defun my-exit-fullscreen-advice (&rest _)
+  "Advice to exit fullscreen before executing window-changing commands."
+  (when (and my-fullscreen-window-configuration
+             (eq (selected-frame)
+                 (window-configuration-frame my-fullscreen-window-configuration))
+    (my-toggle-fullscreen))))
+
+;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
+;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
+;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
+
+(use-package exwm
+  :ensure t
+  :when (and (eq window-system 'x)
+             (memq 'exwm my/enabled-features))
+  :demand t
+  :config
+  (require 'exwm-randr)
+  (exwm-randr-mode 1)
+  (defun efs/exwm-update-class ()
+    (exwm-workspace-rename-buffer (truncate-string-to-width exwm-title 100)))
+
+  (defun lr/exwm-resize-left ()
+    (interactive)
+    (if (window-at-side-p nil 'right)
+        (exwm-layout-enlarge-window-horizontally 30)
+      (exwm-layout-shrink-window-horizontally 30)))
+  (defun lr/exwm-resize-right ()
+    (interactive)
+    (if (window-at-side-p nil 'right)
+        (exwm-layout-shrink-window-horizontally 30)
+      (exwm-layout-enlarge-window-horizontally 30)))
+  (defun lr/exwm-resize-up ()
+    (interactive)
+    (if (window-at-side-p nil 'bottom)
+        (exwm-layout-enlarge-window 30)
+      (exwm-layout-shrink-window 30)))
+  (defun lr/exwm-resize-down ()
+    (interactive)
+    (if (window-at-side-p nil 'bottom)
+        (exwm-layout-shrink-window 30)
+      (exwm-layout-enlarge-window 30)))
+
+  (defun my/exwm-randr-get-monitors ()
+    (mapcar #'car (cadr (exwm-randr--get-monitors))))
+  (defun my/exwm-configure-monitors ()
+    (interactive)
+    (let* ((monitors (my/exwm-randr-get-monitors))
+           (workspaces (number-sequence 1 (length monitors))))
+      (setq exwm-randr-workspace-monitor-plist
+            (flatten-list (cl-mapcar #'cons workspaces monitors)))))
+  (defun i3lock ()
+    (interactive)
+    (start-process-shell-command "i3lock" nil "i3lock -c 000000 -n"))
+  (defun xmodmap ()
+    (interactive)
+    (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap"))
+  (xmodmap)
+  (defun xinput-finger-disable ()
+    (interactive)
+    (start-process-shell-command "xinput" nil
+                                 "xinput disable \"Wacom HID 5256 Finger\""))
+  (xinput-finger-disable)
+  :custom
+  ;; Set the default number of workspaces
+  (exwm-workspace-number 5)
+  (exwm-layout-show-all-buffers t)
+  (exwm-workspace-show-all-buffers t)
+  ;; These keys should always pass through to Emacs
+  (exwm-input-prefix-keys
+   '(?\C-x
+     ?\C-u
+     ?\C-h
+     ?\M-x
+     ?\M-`
+     ?\M-&
+     ?\M-:
+     ?\C-\ ))  ;; Ctrl+Space
+  ;; Set up global key bindings.  These always work, no matter the input state!
+  (exwm-input-global-keys
+   `(
+     ;; Reset to line-mode (C-c C-k switches to char-mode via exwm-input-release-keyboard)
+     ([?\s-r] . exwm-reset)
+
+     ([?\H-d] . app-launcher-run-app)
+     ([s-backspace] . kill-current-buffer)
+     ([S-s-backspace] . delete-window)
+     ([s-return] . eshell-toggle)
+
+     ;; Move focus between windows
+     ([s-left] . windmove-left)
+     ([s-right] . windmove-right)
+     ([s-up] . windmove-up)
+     ([s-down] . windmove-down)
+     ([?\s-h] . windmove-left)
+     ([?\s-l] . windmove-right)
+     ([?\s-k] . windmove-up)
+     ([?\s-j] . windmove-down)
+
+     ;; Next/prev buffer in window
+     ([?\s-n] . next-buffer)
+     ([?\s-p] . previous-buffer)
+
+     ;; Next/prev tabs
+     ([?\H-j] . tab-next)
+     ([?\H-k] . tab-previous)
+
+     ;; Move buffers
+     ([S-s-left] . buf-move-left)
+     ([S-s-right] . buf-move-right)
+     ([S-s-up] . buf-move-up)
+     ([S-s-down] . buf-move-down)
+     ([?\s-H] . buf-move-left)
+     ([?\s-L] . buf-move-right)
+     ([?\s-K] . buf-move-up)
+     ([?\s-J] . buf-move-down)
+
+     ;; Swap windows
+     ([M-s-left] . windmove-swap-states-left)
+     ([M-s-right] . windmove-swap-states-right)
+     ([M-s-up] . windmove-swap-states-up)
+     ([M-s-down] . windmove-swap-states-down)
+     ([?\M-\s-h] . windmove-swap-states-left)
+     ([?\M-\s-l] . windmove-swap-states-right)
+     ([?\M-\s-k] . windmove-swap-states-up)
+     ([?\M-\s-j] . windmove-swap-states-down)
+
+     ;; Resize window
+     ([C-s-left] . lr/exwm-resize-left)
+     ([C-s-down] . lr/exwm-resize-down)
+     ([C-s-up] . lr/exwm-resize-up)
+     ([C-s-right] . lr/exwm-resize-right)
+     ([?\C-\s-h] . lr/exwm-resize-left)
+     ([?\C-\s-j] . lr/exwm-resize-down)
+     ([?\C-\s-k] . lr/exwm-resize-up)
+     ([?\C-\s-l] . lr/exwm-resize-right)
+
+     ;; Toggle fullscreen
+     ([?\s-f] . my-toggle-fullscreen)
+
+     ;; Launch applications via shell command
+     ([?\s-&] . (lambda (command)
+                  (interactive (list (read-shell-command "$ ")))
+                  (start-process-shell-command command nil command)))
+
+     ;; Switch workspace
+     ([?\s-w] . exwm-workspace-switch)
+
+     ;; 's-N': Switch to certain workspace with Super (Win) plus a number key (0 - 9)
+     ,@(mapcar (lambda (i)
+                 `(,(kbd (format "s-%d" i)) .
+                   (lambda ()
+                     (interactive)
+                     (exwm-workspace-switch-create ,i))))
+               (number-sequence 0 9))))
+  :hook
+  (exwm-randr-screen-change . my/exwm-configure-monitors)
+  :config
+  ;; When window "class" updates, use it to set the buffer name
+  ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
+  (add-hook 'exwm-update-title-hook #'efs/exwm-update-class)
+
+  ;; Ctrl+Q will enable the next key to be sent directly
+  (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
+
+  ;; Make posframe appear in front of X11 windows
+  (with-eval-after-load 'posframe
+    (define-advice posframe-show (:filter-return (frame) exwm-deparent)
+      (set-frame-parameter frame 'parent-frame nil)
+      frame))
+
+  (exwm-enable))
+
+(use-package ednc
+  :ensure t
+  :after exwm
+  :preface
+  (defun my-ednc-notifier (old notification)
+  "Show TEXT in a posframe in the upper right corner of the main frame."
+  (let* ((main-frame (selected-frame))
+         (frame-width (frame-width main-frame))
+         (frame-height (frame-height main-frame))
+         (app-name (ednc-notification-app-name notification))
+         (app-icon (ednc-notification-app-icon notification))
+         (summary (ednc-notification-summary notification))
+         (body (ednc-notification-body notification))
+         (icon-image (if (f-file-p app-icon)
+                         (create-image app-icon nil nil :width 32 :height 32)
+                       ""))
+         (icon-string (propertize "" 'display icon-image))
+         (summary-text (propertize summary 'face 'bold))
+         (body-text (string-trim (string-fill body 40)))
+         (formatted-text
+          (format "%s%s\n%s\n%s"
+                  icon-string app-name summary-text (or body-text ""))))
+    (posframe-show
+     "*my-posframe-buffer*"
+     :string formatted-text
+     :poshandler (lambda (info) '(-1 . 16))
+     :background-color "black"
+     :border-color "red"
+     :border-width 2
+     :accept-focus nil
+     :timeout 10)))
+
+  :config
+  (ednc-mode 1)
+  (add-hook 'ednc-notification-presentation-functions 'my-ednc-notifier))
+
+
+(defun wait-for-exwm-window (window-name)
+  "Wait for an EXWM window with WINDOW-NAME to appear."
+  (interactive "sEnter window name: ")
+  (let ((window-exists nil))
+    (while (not window-exists)
+      (setq window-exists
+            (cl-some (lambda (win)
+                       (string-match-p window-name (exwm--get-window-title win)))
+                     (exwm--list-windows)))
+      (unless window-exists
+        (sit-for 1)))  ; Wait for 1 second before checking again
+    (message "The window '%s' has appeared!" window-name)))
+
+
+;; Rofi application launcher alternative
+(use-package app-launcher
+  :after exwm
+  :defer t
+  :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
+
+
+
+;;;; Statusbar
+;;;;-----------
+
+(use-package tab-bar
+  :after exwm
+  :hook
+  (exwm-init . tab-bar-mode)
+  :config
+  (require 'lemon)
+  (defun lr/tab-bar-time-and-date ()
+    (let* ((tab-bar-time-face '(:weight bold))
+           (tab-bar-time-format  "%a %-d %b, %H:%M "))
+      `((menu-bar menu-item
+                  ,(propertize (format-time-string tab-bar-time-format)
+                               'font-lock-face
+                               tab-bar-time-face)
+                  nil ;; <- Function to run when clicked
+                  :help "My heltp"))))
+  (defun lr/tab-bar-separator () " | ")
+  (defun ram ()
+    (lemon-monitor-display my/memory-monitor))
+  (defun cpu ()
+    (lemon-monitor-display my/cpu-monitor))
+  (defun bat ()
+    (lemon-monitor-display my/battery-monitor))
+  (defun net ()
+    (concat
+     (lemon-monitor-display my/network-rx-monitor)
+     (lemon-monitor-display my/network-tx-monitor)))
+
+  (defface my-tab-bar-face
+    '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
+    "Face for the tab bar.")
+  ;; Set the tab-bar face to use the custom face
+  (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
+  :custom
+  ;; Disable stupid "This window displayed buffer" in deleted buffers
+  (tab-bar-select-restore-windows nil)
+  (tab-bar-format `(tab-bar-format-history
+                    tab-bar-format-tabs
+                    tab-bar-separator
+                    tab-bar-format-add-tab
+                    tab-bar-format-align-right
+                    net
+                    ram
+                    cpu
+                    ,(when (lemon-battery-present?) 'bat)
+                    lr/tab-bar-separator
+                    lr/tab-bar-time-and-date)))
+
+(defvar my/battery-monitor)
+(defvar my/battery-monitor-timer)
+(defvar my/cpu-monitor)
+(defvar my/cpu-monitor-timer)
+(defvar my/memory-monitor)
+(defvar my/memory-monitor-timer)
+(defvar my/network-rx-monitor)
+(defvar my/network-tx-monitor)
+(defvar my/timer-network-monitor)
+(defvar my/tab-bar-refresh-timer)
+
+(use-package lemon
+  :quelpa (lemon :fetcher codeberg :repo "emacs-weirdware/lemon")
+  :after exwm
+  :autoload
+  lemon-monitor-display
+  :config
+  (setq my/battery-monitor
+   (lemon-battery :display-opts '(:charging-indicator "+"
+                                  :discharging-indicator "-")))
+  (setq my/battery-monitor-timer
+   (run-with-timer 0 30
+                   (lambda ()
+                     (lemon-monitor-update
+                      my/battery-monitor))))
+  (setq my/cpu-monitor
+   (lemon-cpu-linux :display-opts '(:index "CPU: "
+                                    :unit "%")))
+  (setq my/cpu-monitor-timer
+   (run-with-timer 0 1
+                   (lambda ()
+                     (lemon-monitor-update
+                      my/cpu-monitor))))
+  (setq my/memory-monitor
+   (lemon-memory-linux :display-opts '(:index "MEM: "
+                                       :unit "%")))
+  (setq my/memory-monitor-timer
+   (run-with-timer 0 30
+                   (lambda ()
+                     (lemon-monitor-update
+                      my/memory-monitor))))
+  (setq my/network-rx-monitor (lemon-linux-network-rx))
+  (setq my/network-tx-monitor (lemon-linux-network-tx))
+  (setq my/network-monitor-timer
+   (run-with-timer 0 1
+                   (lambda ()
+                     (lemon-monitor-update
+                      my/network-rx-monitor)
+                     (lemon-monitor-update
+                      my/network-tx-monitor))))
+  (setq my/tab-bar-refresh-timer
+   (run-with-timer 0 1 'force-mode-line-update)))
 
 
 
@@ -206,16 +570,19 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;;-------
 
 (use-package recentf
+  :defer 1
   :config
   (recentf-mode 1)
   :custom
+  (recentf-auto-cleanup "11:00pm")
   (recentf-max-menu-items 500)
   (recentf-max-saved-items 500))
 
-
-(setq custom-file (concat user-emacs-directory "custom.el"))
-(when (file-exists-p custom-file)
-  (load custom-file))
+(use-package server
+  :defer 1
+  :config
+  (unless (server-running-p)
+    (server-start)))
 
 ;; Make C-i and Tab separate. Without this hack it is impossible to
 ;; distinguish between Tab and C-i
@@ -279,6 +646,9 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
   (history-length 1000)
 
   (window-restore-killed-buffer-windows 'dedicated)
+  ;; Avoid accidentally invoking `zap-char' when pressing Alt.
+  :bind (:map global-map
+              ("M-z" . nil))
   :hook
   (prog-mode . (lambda ()
                  (setq-local show-trailing-whitespace t)
@@ -1192,7 +1562,7 @@ targets."
 ;;;;---------
 
 (use-package geiser
-  :ensure t
+  :ensure nil
   :defer t
   :custom
   (geiser-default-implementation 'guile)
@@ -1200,7 +1570,7 @@ targets."
   (geiser-implementations-alist '(((regexp "\\.scm$") guile))))
 
 (use-package geiser-guile
-  :ensure t
+  :ensure nil
   :after geiser
   :config
   (add-to-list 'geiser-guile-load-path "~/.config/guix/current/share/guile/"))
@@ -1258,9 +1628,9 @@ targets."
 ;;  :config
 ;;  (lsp-enable-which-key-integration t))
 
-(use-package dap-mode
-  :ensure t
-  :defer t)
+;;(use-package dap-mode
+;;  :ensure t
+;;  :defer t)
 
 ;;(use-package lsp-latex
 ;;  :ensure t
@@ -1345,9 +1715,12 @@ targets."
   :autoload
   ;; Used in eshell prompt
   magit-get-current-branch
+  :custom
+  (magit-diff-refine-hunk t)
   :config
   ;; Create "commits" in reflog of uncommitted changes
-  (magit-wip-mode 1))
+  (magit-wip-before-change-mode 1)
+  (magit-wip-initial-backup-mode 1))
 
 (use-package magit-todos
   :ensure t
@@ -1366,8 +1739,8 @@ targets."
   :config
   (require 'org-inlinetask)
   (with-eval-after-load "org"
-    (add-to-list 'org-modules 'org-checklist)
-    (add-to-list 'org-modules 'org-habit))
+    (add-to-list 'org-modules 'org-checklist))
+    ;;(add-to-list 'org-modules 'org-habit))
   :custom
   (org-ellipsis " ▾")
   (org-hide-emphasis-markers t)
@@ -1554,8 +1927,9 @@ targets."
 
   (defun my/org-roam-get-title (file)
     (save-window-excursion
-      (find-file file)
-      (org-get-title)))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (org-get-title))))
 
   (defun my/org-roam-filter-by-tag (tag-name)
     (lambda (node)
@@ -1631,69 +2005,83 @@ capture was not aborted."
 ;;;; Thesis
 ;;;;--------
 
-(require 'async)
-(defun get-package-deps (package)
-  (mapcar #'car (package-desc-reqs (cadr (assq package package-alist)))))
-(defun async-export ()
-  (interactive)
-  (async-start
-   `(lambda ()
-      (setq load-path ',load-path)
-      (require 'org)
-      (require 'ox-latex)
-      (require 'org-ref)
-      (require 'engrave-faces)
-      (require 'org-inlinetask)
-      (require 'solarized-theme)
-      (load-theme 'solarized-dark t)
-      (setq engrave-faces-themes ',engrave-faces-themes)
-      (setq default-directory ,(file-name-directory (buffer-file-name)))
-      (find-file ,(buffer-file-name))
-      (setq enable-local-variables :all)
-      (hack-local-variables)
-      (org-latex-export-to-pdf)
-      "Export completed")
-   (lambda (result)
-     (message "Async export result: %s" result))))
-
-
-(use-package org-gantt
-  :after org
-  :defer t
-  :quelpa (org-gantt :fetcher github :repo "swillner/org-gantt"))
+;;(require 'async)
+;;(defun get-package-deps (package)
+;;  (mapcar #'car (package-desc-reqs (cadr (assq package package-alist)))))
+;;(defun async-export ()
+;;  (interactive)
+;;  (async-start
+;;   `(lambda ()
+;;      (setq load-path ',load-path)
+;;      (require 'org)
+;;      (require 'ox-latex)
+;;      (require 'org-ref)
+;;      (require 'engrave-faces)
+;;      (require 'org-inlinetask)
+;;      (require 'solarized-theme)
+;;      (load-theme 'solarized-dark t)
+;;      (setq engrave-faces-themes ',engrave-faces-themes)
+;;      (setq default-directory ,(file-name-directory (buffer-file-name)))
+;;      (find-file ,(buffer-file-name))
+;;      (setq enable-local-variables :all)
+;;      (hack-local-variables)
+;;      (org-latex-export-to-pdf)
+;;      "Export completed")
+;;   (lambda (result)
+;;     (message "Async export result: %s" result))))
+;;
+;;
+;;(use-package org-gantt
+;;  :after org
+;;  :defer t
+;;  :quelpa (org-gantt :fetcher github :repo "swillner/org-gantt"))
 
 (use-package org-ref
-  :after org
-  :config
-  (require 'org-ref))
-
-(use-package bibtex-completion
   :ensure t
-  :defer t
-  :custom
-  (bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n")
-  (bibtex-completion-additional-search-fields '(keywords))
-  (bibtex-completion-display-formats
-  '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
-    (inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
-    (incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-    (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
-    (t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}")))
-  (bibtex-completion-pdf-open-function
-    (lambda (fpath)
-      (call-process "okular" nil 0 nil fpath)))
+  :after org)
 
-  :config
-  (defun my-open-citation-at-point ()
-    (interactive) (bibtex-completion-open-pdf (list (thing-at-point 'symbol))))
-
-  (with-eval-after-load "evil"
-    (evil-define-key 'normal 'latex-mode-map "gp" 'my-open-citation-at-point)))
+;;(use-package bibtex-completion
+;;  :ensure t
+;;  :defer t
+;;  :custom
+;;  (bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n")
+;;  (bibtex-completion-additional-search-fields '(keywords))
+;;  (bibtex-completion-display-formats
+;;  '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
+;;    (inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
+;;    (incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+;;    (inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+;;    (t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}")))
+;;  (bibtex-completion-pdf-open-function
+;;    (lambda (fpath)
+;;      (call-process "okular" nil 0 nil fpath)))
+;;
+;;  :config
+;;  (defun my-open-citation-at-point ()
+;;    (interactive) (bibtex-completion-open-pdf (list (thing-at-point 'symbol))))
+;;
+;;  (with-eval-after-load "evil"
+;;    (evil-define-key 'normal 'latex-mode-map "gp" 'my-open-citation-at-point)))
 
 
 
 ;;; System
 ;;;---------
+
+;;;; Sytem packages
+
+(use-package system-packages
+  :ensure t
+  :config
+  (setq my/emacs-guix-profile "/home/lars/.emacs.d/guix-profile")
+  (setf (alist-get 'guix system-packages-supported-package-managers)
+        `((install . ,(format "guix install --profile=%s" my/emacs-guix-profile))
+          (search . "guix search")
+          (uninstall . ,(format "guix remove --profile=%s" my/emacs-guix-profile))
+          (update . ,(format "guix upgrade --profile=%s" my/emacs-guix-profile))
+          (clean-cache . ,(format "guix gc"))
+          (list-installed-packages . ,(format "guix package --profile=%s -I" my/emacs-guix-profile))
+          (list-installed-packages-all . ,(format "guix package --profile=%s -I" my/emacs-guix-profile)))))
 
 ;;;; D-Bus and Power
 ;;;;------------------
@@ -1710,6 +2098,28 @@ capture was not aborted."
 
 ;;;;; Eshell
 ;;;;;-------
+
+(defun my/with-foreground (face str)
+  (declare (indent 1))
+  (propertize str 'face `((t :foreground ,(face-foreground face)))))
+
+(defun my/with-background (face str)
+  (declare (indent 1))
+  (propertize str 'face `((t :background ,(face-background face)))))
+
+(defun my/eshell-prompt-user-and-host ()
+  (my/with-foreground 'term-color-green
+    (if (epe-remote-p)
+        (concat (epe-remote-user) "@" (epe-remote-host))
+      (concat (user-login-name) "@" system-name))))
+
+(defun my/eshell-prompt-venv ()
+  (when venv-current-dir
+    (format "(%s)"
+            (my/with-foreground 'term-color-green
+              (file-name-nondirectory
+               (directory-file-name
+                (or venv-current-dir "")))))))
 
 (use-package eshell
   :config
@@ -1760,12 +2170,12 @@ capture was not aborted."
   (defun git-status--dirty-p ()
     (not (string-blank-p (git-status))))
 
-  :hook
-  (eshell-mode . (lambda ()
-                   (setenv "TERM" "xterm-256color")
-                   ;; Buffer local hook
-                   (add-hook 'evil-insert-state-entry-hook
-                             #'my-eshell-evil-insert nil t)))
+  ;;:hook
+  ;;(eshell-mode . (lambda ()
+  ;;                 (setenv "TERM" "xterm-256color")
+  ;;                 ;; Buffer local hook
+  ;;                 (add-hook 'evil-insert-state-entry-hook
+  ;;                           #'my-eshell-evil-insert nil t)))
   :bind
   (:map eshell-mode-map
         ("C-r" . eshell-isearch-backward))
@@ -1879,7 +2289,7 @@ capture was not aborted."
 ;;;;;--------
 
 (use-package vterm
-  :ensure t
+  :ensure nil
   :defer t
   :custom
   (vterm-buffer-name-string "VTerm: %s")
@@ -1921,7 +2331,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
                 (apply orig-fun args))))
 
 (use-package multi-vterm
-  :ensure t
+  :ensure nil
   :defer t
   :after vterm)
 
@@ -2062,352 +2472,6 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 
 
 
-;;; EXWM
-;;;--------
-
-(defvar my-fullscreen-window-configuration nil
-  "Stores the window configuration before entering fullscreen.")
-
-(defun my-toggle-fullscreen ()
-  "Toggle fullscreen for the current buffer.
-Automatically exits fullscreen if any window-changing command is executed."
-  (interactive)
-  (if (= 1 (length (window-list)))
-      (when my-fullscreen-window-configuration
-        (set-window-configuration my-fullscreen-window-configuration)
-        (setq my-fullscreen-window-configuration nil)
-        (advice-remove 'split-window #'my-exit-fullscreen-advice))
-    (setq my-fullscreen-window-configuration (current-window-configuration))
-    (delete-other-windows)
-    (advice-add 'split-window :before #'my-exit-fullscreen-advice)))
-
-(defun my-exit-fullscreen-advice (&rest _)
-  "Advice to exit fullscreen before executing window-changing commands."
-  (when (and my-fullscreen-window-configuration
-             (eq (selected-frame)
-                 (window-configuration-frame my-fullscreen-window-configuration))
-    (my-toggle-fullscreen))))
-
-;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
-;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
-;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
-
-(use-package exwm
-  :ensure t
-  :when (eq window-system 'x)
-  :demand t
-  :config
-  (require 'exwm-randr)
-  (exwm-randr-mode 1)
-  (defun efs/exwm-update-class ()
-    (exwm-workspace-rename-buffer (truncate-string-to-width exwm-title 100)))
-
-  (defun lr/exwm-resize-left ()
-    (interactive)
-    (if (window-at-side-p nil 'right)
-        (exwm-layout-enlarge-window-horizontally 30)
-      (exwm-layout-shrink-window-horizontally 30)))
-  (defun lr/exwm-resize-right ()
-    (interactive)
-    (if (window-at-side-p nil 'right)
-        (exwm-layout-shrink-window-horizontally 30)
-      (exwm-layout-enlarge-window-horizontally 30)))
-  (defun lr/exwm-resize-up ()
-    (interactive)
-    (if (window-at-side-p nil 'bottom)
-        (exwm-layout-enlarge-window 30)
-      (exwm-layout-shrink-window 30)))
-  (defun lr/exwm-resize-down ()
-    (interactive)
-    (if (window-at-side-p nil 'bottom)
-        (exwm-layout-shrink-window 30)
-      (exwm-layout-enlarge-window 30)))
-
-  (defun my/exwm-randr-get-monitors ()
-    (mapcar #'car (cadr (exwm-randr--get-monitors))))
-  (defun my/exwm-configure-monitors ()
-    (interactive)
-    (let* ((monitors (my/exwm-randr-get-monitors))
-           (workspaces (number-sequence 1 (length monitors))))
-      (exwm-randr-refresh)
-      (setq exwm-randr-workspace-monitor-plist
-            (flatten-list (cl-mapcar #'cons workspaces monitors)))
-      ;; Wait until monitors are done un/re-connecting
-      (run-with-timer 5 nil #'exwm-randr-refresh)
-      (exwm-randr-refresh)))
-  (defun i3lock ()
-    (interactive)
-    (start-process-shell-command "i3lock" nil "i3lock -c 000000 -n"))
-  (defun xmodmap ()
-    (interactive)
-    (start-process-shell-command "xmodmap" nil "xmodmap ~/.Xmodmap"))
-  (xmodmap)
-  (defun xinput-finger-disable ()
-    (interactive)
-    (start-process-shell-command "xinput" nil
-                                 "xinput disable \"Wacom HID 5256 Finger\""))
-  (xinput-finger-disable)
-  :custom
-  ;; Set the default number of workspaces
-  (exwm-workspace-number 5)
-  (exwm-layout-show-all-buffers t)
-  (exwm-workspace-show-all-buffers t)
-  ;; These keys should always pass through to Emacs
-  (exwm-input-prefix-keys
-   '(?\C-x
-     ?\C-u
-     ?\C-h
-     ?\M-x
-     ?\M-`
-     ?\M-&
-     ?\M-:
-     ?\C-\ ))  ;; Ctrl+Space
-  ;; Set up global key bindings.  These always work, no matter the input state!
-  (exwm-input-global-keys
-   `(
-     ;; Reset to line-mode (C-c C-k switches to char-mode via exwm-input-release-keyboard)
-     ([?\s-r] . exwm-reset)
-
-     ([?\H-d] . app-launcher-run-app)
-     ([s-backspace] . kill-current-buffer)
-     ([S-s-backspace] . delete-window)
-     ([s-return] . eshell-toggle)
-
-     ;; Move focus between windows
-     ([s-left] . windmove-left)
-     ([s-right] . windmove-right)
-     ([s-up] . windmove-up)
-     ([s-down] . windmove-down)
-     ([?\s-h] . windmove-left)
-     ([?\s-l] . windmove-right)
-     ([?\s-k] . windmove-up)
-     ([?\s-j] . windmove-down)
-
-     ;; Next/prev buffer in window
-     ([?\s-n] . next-buffer)
-     ([?\s-p] . previous-buffer)
-
-     ;; Next/prev tabs
-     ([?\H-j] . tab-next)
-     ([?\H-k] . tab-previous)
-
-     ;; Move buffers
-     ([S-s-left] . buf-move-left)
-     ([S-s-right] . buf-move-right)
-     ([S-s-up] . buf-move-up)
-     ([S-s-down] . buf-move-down)
-     ([?\s-H] . buf-move-left)
-     ([?\s-L] . buf-move-right)
-     ([?\s-K] . buf-move-up)
-     ([?\s-J] . buf-move-down)
-
-     ;; Swap windows
-     ([M-s-left] . windmove-swap-states-left)
-     ([M-s-right] . windmove-swap-states-right)
-     ([M-s-up] . windmove-swap-states-up)
-     ([M-s-down] . windmove-swap-states-down)
-     ([?\M-\s-h] . windmove-swap-states-left)
-     ([?\M-\s-l] . windmove-swap-states-right)
-     ([?\M-\s-k] . windmove-swap-states-up)
-     ([?\M-\s-j] . windmove-swap-states-down)
-
-     ;; Resize window
-     ([C-s-left] . lr/exwm-resize-left)
-     ([C-s-down] . lr/exwm-resize-down)
-     ([C-s-up] . lr/exwm-resize-up)
-     ([C-s-right] . lr/exwm-resize-right)
-     ([?\C-\s-h] . lr/exwm-resize-left)
-     ([?\C-\s-j] . lr/exwm-resize-down)
-     ([?\C-\s-k] . lr/exwm-resize-up)
-     ([?\C-\s-l] . lr/exwm-resize-right)
-
-     ;; Toggle fullscreen
-     ([?\s-f] . my-toggle-fullscreen)
-
-     ;; Launch applications via shell command
-     ([?\s-&] . (lambda (command)
-                  (interactive (list (read-shell-command "$ ")))
-                  (start-process-shell-command command nil command)))
-
-     ;; Switch workspace
-     ([?\s-w] . exwm-workspace-switch)
-
-     ;; 's-N': Switch to certain workspace with Super (Win) plus a number key (0 - 9)
-     ,@(mapcar (lambda (i)
-                 `(,(kbd (format "s-%d" i)) .
-                   (lambda ()
-                     (interactive)
-                     (exwm-workspace-switch-create ,i))))
-               (number-sequence 0 9))))
-  :hook
-  (exwm-randr-screen-change . my/exwm-configure-monitors)
-  :config
-  ;; When window "class" updates, use it to set the buffer name
-  ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
-  (add-hook 'exwm-update-title-hook #'efs/exwm-update-class)
-
-  ;; Ctrl+Q will enable the next key to be sent directly
-  (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
-
-  ;; Make posframe appear in front of X11 windows
-  (with-eval-after-load 'posframe
-    (define-advice posframe-show (:filter-return (frame) exwm-deparent)
-      (set-frame-parameter frame 'parent-frame nil)
-      frame))
-
-  (exwm-enable))
-
-(use-package ednc
-  :ensure t
-  :after exwm
-  :preface
-  (defun my-ednc-notifier (old notification)
-  "Show TEXT in a posframe in the upper right corner of the main frame."
-  (let* ((main-frame (selected-frame))
-         (frame-width (frame-width main-frame))
-         (frame-height (frame-height main-frame))
-         (app-name (ednc-notification-app-name notification))
-         (app-icon (ednc-notification-app-icon notification))
-         (summary (ednc-notification-summary notification))
-         (body (ednc-notification-body notification))
-         (icon-image (if (f-file-p app-icon)
-                         (create-image app-icon nil nil :width 32 :height 32)
-                       ""))
-         (icon-string (propertize "" 'display icon-image))
-         (summary-text (propertize summary 'face 'bold))
-         (body-text (string-trim (string-fill body 40)))
-         (formatted-text
-          (format "%s%s\n%s\n%s"
-                  icon-string app-name summary-text (or body-text ""))))
-    (posframe-show
-     "*my-posframe-buffer*"
-     :string formatted-text
-     :poshandler (lambda (info) '(-1 . 16))
-     :background-color "black"
-     :border-color "red"
-     :border-width 2
-     :accept-focus nil
-     :timeout 10)))
-
-  :config
-  (ednc-mode 1)
-  (add-hook 'ednc-notification-presentation-functions 'my-ednc-notifier))
-
-
-(defun wait-for-exwm-window (window-name)
-  "Wait for an EXWM window with WINDOW-NAME to appear."
-  (interactive "sEnter window name: ")
-  (let ((window-exists nil))
-    (while (not window-exists)
-      (setq window-exists
-            (cl-some (lambda (win)
-                       (string-match-p window-name (exwm--get-window-title win)))
-                     (exwm--list-windows)))
-      (unless window-exists
-        (sit-for 1)))  ; Wait for 1 second before checking again
-    (message "The window '%s' has appeared!" window-name)))
-
-
-;; Rofi application launcher alternative
-(use-package app-launcher
-  :after exwm
-  :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
-
-
-
-;;;; Statusbar
-;;;;-----------
-
-(use-package tab-bar
-  :after exwm
-  :preface
-  (defun lr/tab-bar-time-and-date ()
-    (let* ((tab-bar-time-face '(:weight bold))
-           (tab-bar-time-format  "%a %-d %b, %H:%M "))
-      `((menu-bar menu-item
-                  ,(propertize (format-time-string tab-bar-time-format)
-                               'font-lock-face
-                               tab-bar-time-face)
-                  nil ;; <- Function to run when clicked
-                  :help "My heltp"))))
-  (defun lr/tab-bar-separator () " | ")
-  (defun ram ()
-    (lemon-monitor-display my/memory-monitor))
-  (defun cpu ()
-    (lemon-monitor-display my/cpu-monitor))
-  (defun bat ()
-    (lemon-monitor-display my/battery-monitor))
-  (defun net ()
-    (concat
-     (lemon-monitor-display my/network-rx-monitor)
-     (lemon-monitor-display my/network-tx-monitor)))
-
-  (defface my-tab-bar-face
-    '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
-    "Face for the tab bar.")
-  :hook
-  (exwm-init . tab-bar-mode)
-
-  :config
-  ;; Set the tab-bar face to use the custom face
-  (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
-  :custom
-  ;; Disable stupid "This window displayed buffer" in deleted buffers
-  (tab-bar-select-restore-windows nil)
-  (tab-bar-format `(tab-bar-format-history
-                    tab-bar-format-tabs
-                    tab-bar-separator
-                    tab-bar-format-add-tab
-                    tab-bar-format-align-right
-                    net
-                    ram
-                    cpu
-                    ,(when (lemon-battery-present?) 'bat)
-                    lr/tab-bar-separator
-                    lr/tab-bar-time-and-date)))
-
-(use-package lemon
-  :after exwm
-  :quelpa (lemon :fetcher codeberg :repo "emacs-weirdware/lemon"))
-
-(setq my/battery-monitor
-      (lemon-battery :display-opts '(:charging-indicator "+"
-                                     :discharging-indicator "-")))
-(setq my/battery-monitor-timer
-      (run-with-timer 0 30
-                      (lambda ()
-                        (lemon-monitor-update
-                         my/battery-monitor))))
-(setq my/cpu-monitor
-      (lemon-cpu-linux :display-opts '(:index "CPU: "
-                                       :unit "%")))
-(setq my/cpu-monitor-timer
-      (run-with-timer 0 1
-                      (lambda ()
-                        (lemon-monitor-update
-                         my/cpu-monitor))))
-(setq my/memory-monitor
-      (lemon-memory-linux :display-opts '(:index "MEM: "
-                                          :unit "%")))
-(setq my/memory-monitor-timer
-      (run-with-timer 0 30
-                      (lambda ()
-                        (lemon-monitor-update
-                         my/memory-monitor))))
-(setq my/network-rx-monitor (lemon-linux-network-rx))
-(setq my/network-tx-monitor (lemon-linux-network-tx))
-(setq my/network-monitor-timer
-      (run-with-timer 0 1
-                      (lambda ()
-                        (lemon-monitor-update
-                         my/network-rx-monitor)
-                        (lemon-monitor-update
-                         my/network-tx-monitor))))
-(setq my/tab-bar-refresh-timer
-      (run-with-timer 0 1
-                      'force-mode-line-update))
-
-
 ;;; Media players
 ;;;----------------
 
@@ -2496,6 +2560,7 @@ and sends a message of the current volume status."
 ;;;;------
 
 (use-package consult-mu
+  :when (memq 'mail my/enabled-features)
   :after (consult mu4e)
   :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
 
@@ -2510,6 +2575,7 @@ and sends a message of the current volume status."
   (insert "--8<---------------cut here---------------end--------------->8---"))
 
 (use-package mu4e
+  :when (memq 'mail my/enabled-features)
   :ensure nil
   ;;:init
   ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
@@ -2625,11 +2691,17 @@ and sends a message of the current volume status."
 ;;;;-----
 
 (use-package ement
+  :when (memq 'chat my/enabled-features)
   :defer t
   :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
 
 (use-package erc
+  :when (memq 'chat my/enabled-features)
   :defer t
+  :defines
+  erc-modules
+  :functions
+  define-erc-module
   :custom
   (erc-fill-function 'erc-fill-static)
   (erc-fill-static-center 15)
@@ -2637,6 +2709,7 @@ and sends a message of the current volume status."
   (erc-lurker-hide-list '("JOIN" "PART" "QUIT")))
 
 (use-package erc-twitch
+  :when (memq 'chat my/enabled-features)
   :ensure t
   :after erc
   :functions
@@ -2645,6 +2718,7 @@ and sends a message of the current volume status."
   (erc-twitch-enable))
 
 (use-package erc-hl-nicks
+  :when (memq 'chat my/enabled-features)
   :ensure t
   :after erc
   :functions
@@ -2653,10 +2727,11 @@ and sends a message of the current volume status."
   (erc-hl-nicks-enable))
 
 (use-package erc-image
+  :when (memq 'chat my/enabled-features)
   :ensure t
   :after erc
-  :functions
-  erc-image-enable
+  :functions (erc-image-enable
+              erc-image-disable)
   :config
   (erc-image-enable))
 
@@ -2666,6 +2741,7 @@ and sends a message of the current volume status."
 
 
 (use-package engine-mode
+  :when (memq 'web my/enabled-features)
   :ensure t
   :functions
   engine-mode
@@ -2714,7 +2790,12 @@ and sends a message of the current volume status."
 ;;;;--------------
 
 (use-package qutebrowser
-  :quelpa (qutebrowser :fetcher github :repo "lrustand/qutebrowser.el" :files (:defaults "*.py"))
+  :when (and (eq window-system 'x)
+             (memq 'web my/enabled-features))
+  :quelpa (qutebrowser :fetcher github
+                       :repo "minimaximalist/qutebrowser.el"
+                       :branch "new-consult-async"
+                       :files (:defaults "*.py"))
   :config
   (qutebrowser-theme-export-mode 1)
   (global-qutebrowser-doom-modeline-mode 1)
@@ -2922,5 +3003,12 @@ Might give duplicates, if a process has multiple windows."
   (let ((window-pids (mapcar #'exwm-buffer->pid (exwm-list-x-windows))))
     (cl-intersection window-pids (get-sink-input-pids))))
 
+
+(use-package emacs
+  :custom
+  (custom-file (concat user-emacs-directory "custom.el"))
+  :config
+  (when (file-exists-p custom-file)
+    (load custom-file)))
 
 ;;; init.el ends here
