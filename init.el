@@ -829,6 +829,39 @@ targets."
   (projectile-mode 1))
 
 
+;;; Major modes
+
+(use-package markdown-mode
+  :ensure t)
+
+(use-package yaml-mode
+  :ensure t)
+
+(use-package dockerfile-mode
+  :ensure t)
+
+(use-package docker-compose-mode
+  :ensure t)
+
+(use-package json-mode
+  :ensure t)
+
+(use-package arduino-mode
+  :ensure t)
+
+(use-package hy-mode
+  :ensure t)
+
+;; Major mode for editing X Keyboard Extension files
+(use-package xkb-mode
+  :ensure t)
+
+;; Major mode for editing various web templates with mixed/embedded languages
+(use-package web-mode
+  :ensure t)
+
+
+
 ;;; Python
 
 ;; NOTE: Deactivate in favor of auto-virtualenvwrapper
@@ -2779,24 +2812,12 @@ and sends a message of the current volume status."
 (advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
 
 
-(use-package bitbake
-  :ensure t
-  :defer t
-  :mode "bitbake-mode"
-  :init
-  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode))
-  :config
-  (with-eval-after-load 'lsp-mode
-    (add-to-list 'lsp-language-id-configuration
-      '(bitbake-mode . "bitbake"))
-    (lsp-register-client
-      (make-lsp-client
-      :new-connection (lsp-stdio-connection "bitbake-language-server")
-      :activation-fn (lsp-activate-on "bitbake")
-      :server-id 'bitbake)))
-
-  (with-eval-after-load "bitbake-mode"
-    (add-hook 'bitbake-mode-hook 'lsp)))
+;;(use-package bitbake
+;;  :ensure t
+;;  :defer t
+;;  :mode "bitbake-mode"
+;;  :init
+;;  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode)))
 
 
 (use-package tex
@@ -2809,9 +2830,9 @@ and sends a message of the current volume status."
   (TeX-view-program-selection '((output-pdf "Okular"))))
 
 
-(use-package scad-dbus
-  :defer t
-  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
+;;(use-package scad-dbus
+;;  :defer t
+;;  :quelpa (scad-dbus :fetcher github :repo "Lenbok/scad-dbus"))
 
 
 (use-package chess
@@ -2838,15 +2859,7 @@ and sends a message of the current volume status."
   :bind
   (:map xkcd-mode-map
         ("h" . xkcd-prev)
-        ("l" . xkcd-next))
-  :config
-  (defun xkcd-protocol-handler (&optional url)
-    (let ((num (string-to-number
-                (cl-remove-if-not #'cl-digit-char-p
-                                  (or url "")))))
-      (if (> num 0)
-          (xkcd-get num)
-        (xkcd)))))
+        ("l" . xkcd-next)))
 
 
 
