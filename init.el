@@ -2310,6 +2310,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :commands (dired dired-jump)
   :bind ("C-x C-j" . dired-jump)
   :custom
+  (dired-hide-details-hide-symlink-targets nil)
   (dired-listing-switches "-lAh --group-directories-first")
   (dired-kill-when-opening-new-dired-buffer t)
   :hook
@@ -2327,6 +2328,8 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 (use-package dired-git-info
   :ensure t
   :after dired
+  :custom
+  (dgi-auto-hide-details-p nil)
   :hook (dired-after-readin . dired-git-info-auto-enable))
 
 (use-package dired-narrow
@@ -2345,6 +2348,8 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :after dired)
 
 ;; Filetype icons in dired
+;; TODO: Clashes with dired-git-info-mode, when long commit messages.
+;; Makes the lines not wrap correctly
 (use-package all-the-icons-dired
   :ensure t
   :after dired
@@ -2356,7 +2361,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :ensure t
   :after dired
   :config
-  (global-dired-collapse-mode))
+  (global-dired-collapse-mode 1))
 
 ;; Keep reusing a single dired buffer instead of opening new
 ;; every time you navigate to another folder
