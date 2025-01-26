@@ -1129,6 +1129,21 @@ targets."
   :ensure t
   :demand t)
 
+(use-package bash-completion
+  :ensure t
+  :defer t
+  :autoload
+  bash-completion-dynamic-complete
+  bash-completion-capf-nonexclusive
+  :custom
+  (bash-completion-use-separate-processes t)
+  :init
+  (add-to-list 'shell-dynamic-complete-functions 'bash-completion-dynamic-complete)
+  :hook
+  (eshell-mode . (lambda ()
+                   (add-hook 'completion-at-point-functions
+                             'bash-completion-capf-nonexclusive nil t))))
+
 ;;;; Lisp
 ;;;;-----
 
