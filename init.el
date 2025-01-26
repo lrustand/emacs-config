@@ -2034,12 +2034,12 @@ capture was not aborted."
 ;;; System
 ;;;---------
 
-;;;; Sytem packages
+;;;; System packages
 
 (use-package system-packages
   :ensure t
   :config
-  (setq my/emacs-guix-profile "/home/lars/.emacs.d/guix-profile")
+  (setq my/emacs-guix-profile (concat user-emacs-directory "/guix-profile"))
   (setf (alist-get 'guix system-packages-supported-package-managers)
         `((install . ,(format "guix install --profile=%s" my/emacs-guix-profile))
           (search . "guix search")
