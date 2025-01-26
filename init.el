@@ -38,7 +38,7 @@
   (auto-package-update-interval 1)
   ;; Exclude packages installed from Guix
   (auto-package-update-excluded-packages
-   '(geiser geiser-guile vterm vterm-multi mu4e pdf-tools))
+   '(geiser geiser-guile vterm multi-vterm mu4e pdf-tools))
   :config
   ;; Do it before loading any other packages, to avoid having to restart
   (auto-package-update-maybe))
