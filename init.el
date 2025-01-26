@@ -1271,7 +1271,7 @@ targets."
   (corfu-cycle t)
   (corfu-preview-current t)
   ; Don't freeze quick scrolling through candidates
-  (corfu-popupinfo-delay 0.1)
+  (corfu-popupinfo-delay 0.2)
   (tab-always-indent 'complete)
   :config
   (with-eval-after-load "sly"
