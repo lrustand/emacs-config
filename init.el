@@ -2764,8 +2764,7 @@ and sends a message of the current volume status."
   :when (and (eq window-system 'x)
              (memq 'web my/enabled-features))
   :quelpa (qutebrowser :fetcher github
-                       :repo "minimaximalist/qutebrowser.el"
-                       :branch "new-consult-async"
+                       :repo "lrustand/qutebrowser.el"
                        :files (:defaults "*.py"))
   :config
   (qutebrowser-theme-export-mode 1)
