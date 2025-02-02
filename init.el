@@ -4,6 +4,10 @@
 ;;; Bootstrap
 ;;;---------------
 
+;; Load early-init.el in older emacs.
+(when (> 27 emacs-major-version)
+  (load "~/.emacs.d/early-init.el"))
+
 ;; Needs to be set EARLY
 (setq use-package-enable-imenu-support t)
 
@@ -33,7 +37,7 @@
 (async-bytecomp-package-mode 1)
 (setq package-quickstart t)
 
-;; Bootstrap `use-package'
+;; Bootstrap `use-package' for emacs < 29.1
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
