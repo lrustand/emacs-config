@@ -1638,6 +1638,8 @@ targets."
                   (:plugins
                    (:pylint (:enabled t)
                     :pycodestyle (:enabled :json-false)))))
+  :hook
+  (prog-mode . eglot-ensure)
   :custom
   (eglot-extend-to-xref t))
 
