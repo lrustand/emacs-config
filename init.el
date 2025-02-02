@@ -2615,11 +2615,9 @@ and sends a message of the current volume status."
 
   ;; use mu4e for e-mail in emacs
   (mail-user-agent 'mu4e-user-agent)
-  (sendmail-program "msmtp")
-  (send-mail-function 'smtpmail-send-it)
-  (message-sendmail-f-is-evil t)
-  (message-sendmail-extra-arguments '("--read-envelope-from"))
-  (message-send-mail-function 'message-send-mail-with-sendmail)
+  (user-mail-address "rustand.lars@gmail.com")
+  (mail-host-address "gmail.com")
+  (user-full-name "Lars Rustand")
   ;; these must start with a "/", and must exist
   ;; (i.e.. /home/user/Maildir/sent must exist)
   ;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
@@ -2630,6 +2628,25 @@ and sends a message of the current volume status."
   (mu4e-sent-folder   "/Sent Mail")
   (mu4e-drafts-folder "/Drafts")
   (mu4e-trash-folder  "/Trash"))
+
+(use-package message
+  ;; Not using msmtp anymore, switch to Emacs builtin smtpmail
+  ;;(sendmail-program "msmtp")
+  :custom
+  (message-sendmail-f-is-evil t)
+  (message-sendmail-extra-arguments '("--read-envelope-from")))
+
+;; Use emacs builtin smtpmail package to send mail.
+(use-package smtpmail
+  :custom
+  (send-mail-function 'smtpmail-send-it)
+  (message-send-mail-function 'smtpmail-send-it)
+  (smtpmail-smtp-user "rustand.lars@gmail.com")
+  ;; Password needs to be set in ~/.authinfo.gpg, like this:
+  ;; machine <smtp server> port <smtp port> login <smtp user> password <secret>
+  (smtpmail-smtp-server "smtp.gmail.com")
+  (smtpmail-smtp-service 465)
+  (smtpmail-stream-type 'ssl))
 
 (defun my-confirm-empty-subject ()
   "Allow user to quit when current message subject is empty."
