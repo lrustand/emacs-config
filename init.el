@@ -2043,7 +2043,7 @@ capture was not aborted."
 (use-package system-packages
   :ensure t
   :config
-  (setq my/emacs-guix-profile (concat user-emacs-directory "/guix-profile"))
+  (setq my/emacs-guix-profile (expand-file-name (concat user-emacs-directory "guix-profile")))
   (setf (alist-get 'guix system-packages-supported-package-managers)
         `((install . ,(format "guix install --profile=%s" my/emacs-guix-profile))
           (search . "guix search")
