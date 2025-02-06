@@ -2556,8 +2556,10 @@ and sends a message of the current volume status."
 (use-package mu4e
   :when (memq 'mail my/enabled-features)
   :ensure nil
-  ;;:init
-  ;;(add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e")
+  :ensure-system-package mu
+  :init
+  (when (file-exists-p "/usr/share/emacs/site-lisp/mu4e")
+    (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e"))
   :config
   (require 'mu4e-contrib)
   :commands
