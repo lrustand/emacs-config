@@ -2153,6 +2153,8 @@ capture was not aborted."
         ("C-r" . eshell-isearch-backward))
   :custom
   (eshell-history-size 10000)
+  (eshell-history-append t)
+  (eshell-hist-ignoredups t)
   ;;(setq eshell-visual-commands
   (eshell-prompt-function
    (lambda ()
