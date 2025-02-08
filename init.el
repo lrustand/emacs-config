@@ -238,8 +238,12 @@ Automatically exits fullscreen if any window-changing command is executed."
     (interactive)
     (let* ((monitors (my/exwm-randr-get-monitors))
            (workspaces (number-sequence 1 (length monitors))))
+      (exwm-randr-refresh)
       (setq exwm-randr-workspace-monitor-plist
-            (flatten-list (cl-mapcar #'cons workspaces monitors)))))
+            (flatten-list (cl-mapcar #'cons workspaces monitors)))
+      ;; Wait until monitors are done un/re-connecting
+      (run-with-timer 5 nil #'exwm-randr-refresh)
+      (exwm-randr-refresh)))
   (defun i3lock ()
     (interactive)
     (start-process-shell-command "i3lock" nil "i3lock -c 000000 -n"))
