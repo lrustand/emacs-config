@@ -2397,10 +2397,19 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 (use-package dired-git-info
   :ensure t
   :after dired
+  :config
+  (defun my/advice-dired-git-info-clamp-string (orig-fun str max)
+    "Fix line wrapping of long git commits in dired-git-info."
+    (when all-the-icons-dired-mode
+      (setq max (- max 3)))
+    (funcall orig-fun str max))
+  (advice-add 'dgi--clamp-string :around #'my/advice-dired-git-info-clamp-string)
   :custom
   (dgi-auto-hide-details-p nil)
   :hook (dired-after-readin . dired-git-info-auto-enable))
 
+;; TODO: tab to enter directory, (dired-narrow-enter-directory),
+;; or expand minibuffer input to hovered file.
 (use-package dired-narrow
   :ensure t
   :after dired
