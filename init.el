@@ -1713,6 +1713,7 @@ targets."
   :autoload
   ;; Used in eshell prompt
   magit-get-current-branch
+  magit-anything-modified-p
   :custom
   (magit-diff-refine-hunk t)
   :config
@@ -2120,10 +2121,12 @@ capture was not aborted."
   str)
 
 (defun my/eshell-prompt-user-and-host ()
+  (my/with-bold
+  (my/with-background 'term-color-black
   (my/with-foreground 'term-color-green
     (if (epe-remote-p)
         (concat (epe-remote-user) "@" (epe-remote-host))
-      (concat (user-login-name) "@" system-name))))
+      (concat (user-login-name) "@" system-name))))))
 
 (defun my/eshell-prompt-venv ()
   (when venv-current-dir
@@ -2183,8 +2186,10 @@ capture was not aborted."
         (with-current-buffer standard-output
           (call-process "git" nil t nil "status" "--porcelain")))))
 
+  ;;(defun git-status--dirty-p ()
+  ;;  (not (string-blank-p (git-status))))
   (defun git-status--dirty-p ()
-    (not (string-blank-p (git-status))))
+    (magit-anything-modified-p))
 
   (defun my/eshell-consult-dir-pick ()
     "Select a dir with consult and insert it in eshell."
@@ -2239,9 +2244,10 @@ capture was not aborted."
         (my/eshell-prompt-venv)
         (propertize (format-time-string "[%H:%M, %d/%m/%y]" (current-time)) 'face timedate-face)
         "\n"
-        (propertize (user-login-name) 'face username-face)
-        (propertize "@" 'face default-prompt-face)
-        (propertize (system-name) 'face hostname-face)
+        ;;(propertize (user-login-name) 'face username-face)
+        ;;(propertize "@" 'face default-prompt-face)
+        ;;(propertize (system-name) 'face hostname-face)
+        (my/eshell-prompt-user-and-host)
         (propertize (format " [%s]" (f-abbrev (eshell/pwd))) 'face default-prompt-face)
         (when (magit-get-current-branch)
           (concat
