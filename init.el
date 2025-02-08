@@ -350,6 +350,7 @@ Automatically exits fullscreen if any window-changing command is executed."
                (number-sequence 0 9))))
   :hook
   (exwm-randr-screen-change . my/exwm-configure-monitors)
+  (exwm-init . my/posframe-enable-exwm-advice)
   :config
   ;; When window "class" updates, use it to set the buffer name
   ;;(add-hook 'exwm-update-class-hook #'efs/exwm-update-class)
@@ -358,20 +359,23 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;; Ctrl+Q will enable the next key to be sent directly
   (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
 
-   (defun my/posframe-refposhandler (&optional frame)
-     "Get a correct reference position for posframe under EXWM."
-     (let* ((monitor-geometry (get-focused-monitor-geometry frame))
-            (monitor-x (nth 0 monitor-geometry))
-            (monitor-y (nth 1 monitor-geometry)))
-       (cons monitor-x monitor-y)))
+  (defun my/posframe-refposhandler (&optional frame)
+    "Get a correct reference position for posframe under EXWM."
+    (let* ((monitor-geometry (get-focused-monitor-geometry frame))
+           (monitor-x (nth 0 monitor-geometry))
+           (monitor-y (nth 1 monitor-geometry)))
+      (cons monitor-x monitor-y)))
 
-   (defun my/posframe-set-refposhandler (args)
-     "Fix position reference for all posframes."
-     (let ((props (cdr args))
-           (posframe (car args)))
-       (plist-put props :refposhandler #'my/posframe-refposhandler)
-       (cons posframe props)))
-   (advice-add 'posframe-show :filter-args #'my/posframe-set-refposhandler)
+  (defun my/posframe-set-refposhandler (args)
+    "Fix position reference for all posframes."
+    (let ((props (cdr args))
+          (posframe (car args)))
+      (plist-put props :refposhandler #'my/posframe-refposhandler)
+      (cons posframe props)))
+
+  (defun my/posframe-enable-exwm-advice ()
+    "Enable advice which corrects the posframe position under EXWM."
+    (advice-add 'posframe-show :filter-args #'my/posframe-set-refposhandler))
 
   ;; Make posframe appear in front of X11 windows
   (with-eval-after-load 'posframe
