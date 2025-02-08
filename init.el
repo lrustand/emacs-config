@@ -45,9 +45,8 @@
 (use-package auto-package-update
   :ensure t
   :custom
-  ;; Auto-update Emacs packages every 1 days
-  ;; TODO: Change to 30 after testing for a while
-  (auto-package-update-interval 1)
+  ;; Auto-update Emacs packages every 30 days
+  (auto-package-update-interval 30)
   ;; Exclude packages installed from Guix
   (auto-package-update-excluded-packages
    '(geiser geiser-guile vterm multi-vterm mu4e pdf-tools))
