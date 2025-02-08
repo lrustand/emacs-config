@@ -2078,11 +2078,21 @@ capture was not aborted."
 
 (defun my/with-foreground (face str)
   (declare (indent 1))
-  (propertize str 'face `((t :foreground ,(face-foreground face)))))
+  (add-face-text-property 0 (length str)
+                          `(:foreground ,(face-foreground face)) nil str)
+  str)
 
 (defun my/with-background (face str)
   (declare (indent 1))
-  (propertize str 'face `((t :background ,(face-background face)))))
+  (add-face-text-property 0 (length str)
+                          `(:background ,(face-background face)) nil str)
+  str)
+
+(defun my/with-bold (str)
+  (declare (indent 1))
+  (add-face-text-property 0 (length str)
+                          `(:weight bold) nil str)
+  str)
 
 (defun my/eshell-prompt-user-and-host ()
   (my/with-foreground 'term-color-green
@@ -2092,11 +2102,19 @@ capture was not aborted."
 
 (defun my/eshell-prompt-venv ()
   (when venv-current-dir
-    (format "(%s)"
-            (my/with-foreground 'term-color-green
-              (file-name-nondirectory
-               (directory-file-name
-                (or venv-current-dir "")))))))
+    (let* ((venv-parent-dir (thread-last venv-current-dir
+                                         (file-name-parent-directory)
+                                         (string-remove-suffix "/")
+                                         (file-name-nondirectory)))
+           (venv-name (if (string-empty-p venv-current-name)
+                          venv-parent-dir
+                        venv-current-name)))
+      (concat
+       (thread-last (format "(%s)" venv-name)
+                    (my/with-bold)
+                    (my/with-background 'term-color-black)
+                    (my/with-foreground 'term-color-green))
+       "\n"))))
 
 (use-package eshell
   :config
@@ -2186,7 +2204,7 @@ capture was not aborted."
                                                :weight bold)))
        (concat
         "\n"
-        ;;(propertize (if venv-current-name (concat " (" venv-current-name ")\n")  "") 'face `(:foreground "#00dc00"))
+        (my/eshell-prompt-venv)
         (propertize (format-time-string "[%H:%M, %d/%m/%y]" (current-time)) 'face timedate-face)
         "\n"
         (propertize (user-login-name) 'face username-face)
