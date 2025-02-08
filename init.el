@@ -1008,6 +1008,11 @@ characters respectably."
    '((consult-imenu buffer (:not posframe))
      (consult-grep buffer (:not posframe))
      (consult-outline buffer (:not posframe))
+     (consult-xref buffer (:not posframe)
+                   (vertico-buffer-display-action . (display-buffer-below-selected)))
+     ;; consult-history in eshell
+     (eshell-send-input buffer (:not posframe)
+               (vertico-buffer-display-action . (display-buffer-below-selected)))
      (my/consult-org-headings buffer (:not posframe))))
   (vertico-sort-function #'vertico-sort-history-alpha)
   (vertico-buffer-display-action '(display-buffer-same-window))
@@ -1062,9 +1067,16 @@ characters respectably."
       ;; For non-matching candidates, fall back to buffer creation.
       (unless (plist-get (cdr selected) :match)
         (consult--buffer-action (car selected)))))
+  (defun my/advice-consult-command-with-preview (orig-fun &rest args)
+    "Advice any consult command to enable preview."
+    (let ((consult-preview-key 'any))
+      (apply orig-fun args)))
   :config
   (advice-add 'consult-buffer :override #'my/consult-buffer)
+  (advice-add 'consult-xref :around #'my/advice-consult-command-with-preview)
   :custom
+  (xref-show-xrefs-function #'consult-xref)
+  (xref-show-definitions-function #'consult-xref)
   (consult-buffer-sources
    '(consult--source-hidden-buffer
      consult--source-modified-buffer
