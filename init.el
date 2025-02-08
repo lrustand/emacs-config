@@ -1292,6 +1292,9 @@ targets."
       (funcall orig-fun frame new-x new-y width height)))
   :hook
   (minibuffer-setup . corfu-enable-in-minibuffer)
+  ;; Don't autoinsert first candidate when pressing tab.
+  :bind (:map corfu-map
+         ("TAB" . corfu-expand)) ; default is corfu-complete
   :custom
   (corfu-auto nil)
   ;;(corfu-auto-delay 0.6)
