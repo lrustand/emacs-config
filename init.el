@@ -970,21 +970,21 @@ characters respectably."
 ;; Usually recursive, but see below
 (setq enable-recursive-minibuffers t)
 
-(defun my-minibuffer-unrecursion ()
-  "Replace running minibuffer."
-  (when (> (minibuffer-depth) 1)
-    (run-with-timer 0 nil 'my-interactive-command
-                    this-command current-prefix-arg)
-    (abort-recursive-edit)))
-
-(defun my-interactive-command (cmd arg)
-  "Call new minibuffer CMD with ARG."
-  (let ((current-prefix-arg arg))
-    (call-interactively cmd)))
-
-;; Drag stuff up/down etc with M-<up>, M-<down>...
-;; Replace current minibuffer with a new one
-(add-hook 'minibuffer-setup-hook 'my-minibuffer-unrecursion)
+;; NOTE: Disabled for using consult-history
+;;(defun my-minibuffer-unrecursion ()
+;;  "Replace running minibuffer."
+;;  (when (> (minibuffer-depth) 1)
+;;    (run-with-timer 0 nil 'my-interactive-command
+;;                    this-command current-prefix-arg)
+;;    (abort-recursive-edit)))
+;;
+;;(defun my-interactive-command (cmd arg)
+;;  "Call new minibuffer CMD with ARG."
+;;  (let ((current-prefix-arg arg))
+;;    (call-interactively cmd)))
+;;
+;;;;Replace current minibuffer with a new one
+;;(add-hook 'minibuffer-setup-hook 'my-minibuffer-unrecursion)
 
 (use-package vertico
   :ensure t
@@ -1079,7 +1079,9 @@ characters respectably."
                        (?t "Types" font-lock-type-face)
                        (?v "Variables" font-lock-variable-name-face)))))
   :bind (("C-x b" . consult-buffer)
-         ("C-h i" . consult-info)))
+         ("C-h i" . consult-info))
+  :bind (:map minibuffer-mode-map
+              ("C-r" . consult-history)))
 
 (use-package consult-projectile
   :ensure t
