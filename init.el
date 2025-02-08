@@ -80,6 +80,8 @@
 
 (advice-add 'package-upgrade :around #'dont-upgrade-external)
 
+(use-package general
+  :ensure t)
 
 ;;; Theme
 ;;;-------
@@ -2142,10 +2144,6 @@ capture was not aborted."
 
   ;; Apply the advice to the original eshell/cd function
   (advice-add 'eshell/cd :around #'eshell-cd-advice)
-  ;; TODO: Make functions to navigate back/forward
-
-  ;; Bind the history view function to a key for easy access
-  (define-key eshell-mode-map (kbd "C-c C-d") 'eshell-cd-history-view)
 
   (defun my-eshell-evil-insert ()
     "Move cursor to end of prompt when entering insert mode in Eshell."
@@ -2165,15 +2163,26 @@ capture was not aborted."
   (defun git-status--dirty-p ()
     (not (string-blank-p (git-status))))
 
-  ;;:hook
-  ;;(eshell-mode . (lambda ()
-  ;;                 (setenv "TERM" "xterm-256color")
-  ;;                 ;; Buffer local hook
-  ;;                 (add-hook 'evil-insert-state-entry-hook
-  ;;                           #'my-eshell-evil-insert nil t)))
-  :bind
-  (:map eshell-mode-map
-        ("C-r" . eshell-isearch-backward))
+  (defun my/eshell-consult-dir-pick ()
+    "Select a dir with consult and insert it in eshell."
+    (interactive)
+    (insert (consult-dir--pick)))
+  (defun my/eshell-consult-dir-cd ()
+    "Select a dir with consult and cd to it in eshell."
+    (interactive)
+    (eshell/cd (consult-dir--pick))
+    (eshell-emit-prompt))
+  :hook
+  (eshell-mode . (lambda ()
+                   ;; (setenv "TERM" "xterm-256color")
+                   ;; Buffer local hook
+                   (add-hook 'evil-insert-state-entry-hook
+                             #'my-eshell-evil-insert nil t)))
+  :general
+  (:keymaps 'eshell-mode-map
+   :states 'insert
+   "C-r" 'consult-history
+   "C-c C-d" 'my/eshell-consult-dir-cd)
   :custom
   (eshell-history-size 10000)
   (eshell-history-append t)
