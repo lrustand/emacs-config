@@ -2054,6 +2054,10 @@ capture was not aborted."
           (list-installed-packages . ,(format "guix package --profile=%s -I" my/emacs-guix-profile))
           (list-installed-packages-all . ,(format "guix package --profile=%s -I" my/emacs-guix-profile)))))
 
+(use-package bluetooth
+  :ensure t
+  :ensure-system-package bluez)
+
 ;;;; D-Bus and Power
 ;;;;------------------
 
