@@ -2863,6 +2863,8 @@ and sends a message of the current volume status."
   :quelpa (qutebrowser :fetcher github
                        :repo "lrustand/qutebrowser.el"
                        :files (:defaults "*.py"))
+  :custom
+  (browse-url-browser-function #'qutebrowser-open-url)
   :config
   (qutebrowser-theme-export-mode 1)
   (global-qutebrowser-doom-modeline-mode 1)
