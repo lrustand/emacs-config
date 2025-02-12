@@ -719,6 +719,7 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;;  (set-face-background 'line-number (face-attribute 'mode-line :background)))
 
   :custom
+  (vc-follow-symlinks t)
   ;; Don't save faces to custom file
   (custom-file-save-faces nil)
   (backup-directory-alist '((".*" . "~/.emacs.d/backup")))
