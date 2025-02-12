@@ -25,63 +25,121 @@
         exwm))
 
 
+;;;; Elpaca
+
+;; TODO: Fix this
+(setq elpaca-core-date 20250101)
+
+;; Example Elpaca configuration
+(defvar elpaca-installer-version 0.9)
+(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil :depth 1 :inherit ignore
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (< emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                  ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                  ,@(when-let* ((depth (plist-get order :depth)))
+                                                      (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                  ,(plist-get order :repo) ,repo))))
+                  ((zerop (call-process "git" nil buffer t "checkout"
+                                        (or (plist-get order :ref) "--"))))
+                  (emacs (concat invocation-directory invocation-name))
+                  ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                        "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                  ((require 'elpaca))
+                  ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
+      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (load "./elpaca-autoloads")))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
+
+;; Uncomment for systems which cannot create symlinks:
+;; (elpaca-no-symlink-mode)
+
+;; Install use-package support
+(elpaca elpaca-use-package
+  ;; Enable use-package :ensure support for Elpaca.
+  (elpaca-use-package-mode))
+
+;;When installing a package used in the init file itself,
+;;e.g. a package which adds a use-package key word,
+;;use the :wait recipe keyword to block until that package is installed/configured.
+;;For example:
+;;(use-package general :ensure (:wait t) :demand t)
 
 ;;;; Use-package setup
 ;;;;-------------------
 
 ;; Set up package.el to work with MELPA
-(require 'package)
-(add-to-list 'package-archives
-         '("melpa" . "https://melpa.org/packages/"))
+;;(require 'package)
+;;(add-to-list 'package-archives
+;;         '("melpa" . "https://melpa.org/packages/"))
 
-(async-bytecomp-package-mode 1)
-(setq package-quickstart t)
+;;(async-bytecomp-package-mode 1)
+;;(setq package-quickstart t)
 
 ;; Bootstrap `use-package' for emacs < 29.1
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
+;;(unless (package-installed-p 'use-package)
+;;  (package-refresh-contents)
+;;  (package-install 'use-package))
 
-(use-package auto-package-update
-  :ensure t
-  :custom
-  ;; Auto-update Emacs packages every 30 days
-  (auto-package-update-interval 30)
-  ;; Exclude packages installed from Guix
-  (auto-package-update-excluded-packages
-   '(geiser geiser-guile vterm multi-vterm mu4e pdf-tools))
-  :config
-  ;; Do it before loading any other packages, to avoid having to restart
-  (auto-package-update-maybe))
+;;(use-package auto-package-update
+;;  :ensure t
+;;  :custom
+;;  ;; Auto-update Emacs packages every 30 days
+;;  (auto-package-update-interval 30)
+;;  ;; Exclude packages installed from Guix
+;;  (auto-package-update-excluded-packages
+;;   '(geiser geiser-guile vterm multi-vterm mu4e pdf-tools))
+;;  :config
+;;  ;; Do it before loading any other packages, to avoid having to restart
+;;  (auto-package-update-maybe))
 
 (eval-when-compile
   (require 'use-package))
 
 ;; Used for installing packages from git
-(use-package quelpa-use-package
-  :ensure t
-  :config
-  ;; Avoid loading quelpa if not necessary
-  (setq quelpa-use-package-inhibit-loading-quelpa t)
-  :custom
-  ;; We don't use quelpa to checkout things from melpa.
-  ;; This avoids the extremely annoying "contacting melpa"
-  ;; when starting emacs.
-  (quelpa-update-melpa-p nil)
-  (quelpa-checkout-melpa-p nil)
-  (quelpa-async-p t)
-  (quelpa-verbose nil)
-  (quelpa-build-verbose nil))
-
-(defun dont-upgrade-external (orig-fun name)
-  (if (package--user-installed-p name)
-      (apply orig-fun (list name))
-    (message "Package %s is external, not deleting" name)))
-
-(advice-add 'package-upgrade :around #'dont-upgrade-external)
+;;(use-package quelpa-use-package
+;;  :ensure t
+;;  :config
+;;  ;; Avoid loading quelpa if not necessary
+;;  (setq quelpa-use-package-inhibit-loading-quelpa t)
+;;  :custom
+;;  ;; We don't use quelpa to checkout things from melpa.
+;;  ;; This avoids the extremely annoying "contacting melpa"
+;;  ;; when starting emacs.
+;;  (quelpa-update-melpa-p nil)
+;;  (quelpa-checkout-melpa-p nil)
+;;  (quelpa-async-p t)
+;;  (quelpa-verbose nil)
+;;  (quelpa-build-verbose nil))
+;;
+;;(defun dont-upgrade-external (orig-fun name)
+;;  (if (package--user-installed-p name)
+;;      (apply orig-fun (list name))
+;;    (message "Package %s is external, not deleting" name)))
+;;
+;;(advice-add 'package-upgrade :around #'dont-upgrade-external)
 
 (use-package general
-  :ensure t)
+  :ensure (:wait t))
 
 ;;; Theme
 ;;;-------
@@ -89,8 +147,47 @@
 
 (use-package solarized-theme
   :ensure t
+  :after auto-dim-other-buffers
+  :preface
+  ;; Using this to change the auto-dim-other-bufers-face for solarized
+  ;; Taken from alphapapa unpackaged scripts
+  (defun unpackaged/customize-theme-faces (theme &rest faces)
+    "Customize THEME with FACES.
+  Advises `enable-theme' with a function that customizes FACES when
+  THEME is enabled.  If THEME is already enabled, also applies
+  faces immediately.  Calls `custom-theme-set-faces', which see."
+    (declare (indent defun))
+    (when (member theme custom-enabled-themes)
+      ;; Theme already enabled: apply faces now.
+      (let ((custom--inhibit-theme-enable nil))
+        (apply #'custom-theme-set-faces theme faces)))
+    (let ((fn-name (intern (concat "unpackaged/enable-theme-advice-for-" (symbol-name theme)))))
+      ;; Apply advice for next time theme is enabled.
+      (fset fn-name
+            (lambda (enabled-theme)
+              (when (eq enabled-theme theme)
+                (let ((custom--inhibit-theme-enable nil))
+                  (apply #'custom-theme-set-faces theme faces)))))
+      (advice-remove #'enable-theme fn-name)
+      (advice-add #'enable-theme :after fn-name)))
+  :preface
+  ;; Fix load-theme
+  (defun disable-all-themes-before-load (&rest _)
+    "Disable all themes before loading a new one."
+    (mapcar #'disable-theme custom-enabled-themes))
   :config
-  (load-theme 'solarized-dark t))
+  (window-divider-mode 1)
+  (advice-add 'load-theme :before #'disable-all-themes-before-load)
+  ;; Fix the unfocused backgrounds of solarized
+  (unpackaged/customize-theme-faces 'solarized-dark
+    '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
+  (unpackaged/customize-theme-faces 'solarized-light
+    '(auto-dim-other-buffers-face ((t (:background
+                                     "#eee8d5")))))
+  (load-theme 'solarized-dark t)
+  (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
+  (set-face-attribute 'window-divider-first-pixel nil :foreground (face-attribute 'mode-line :background))
+  (set-face-attribute 'window-divider-last-pixel nil :foreground (face-attribute 'mode-line :background)))
 
 (use-package doom-modeline
   :ensure t
@@ -108,28 +205,6 @@
 
 ;; Set default font
 (set-frame-font "DeJavu Sans Mono 10" nil t)
-
-;; Using this to change the auto-dim-other-bufers-face for solarized
-;; Taken from alphapapa unpackaged scripts
-(defun unpackaged/customize-theme-faces (theme &rest faces)
-  "Customize THEME with FACES.
-Advises `enable-theme' with a function that customizes FACES when
-THEME is enabled.  If THEME is already enabled, also applies
-faces immediately.  Calls `custom-theme-set-faces', which see."
-  (declare (indent defun))
-  (when (member theme custom-enabled-themes)
-    ;; Theme already enabled: apply faces now.
-    (let ((custom--inhibit-theme-enable nil))
-      (apply #'custom-theme-set-faces theme faces)))
-  (let ((fn-name (intern (concat "unpackaged/enable-theme-advice-for-" (symbol-name theme)))))
-    ;; Apply advice for next time theme is enabled.
-    (fset fn-name
-          (lambda (enabled-theme)
-            (when (eq enabled-theme theme)
-              (let ((custom--inhibit-theme-enable nil))
-                (apply #'custom-theme-set-faces theme faces)))))
-    (advice-remove #'enable-theme fn-name)
-    (advice-add #'enable-theme :after fn-name)))
 
 ;; Automatically dim the background color of unfocused buffers
 (use-package auto-dim-other-buffers
@@ -154,21 +229,15 @@ faces immediately.  Calls `custom-theme-set-faces', which see."
 ;;;; Theme modifications
 ;;;;----------------------
 
-;; Fix the unfocused backgrounds of solarized
-(unpackaged/customize-theme-faces 'solarized-dark
-  '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
-(unpackaged/customize-theme-faces 'solarized-light
-  '(auto-dim-other-buffers-face ((t (:background
-                                     "#eee8d5")))))
 
 ;; Swap the modeline bg colors for oksolar-dark
-(unpackaged/customize-theme-faces 'doom-oksolar-dark
-  `(mode-line-active
-    ((t (:background ,(face-attribute 'mode-line-inactive
-                                      :background)))))
-  `(mode-line-inactive
-    ((t (:background ,(face-attribute 'mode-line-active
-                                      :background))))))
+;;(unpackaged/customize-theme-faces 'doom-oksolar-dark
+;;  `(mode-line-active
+;;    ((t (:background ,(face-attribute 'mode-line-inactive
+;;                                      :background)))))
+;;  `(mode-line-inactive
+;;    ((t (:background ,(face-attribute 'mode-line-active
+;;                                      :background))))))
 
 ;;; EXWM
 ;;;--------
@@ -440,7 +509,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 (use-package app-launcher
   :after exwm
   :defer t
-  :quelpa (app-launcher :fetcher github :repo "SebastienWae/app-launcher"))
+  :ensure (:fetcher github :repo "SebastienWae/app-launcher"))
 
 
 
@@ -506,7 +575,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 (defvar my/tab-bar-refresh-timer)
 
 (use-package lemon
-  :quelpa (lemon :fetcher codeberg :repo "emacs-weirdware/lemon")
+  :ensure (:fetcher codeberg :repo "emacs-weirdware/lemon")
   :after exwm
   :autoload
   lemon-monitor-display
@@ -576,10 +645,13 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package evil-collection
   :ensure t
+  :demand t
   :after evil
   ;; Silence flymake errors
   :functions
   evil-collection-init
+  :autoload
+  evil-collection-define-key
   :config
   (evil-collection-init))
 
@@ -639,25 +711,12 @@ Automatically exits fullscreen if any window-changing command is executed."
   (global-auto-revert-mode 1)
   (save-place-mode 1)
 
-  (window-divider-mode 1)
-  (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
-  (set-face-attribute 'window-divider-first-pixel nil :foreground (face-attribute 'mode-line :background))
-  (set-face-attribute 'window-divider-last-pixel nil :foreground (face-attribute 'mode-line :background))
-
   ;; change all prompts to y or n
   (fset 'yes-or-no-p 'y-or-n-p)
 
   ;; TODO Do this same way as for auto dim, see above
   ;;(defun set-line-number-background ()
   ;;  (set-face-background 'line-number (face-attribute 'mode-line :background)))
-
-  :preface
-  ;; Fix load-theme
-  (defun disable-all-themes-before-load (&rest _)
-    "Disable all themes before loading a new one."
-    (mapcar #'disable-theme custom-enabled-themes))
-  :config
-  (advice-add 'load-theme :before #'disable-all-themes-before-load)
 
   :custom
   ;; Don't save faces to custom file
@@ -710,7 +769,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;;;--------------------------------
 
 (use-package perspective-tabs
-  :quelpa (perspective-tabs :fetcher sourcehut :repo "woozong/perspective-tabs"))
+  :ensure (:fetcher sourcehut :repo "woozong/perspective-tabs"))
 
 ;; Fix posframes in persp-mode
 ;(add-hook
@@ -748,7 +807,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;; Lines 45-48 in framemove.el. Use exwm-workspace--get-geometry.
 (use-package framemove
   :when (display-graphic-p)
-  :quelpa (framemove :fetcher github :repo "jsilve24/framemove")
+  :ensure (:fetcher github :repo "jsilve24/framemove")
   :init
   (setq framemove-hook-into-windmove t)
   :preface
@@ -1707,6 +1766,9 @@ targets."
   :ensure t
   :defer t)
 
+(use-package transient
+  :ensure t)
+
 (use-package magit
   :ensure t
   :defer t
@@ -2070,7 +2132,7 @@ capture was not aborted."
 ;;;; System packages
 
 (use-package system-packages
-  :ensure t
+  :ensure (:wait t)
   :config
   (setq my/emacs-guix-profile (expand-file-name (concat user-emacs-directory "guix-profile")))
   (setf (alist-get 'guix system-packages-supported-package-managers)
@@ -2090,7 +2152,7 @@ capture was not aborted."
 ;;;;------------------
 
 (use-package dbus
-  :ensure t)
+  :ensure nil)
 
 ;;;; Terminal
 ;;;;----------
@@ -2376,6 +2438,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 
 (use-package dired
   :ensure nil
+  :after evil-collection
   :commands (dired dired-jump)
   :bind ("C-x C-j" . dired-jump)
   :custom
@@ -2611,7 +2674,7 @@ and sends a message of the current volume status."
 (use-package consult-mu
   :when (memq 'mail my/enabled-features)
   :after (consult mu4e)
-  :quelpa (consult-mu :fetcher github :repo "armindarvish/consult-mu"))
+  :ensure (:fetcher github :repo "armindarvish/consult-mu"))
 
 (defun insert-cut-here-start ()
   "Insert opening \"cut here start\" snippet."
@@ -2731,8 +2794,7 @@ and sends a message of the current volume status."
 (add-hook 'message-send-hook #'my-confirm-empty-subject)
 
 (use-package mu4e-thread-folding
-  :quelpa (mu4e-thread-folding
-           :fetcher github
+  :ensure (:fetcher github
            :repo "rougier/mu4e-thread-folding")
   :after mu4e
   :config
@@ -2761,7 +2823,7 @@ and sends a message of the current volume status."
 (use-package ement
   :when (memq 'chat my/enabled-features)
   :defer t
-  :quelpa (ement :fetcher github :repo "alphapapa/ement.el"))
+  :ensure (:fetcher github :repo "alphapapa/ement.el"))
 
 (use-package erc
   :when (memq 'chat my/enabled-features)
@@ -2860,9 +2922,9 @@ and sends a message of the current volume status."
 (use-package qutebrowser
   :when (and (eq window-system 'x)
              (memq 'web my/enabled-features))
-  :quelpa (qutebrowser :fetcher github
-                       :repo "lrustand/qutebrowser.el"
-                       :files (:defaults "*.py"))
+  :ensure (:fetcher github
+           :repo "lrustand/qutebrowser.el"
+           :files (:defaults "*.py"))
   :custom
   (browse-url-browser-function #'qutebrowser-open-url)
   :config

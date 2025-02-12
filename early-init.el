@@ -10,3 +10,4 @@
 (push '(foreground-color . "#839496") (alist-get 'x window-system-default-frame-alist))
 
 (setq gc-cons-threshold 500000000) ; Set to 500MB
+(setq package-enable-at-startup nil)
