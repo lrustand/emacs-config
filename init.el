@@ -2164,6 +2164,9 @@ capture was not aborted."
 ;;;;; Eshell
 ;;;;;-------
 
+(use-package eshell-prompt-extras
+  :ensure t)
+
 (defun my/with-foreground (face str)
   (declare (indent 1))
   (add-face-text-property 0 (length str)
