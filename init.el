@@ -758,12 +758,18 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 ;;;; GPG
 
-(use-package pinentry
-  :ensure t
+(use-package epg
+  :demand t
   :custom
-  (epg-pinentry-mode 'loopback)
-  :config
-  (pinentry-start))
+  (epg-gpg-program "gpg2")
+  (epg-pinentry-mode 'loopback))
+
+(use-package password-store
+  :ensure t)
+
+(use-package password-store-otp
+  :ensure t
+  :after password-store)
 
 ;;;; Workspace/project management
 ;;;;--------------------------------
