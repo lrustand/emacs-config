@@ -2152,7 +2152,7 @@ capture was not aborted."
 
 (use-package bluetooth
   :ensure t
-  :ensure-system-package bluez)
+  :ensure-system-package (bluetoothctl . bluez))
 
 ;;;; D-Bus and Power
 ;;;;------------------
