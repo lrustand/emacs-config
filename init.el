@@ -1784,6 +1784,8 @@ targets."
   magit-get-current-branch
   magit-anything-modified-p
   :custom
+  ;; Don't nag extreme amounts when having an unsaved file
+  (magit-save-repository-buffers nil)
   (magit-diff-refine-hunk t)
   :config
   ;; Create "commits" in reflog of uncommitted changes
@@ -2730,6 +2732,7 @@ and sends a message of the current volume status."
   ;; Don't create tons of "draft" messages
   (mu4e-compose-mode . (lambda () (auto-save-mode -1)))
   :custom
+  (mu4e-headers-open-after-move nil)
   ;; Don't spam the echo area all the time
   (mu4e-hide-index-messages t)
   ;; Don't mess with my window layout
