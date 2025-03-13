@@ -1730,10 +1730,29 @@ targets."
                   (:plugins
                    (:pylint (:enabled t)
                     :pycodestyle (:enabled :json-false)))))
+  (add-to-list 'eglot-server-programs
+               '((c++-mode c-mode)
+                 "clangd"
+                 "-j=2"
+                 "--query-driver=/usr/bin/c++*,/usr/bin/g++*,/usr/bin/gcc*,/usr/bin/cc*"
+                 "--compile-commands-dir=build"
+                 "--clang-tidy=true"
+                 "--all-scopes-completion=true"
+                 "--header-insertion=iwyu"
+                 "--header-insertion-decorators=true"))
   :hook
   (prog-mode . eglot-ensure)
   :custom
   (eglot-extend-to-xref t))
+
+(use-package cc-mode
+  :config
+  (defun c-indent-then-complete ()
+    (interactive)
+    (if (= 0 (c-indent-line-or-region))
+	(completion-at-point)))
+  :bind (:map c++-mode-map
+              ("<tab>" . c-indent-then-complete)))
 
 
 (use-package eldoc-box
