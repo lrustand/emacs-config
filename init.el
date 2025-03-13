@@ -579,7 +579,20 @@ Automatically exits fullscreen if any window-changing command is executed."
   :after exwm
   :autoload
   lemon-monitor-display
+  :preface
+  (defun my/advice:lemon-battery--face (args)
+    "Replace 0:00 time-left with N/A, to avoid error face when battery is full."
+    (let* ((charging (nth 0 args))
+           (percent (nth 1 args))
+           (time-left (nth 2 args))
+           (time-left (cond
+                       ((and (string= "0:00" time-left)
+                             (>= percent 90))
+                        "N/A")
+                      (t time-left))))
+      (list charging percent time-left)))
   :config
+  (advice-add 'lemon-battery--face :filter-args #'my/advice:lemon-battery--face)
   (setq my/battery-monitor
    (lemon-battery :display-opts '(:charging-indicator "+"
                                   :discharging-indicator "-")))
