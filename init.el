@@ -2570,7 +2570,8 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   ;; Disable blinking border around pdf pages (caused by cursor blink)
   (pdf-view-mode . (lambda ()
                      (set (make-local-variable 'evil-normal-state-cursor) (list nil))
-                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
+                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))
+                     (pdf-view-fit-page-to-window)))
   :config
   (pdf-tools-install))
 
