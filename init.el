@@ -1843,6 +1843,8 @@ targets."
   (with-eval-after-load "org"
     (add-to-list 'org-modules 'org-checklist))
     ;;(add-to-list 'org-modules 'org-habit))
+  ;; Don't open links in a new window (for fucks sake)
+  (setf (cdr (assoc 'file org-link-frame-setup)) 'find-file)
   :custom
   (org-ellipsis " ▾")
   (org-hide-emphasis-markers t)
