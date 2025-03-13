@@ -1753,6 +1753,7 @@ targets."
                  "--all-scopes-completion=true"
                  "--header-insertion=iwyu"
                  "--header-insertion-decorators=true"))
+  (add-to-list 'eglot-server-programs '(bitbake-mode . ("bitbake-language-server")))
   :hook
   (prog-mode . eglot-ensure)
   :custom
@@ -3072,12 +3073,12 @@ and sends a message of the current volume status."
 (advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
 
 
-;;(use-package bitbake
-;;  :ensure t
-;;  :defer t
-;;  :mode "bitbake-mode"
-;;  :init
-;;  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode)))
+(use-package bitbake
+  :ensure t
+  :defer t
+  :mode "bitbake-mode"
+  :init
+  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode)))
 
 
 (use-package tex
