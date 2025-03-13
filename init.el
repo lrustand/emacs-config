@@ -739,6 +739,7 @@ Automatically exits fullscreen if any window-changing command is executed."
   (create-lockfiles nil)
   (x-underline-at-descent-line t)
   (x-select-enable-clipboard t)
+  (ring-bell-function #'ignore)
   (indent-tabs-mode nil)
   (auto-revert-use-notify nil)
   (native-comp-async-report-warnings-errors 'silent)
