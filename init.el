@@ -2408,15 +2408,17 @@ capture was not aborted."
   :custom
   (eshell-toggle-default-directory (getenv "HOME"))
   (eshell-toggle-find-project-root-package 'project)
-  (eshell-toggle-init-function 'eshell-toggle--init-dedicated-eshell)
+  (eshell-toggle-init-function 'eshell-toggle-init-eshell)
   :preface
-  (defun eshell-toggle--init-dedicated-eshell (&rest args)
-    (apply 'eshell-toggle-init-eshell args)
-    (set-window-dedicated-p (selected-window) t))
+  (defun eshell-toggle--set-window-dedicated (orig-fun &rest args)
+    (apply orig-fun args)
+    (when eshell-toggle--toggle-buffer-p
+      (set-window-dedicated-p (selected-window) t)))
   (defun eshell-toggle--hide-buffers (orig-fun &rest args)
     "Make eshell-toggle buffers hidden."
     (concat " " (funcall orig-fun)))
   :config
+  (advice-add 'eshell-toggle :around #'eshell-toggle--set-window-dedicated)
   (advice-add 'eshell-toggle--make-buffer-name :around #'eshell-toggle--hide-buffers))
 
 (use-package eshell-outline
