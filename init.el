@@ -697,6 +697,14 @@ Automatically exits fullscreen if any window-changing command is executed."
   (unless (server-running-p)
     (server-start)))
 
+(use-package man
+  :custom
+  ;; Make man behave.  Default value is "friendly", which is the exact
+  ;; opposite of its name. It always creates a new window, and it
+  ;; somehow always manages to do it in the worst possible place
+  ;; too...
+  (Man-notify-method 'pushy))
+
 ;; Make C-i and Tab separate. Without this hack it is impossible to
 ;; distinguish between Tab and C-i
 (defun my-translate-C-i (_prompt)
