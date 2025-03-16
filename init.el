@@ -1211,6 +1211,12 @@ characters respectably."
     "Jump to a directory in eshell using consult-dir."
     (eshell/cd (substring-no-properties (consult-dir--pick "cd: ")))))
 
+;; Editable grep results
+;; Example usage:
+;; consult-ripgrep -> embark-export -> wgrep-change-to-wgrep-mode
+(use-package wgrep
+  :ensure t)
+
 (use-package orderless
   :ensure t
   :init
