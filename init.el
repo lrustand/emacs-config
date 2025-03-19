@@ -929,7 +929,8 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;; Trying to tame emacs window placement (taken from perspective.el readme)
 (customize-set-variable 'display-buffer-base-action
   '((display-buffer-reuse-window display-buffer-same-window display-buffer-use-some-window)
-    (reusable-frames . t)))
+    (reusable-frames . t)
+    (some-window . mru)))
 (customize-set-variable 'even-window-sizes nil)     ; avoid resizing
 
 
