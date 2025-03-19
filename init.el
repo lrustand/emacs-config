@@ -934,6 +934,11 @@ Automatically exits fullscreen if any window-changing command is executed."
 (customize-set-variable 'even-window-sizes nil)     ; avoid resizing
 
 
+(defun my/other-window-prefix ()
+  "Do what other-window-prefix should have done according to the name."
+  (interactive)
+  (display-buffer-override-next-command #'display-buffer-use-some-window nil "[other-window]"))
+
 ;;;; Posframe
 ;;;;-----------
 
