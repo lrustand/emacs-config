@@ -2535,7 +2535,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :config
   (defun my/advice-dired-git-info-clamp-string (orig-fun str max)
     "Fix line wrapping of long git commits in dired-git-info."
-    (when all-the-icons-dired-mode
+    (when nerd-icons-dired-mode
       (setq max (- max 3)))
     (funcall orig-fun str max))
   (advice-add 'dgi--clamp-string :around #'my/advice-dired-git-info-clamp-string)
@@ -2560,13 +2560,10 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :ensure t
   :after dired)
 
-;; Filetype icons in dired
-;; TODO: Clashes with dired-git-info-mode, when long commit messages.
-;; Makes the lines not wrap correctly
-(use-package all-the-icons-dired
+(use-package nerd-icons-dired
   :ensure t
   :after dired
-  :hook (dired-mode . all-the-icons-dired-mode))
+  :hook (dired-mode . nerd-icons-dired-mode))
 
 ;; Collapse multiple dirctory levels if each only has one dir
 ;; Like the file explorer on github does
