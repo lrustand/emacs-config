@@ -2414,7 +2414,7 @@ capture was not aborted."
   :after eshell
   :custom
   (eshell-toggle-default-directory (getenv "HOME"))
-  (eshell-toggle-find-project-root-package 'project)
+  (eshell-toggle-find-project-root-package 'projectile)
   (eshell-toggle-init-function 'eshell-toggle-init-eshell)
   :preface
   (defun eshell-toggle--set-window-dedicated (orig-fun &rest args)
