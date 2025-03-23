@@ -3247,3 +3247,4 @@ Might give duplicates, if a process has multiple windows."
     (load custom-file)))
 
 ;;; init.el ends here
+(put 'list-timers 'disabled nil)
