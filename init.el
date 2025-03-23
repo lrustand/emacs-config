@@ -3075,6 +3075,12 @@ and sends a message of the current volume status."
 ;;;-----------------
 
 
+(use-package mtg
+  :ensure (:fetcher github :repo "lrustand/mtg-mode")
+  :config
+  (evil-define-key 'normal mtg-deck-mode-map (kbd "K") 'eldoc-box-help-at-point))
+
+
 (defun tmux-navigate-directions ()
   "Navigate in tmux."
   (let* ((x (nth 0 (window-edges)))
