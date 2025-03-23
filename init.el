@@ -2911,7 +2911,8 @@ and sends a message of the current volume status."
                          (:from          .   22)
                          (:subject       .   nil)))
   (mu4e-thread-folding-default-view 'folded)
-  (mu4e-headers-found-hook '(mu4e-headers-mark-threads mu4e-headers-fold-all)))
+  :hook
+  (mu4e-headers-mode . mu4e-thread-folding-mode))
 
 
 ;;;; Chat
