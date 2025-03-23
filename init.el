@@ -2148,6 +2148,16 @@ capture was not aborted."
                    (my/org-roam-copy-todo-to-today))))
   (org-roam-db-autosync-mode))
 
+(use-package org-roam-links
+  :ensure (:fetcher github :repo "chrisbarrett/nursery" :files (:default "lisp/*.el")))
+
+(use-package consult-org-roam
+  :ensure t)
+
+(use-package embark-org-roam
+  :ensure t
+  :config)
+
 
 ;;;; Thesis
 ;;;;--------
