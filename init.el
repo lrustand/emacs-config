@@ -896,6 +896,9 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package which-key
   :ensure t
+  :custom
+  (which-key-show-docstrings t)
+  (which-key-show-operator-state-maps t)
   :config
   (which-key-mode 1))
 
