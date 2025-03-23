@@ -1796,11 +1796,8 @@ targets."
 
 (use-package eldoc-box
   :ensure t
-  :after eglot
   :config
-  (evil-define-key 'normal eglot-mode-map (kbd "K") 'eldoc-box-help-at-point))
-  ;;:hook
-  ;;(eglot-managed-mode . eldoc-box-hover-at-point-mode))
+  (evil-define-key 'normal prog-mode-map (kbd "K") 'eldoc-box-help-at-point))
 
 ;; NOTE: Already handled by `eldoc-box'.
 ;; Show flymake error on hover
