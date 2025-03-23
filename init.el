@@ -3024,6 +3024,7 @@ and sends a message of the current volume status."
            :repo "lrustand/qutebrowser.el"
            :files (:defaults "*.py"))
   :custom
+  (qutebrowser-launcher-backend #'qutebrowser-consult-launcher)
   (browse-url-browser-function #'qutebrowser-open-url)
   :config
   (qutebrowser-theme-export-mode 1)
