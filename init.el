@@ -1241,6 +1241,7 @@ characters respectably."
   :bind
   (("C-." . embark-act)
    ("C-;" . embark-dwim)
+   ("C-<SPC>" . embark-select)
    ("C-h B" . embark-bindings))
   :preface
   (defun embark-which-key-indicator ()
