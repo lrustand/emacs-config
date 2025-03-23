@@ -1856,6 +1856,9 @@ targets."
   (magit-todos-mode 1))
 
 
+(use-package git-timemachine
+  :ensure t)
+
 ;;; Org
 ;;;-----
 
