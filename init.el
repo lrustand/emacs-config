@@ -645,6 +645,8 @@ Automatically exits fullscreen if any window-changing command is executed."
   evil-mode
   evil-set-undo-system
   :custom
+  ;; Make # and * search for symbol instead of word
+  (evil-symbol-word-search t)
   (evil-want-fine-undo t)
   :config
   ;; Use visual line motions even outside of visual-line-mode buffers
