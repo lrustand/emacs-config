@@ -2017,6 +2017,23 @@ targets."
   :ensure t
   :after org)
 
+;; Automatically wrap code in code block when pasting in org
+(use-package org-rich-yank
+  :ensure t
+  :after org
+  :config
+  (defun my-org-rich-yank ()
+    "Only use rich yank when it makes sense."
+    (interactive)
+    (if (and org-rich-yank--buffer
+               (with-current-buffer org-rich-yank--buffer
+                 (derived-mode-p '(prog-mode))))
+        (org-rich-yank)
+      (org-yank)))
+  :general
+  (:keymaps 'org-mode-map
+            :states 'normal
+            "p" #'my-org-rich-yank))
 
 ;;;; Roam
 ;;;;-------
