@@ -648,6 +648,9 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;; Make # and * search for symbol instead of word
   (evil-symbol-word-search t)
   (evil-want-fine-undo t)
+  (evil-move-beyond-eol t)
+  (evil-want-Y-yank-to-eol t)
+  (evil-v$-excludes-newline t)
   :config
   ;; Use visual line motions even outside of visual-line-mode buffers
   (evil-global-set-key 'motion "j" 'evil-next-visual-line)
@@ -811,6 +814,40 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 ;;;; Navigation
 ;;;;-----------
+
+(use-package smartparens
+  :ensure t
+  :config
+  (require 'smartparens-config)
+  (smartparens-global-mode 1)
+  ;; Make sure parens stay balanced in insert mode as well
+  (smartparens-global-strict-mode 1))
+
+(use-package evil-cleverparens
+  :after evil
+  :ensure t
+  :custom
+  (evil-cleverparens-complete-parens-in-yanked-region t)
+  (evil-cleverparens-swap-move-by-word-and-symbol t)
+  :hook
+  (evil-cleverparens-mode . smartparens-mode)
+  (emacs-lisp-mode . evil-cleverparens-mode))
+
+;; TODO: Define some cool easymotion motions for cleverparens etc
+(use-package evil-easymotion
+  :after evil
+  :ensure t
+  :general
+  (:keymaps 'evilem-map
+            "p" #'my-org-rich-yank)
+  :config
+  ;; TODO: forward/backward sexp/symbol/defun
+  ;; TODO: beginning/end of ...
+  (evilem-make-motion my/evilem-motion-forward-sexp
+                      #'evil-cp-forward-sexp)
+  (evilem-make-motion my/evilem-motion-beginning-of-defun
+                      #'evil-cp-beginning-of-defun)
+  (evilem-default-keybindings "C-f"))
 
 (use-package ace-window
   :ensure t
