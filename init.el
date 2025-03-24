@@ -710,6 +710,11 @@ Automatically exits fullscreen if any window-changing command is executed."
   ;; too...
   (Man-notify-method 'pushy))
 
+(use-package bookmark
+  :custom
+  ;; Automatically save bookmarks
+  (bookmark-save-flag 1))
+
 ;; Make C-i and Tab separate. Without this hack it is impossible to
 ;; distinguish between Tab and C-i
 (defun my-translate-C-i (_prompt)
