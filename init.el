@@ -910,6 +910,10 @@ Automatically exits fullscreen if any window-changing command is executed."
   (ibuffer-mode . ibuffer-auto-mode)
   :custom
   (ibuffer-default-sorting-mode 'major-mode)
+  :general
+  (:keymaps 'ibuffer-mode-map
+            :states 'normal
+            ")" 'ibuffer-switch-format)
   :bind
   ("C-x C-b" . ibuffer))
 
