@@ -2425,8 +2425,7 @@ capture was not aborted."
   (eshell-history-append t)
   (eshell-hist-ignoredups t)
   ;;(setq eshell-visual-commands
-  (eshell-prompt-function #'my-eshell-prompt)
-  (eshell-prompt-regexp my-eshell-prompt-regexp))
+  (eshell-prompt-function #'my-eshell-prompt))
 
 ;; Disable in favor of `eat'
 ;;(use-package eshell-vterm
@@ -3259,7 +3258,7 @@ Might give duplicates, if a process has multiple windows."
     (load custom-file)))
 
 (use-package emacs-config
-  :ensure (:fetcher github :repo "lrustand/emacs-config" :files (:default "lisp/*.el") :main nil))
+  :ensure (:fetcher github :repo "lrustand/emacs-config" :files (:default "lisp/*.el")))
 
 ;;; init.el ends here
 (put 'list-timers 'disabled nil)

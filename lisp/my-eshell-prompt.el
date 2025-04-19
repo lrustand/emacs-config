@@ -33,6 +33,7 @@
 
 
 (defvar my-eshell-prompt-regexp "^ -> ")
+(setq eshell-prompt-regexp my-eshell-prompt-regexp)
 
 
 (defun my/git-status ()
