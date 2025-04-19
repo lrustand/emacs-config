@@ -2364,48 +2364,6 @@ capture was not aborted."
 (use-package eshell-prompt-extras
   :ensure t)
 
-(defun my/with-foreground (face str)
-  (declare (indent 1))
-  (add-face-text-property 0 (length str)
-                          `(:foreground ,(face-foreground face)) nil str)
-  str)
-
-(defun my/with-background (face str)
-  (declare (indent 1))
-  (add-face-text-property 0 (length str)
-                          `(:background ,(face-background face)) nil str)
-  str)
-
-(defun my/with-bold (str)
-  (declare (indent 1))
-  (add-face-text-property 0 (length str)
-                          `(:weight bold) nil str)
-  str)
-
-(defun my/eshell-prompt-user-and-host ()
-  (my/with-bold
-  (my/with-background 'term-color-black
-  (my/with-foreground 'term-color-green
-    (if (epe-remote-p)
-        (concat (epe-remote-user) "@" (epe-remote-host))
-      (concat (user-login-name) "@" system-name))))))
-
-(defun my/eshell-prompt-venv ()
-  (when venv-current-dir
-    (let* ((venv-parent-dir (thread-last venv-current-dir
-                                         (file-name-parent-directory)
-                                         (string-remove-suffix "/")
-                                         (file-name-nondirectory)))
-           (venv-name (if (string-empty-p venv-current-name)
-                          venv-parent-dir
-                        venv-current-name)))
-      (concat
-       (thread-last (format "(%s)" venv-name)
-                    (my/with-bold)
-                    (my/with-background 'term-color-black)
-                    (my/with-foreground 'term-color-green))
-       "\n"))))
-
 (use-package eshell
   :config
   ;; Define a variable to hold the cd history
@@ -2442,17 +2400,6 @@ capture was not aborted."
         (goto-char (point-max))
         (end-of-line))))
 
-  (defun git-status ()
-    (let ((default-directory (eshell/pwd)))
-      (with-output-to-string
-        (with-current-buffer standard-output
-          (call-process "git" nil t nil "status" "--porcelain")))))
-
-  ;;(defun git-status--dirty-p ()
-  ;;  (not (string-blank-p (git-status))))
-  (defun git-status--dirty-p ()
-    (magit-anything-modified-p))
-
   (defun my/eshell-consult-dir-pick ()
     "Select a dir with consult and insert it in eshell."
     (interactive)
@@ -2478,50 +2425,8 @@ capture was not aborted."
   (eshell-history-append t)
   (eshell-hist-ignoredups t)
   ;;(setq eshell-visual-commands
-  (eshell-prompt-function
-   (lambda ()
-     (let* ((green (face-foreground 'term-color-green))
-            (red (face-foreground 'term-color-red))
-            (black (face-foreground 'term-color-black))
-            (blue (face-foreground 'term-color-blue))
-            (bright-black (face-foreground 'term-color-bright-black))
-            (prompt-bg black)
-            (username-fg (if (= (user-uid) 0) red green))
-            (username-face `(:foreground ,username-fg
-                                         :background ,prompt-bg
-                                         :weight bold))
-            (hostname-face `(:foreground ,green
-                                         :background ,prompt-bg
-                                         :weight bold))
-            (timedate-face `(:foreground ,green
-                                         :background ,prompt-bg
-                                         :weight bold))
-            (git-branch-face `(:foreground ,blue
-                                           :background ,prompt-bg))
-            (default-prompt-face `(:foreground unspecified
-                                               :background ,black
-                                               :weight bold)))
-       (concat
-        "\n"
-        (my/eshell-prompt-venv)
-        (propertize (format-time-string "[%H:%M, %d/%m/%y]" (current-time)) 'face timedate-face)
-        "\n"
-        ;;(propertize (user-login-name) 'face username-face)
-        ;;(propertize "@" 'face default-prompt-face)
-        ;;(propertize (system-name) 'face hostname-face)
-        (my/eshell-prompt-user-and-host)
-        (propertize (format " [%s]" (f-abbrev (eshell/pwd))) 'face default-prompt-face)
-        (when (magit-get-current-branch)
-          (concat
-           (propertize (format " [%s" (magit-get-current-branch)) 'face git-branch-face)
-           (when (git-status--dirty-p)
-             (propertize "*" 'face `(:foreground "red" :background ,prompt-bg :bold)))
-           (propertize "]" 'face git-branch-face)))
-        "\n"
-        (propertize "\n" 'face default-prompt-face)
-        (propertize " ->" 'face `(:foreground ,blue :background ,prompt-bg :bold))
-        (propertize " " 'face default-prompt-face)))))
-  (eshell-prompt-regexp "^ -> "))
+  (eshell-prompt-function #'my-eshell-prompt)
+  (eshell-prompt-regexp my-eshell-prompt-regexp))
 
 ;; Disable in favor of `eat'
 ;;(use-package eshell-vterm
