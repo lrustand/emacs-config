@@ -28,6 +28,9 @@
 ;;; Code:
 
 
+(use-package my-exwm-config
+  :demand t)
+
 
 (provide 'emacs-config)
 ;;; emacs-config.el ends here

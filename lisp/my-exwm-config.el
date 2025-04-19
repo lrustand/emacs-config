@@ -3,7 +3,7 @@
 ;; Author: Lars Rustand
 ;; Maintainer: Lars Rustand
 ;; Version: 0
-;; Package-Requires: ((emacs "27.1") (exwm "0.33"))
+;; Package-Requires: ((emacs "27.1"))
 ;; Homepage: https://github.com/lrustand/emacs-config
 ;; Keywords:
 
@@ -58,8 +58,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package exwm
   :ensure t
-  :when (and (eq window-system 'x)
-             (memq 'exwm my/enabled-features))
+  :when (eq window-system 'x)
   :demand t
   :config
   (require 'exwm-randr)
@@ -388,10 +387,5 @@ Automatically exits fullscreen if any window-changing command is executed."
                     lr/tab-bar-time-and-date)))
 
 
-
-
-
 (provide 'my-exwm-config)
-
 ;;; my-exwm-config.el ends here
-
