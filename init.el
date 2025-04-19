@@ -3353,5 +3353,8 @@ Might give duplicates, if a process has multiple windows."
   (when (file-exists-p custom-file)
     (load custom-file)))
 
+(use-package emacs-config
+  :ensure (:fetcher github :repo "lrustand/emacs-config" :files (:default "lisp/*.el") :main nil))
+
 ;;; init.el ends here
 (put 'list-timers 'disabled nil)
