@@ -853,6 +853,10 @@ Automatically exits fullscreen if any window-changing command is executed."
                       #'evil-cp-beginning-of-defun)
   (evilem-default-keybindings "C-f"))
 
+;; TODO: Add custom hint function(s) for qutebrowser
+(use-package link-hint
+  :ensure t)
+
 (use-package ace-window
   :ensure t
   :bind (("C-x o" . ace-window)
