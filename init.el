@@ -941,6 +941,14 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;;; Help
 ;;;;------
 
+(use-package help
+  :ensure nil
+  :general
+  (:keymaps 'help-mode-map
+            :states 'normal
+            "L" #'help-go-forward
+            "H" #'help-go-back))
+
 (use-package which-key
   :ensure t
   :defer 5
