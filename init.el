@@ -2311,6 +2311,18 @@ capture was not aborted."
 
 
 
+;;;; Wikipedia
+
+(use-package wikinfo
+  :ensure t)
+
+;; TODO: Make an org-roam capture function/template for this.
+(use-package wikinforg
+  :ensure t)
+
+(use-package wiki-summary
+  :ensure t)
+
 ;;; System
 ;;;---------
 
