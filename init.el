@@ -962,28 +962,47 @@ Automatically exits fullscreen if any window-changing command is executed."
   :config
   (which-key-mode 1))
 
-;; TODO: Make package of this
-;; Show function signatures in a popup instead of echo area
-(defun my-eldoc-posframe-show (&rest args)
-  "Show eldoc posframe containing ARGS."
-  (when (car args)
-    (posframe-show "*eldoc-posframe*"
-                   :string (apply 'format args)
-                   :position (point)
-                   :max-width 100
-                   :background-color "#333333"
-                   :foreground-color "#eeeeee"
-                   :internal-border-width 1
-                   :internal-border-color "#777777")
-    (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
-(defun my-eldoc-posframe-hide ()
-  "Hide eldoc posframe."
-  (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
-  (posframe-hide "*eldoc-posframe*"))
-(setq eldoc-message-function #'my-eldoc-posframe-show)
-(setq eldoc-idle-delay 1)
-;; Only trigger after any editing
-(setq eldoc-print-after-edit t)
+(use-package eldoc
+  :ensure nil
+  :demand t
+  :preface
+  (setq eldoc-print-after-edit t)
+  (setq eldoc-echo-area-use-multiline-p t)
+  (setq eldoc-message-function #'my-eldoc-posframe-show)
+  (setq eldoc-display-functions '(eldoc-display-in-echo-area my-eldoc-display-function))
+  (setq eldoc-idle-delay 1)
+  ;; Only trigger after any editing
+  :config
+  ;; TODO: Make package of this
+  ;; Show function signatures in a popup instead of echo area
+  (defun my-eldoc-posframe-show (&rest args)
+    "Show eldoc posframe containing ARGS."
+    (when (car args)
+      (posframe-show "*eldoc-posframe*"
+                     :string (apply 'format args)
+                     :position (point)
+                     :max-width 100
+                     :background-color "#333333"
+                     :foreground-color "#eeeeee"
+                     :internal-border-width 1
+                     :internal-border-color "#777777")
+      (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
+  (defun my-eldoc-posframe-hide ()
+    "Hide eldoc posframe."
+    (unless (eq this-command 'eldoc) ; Don't hide immediately
+      (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
+      (posframe-hide "*eldoc-posframe*")))
+  (defun my-eldoc-display-function (docs interactive)
+    ""
+    ;; For some reason eldoc calls the display function even in cases
+    ;; where it shouldn't according to `eldoc-print-after-edit'.
+    (when interactive
+      (my-eldoc-posframe-show (eldoc-box--compose-doc (car docs)))))
+  (global-eldoc-mode 1)
+  :general
+  (:states 'normal
+           "K" #'eldoc))
+
 
 
 ;;;; Window layout and positioning
@@ -1853,18 +1872,6 @@ targets."
   :bind (:map c++-mode-map
               ("<tab>" . c-indent-then-complete)))
 
-
-(use-package eldoc-box
-  :ensure t
-  :config
-  (evil-define-key 'normal prog-mode-map (kbd "K") 'eldoc-box-help-at-point))
-
-;; NOTE: Already handled by `eldoc-box'.
-;; Show flymake error on hover
-;;(use-package flymake-popon
-;;  :ensure t
-;;  :config
-;;  (global-flymake-popon-mode 1))
 
 ;; This is awesome!
 ;; NOTE: Needs support in the LSP.
