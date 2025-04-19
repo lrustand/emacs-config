@@ -1276,8 +1276,17 @@ characters respectably."
                        (?p "Packages" font-lock-constant-face)
                        (?t "Types" font-lock-type-face)
                        (?v "Variables" font-lock-variable-name-face)))))
+  :init
+  (unbind-key "C-s") ;; Original was isearch
   :bind (("C-x b" . consult-buffer)
-         ("C-h i" . consult-info))
+         ("C-h i" . consult-info)
+         ("C-c C-d" . consult-dir)
+         ("C-s /" . consult-line)
+         ("C-s C-/" . consult-line-multi)
+         ("C-s r" . consult-ripgrep)
+         ("C-s f" . consult-find)
+         ("C-s i" . consult-imenu)
+         ("C-s I" . consult-imenu-multi))
   :bind (:map minibuffer-mode-map
               ("C-r" . consult-history)))
 
