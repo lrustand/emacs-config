@@ -144,50 +144,42 @@
 ;;; Theme
 ;;;-------
 
-
-(use-package solarized-theme
-  :ensure t
-  :after auto-dim-other-buffers
-  :preface
-  ;; Using this to change the auto-dim-other-bufers-face for solarized
-  ;; Taken from alphapapa unpackaged scripts
-  (defun unpackaged/customize-theme-faces (theme &rest faces)
-    "Customize THEME with FACES.
-  Advises `enable-theme' with a function that customizes FACES when
-  THEME is enabled.  If THEME is already enabled, also applies
-  faces immediately.  Calls `custom-theme-set-faces', which see."
-    (declare (indent defun))
-    (when (member theme custom-enabled-themes)
-      ;; Theme already enabled: apply faces now.
-      (let ((custom--inhibit-theme-enable nil))
-        (apply #'custom-theme-set-faces theme faces)))
-    (let ((fn-name (intern (concat "unpackaged/enable-theme-advice-for-" (symbol-name theme)))))
-      ;; Apply advice for next time theme is enabled.
-      (fset fn-name
-            (lambda (enabled-theme)
-              (when (eq enabled-theme theme)
-                (let ((custom--inhibit-theme-enable nil))
-                  (apply #'custom-theme-set-faces theme faces)))))
-      (advice-remove #'enable-theme fn-name)
-      (advice-add #'enable-theme :after fn-name)))
-  :preface
-  ;; Fix load-theme
+(use-package emacs
+  :config
   (defun disable-all-themes-before-load (&rest _)
     "Disable all themes before loading a new one."
     (mapcar #'disable-theme custom-enabled-themes))
-  :config
-  (window-divider-mode 1)
   (advice-add 'load-theme :before #'disable-all-themes-before-load)
-  ;; Fix the unfocused backgrounds of solarized
-  (unpackaged/customize-theme-faces 'solarized-dark
-    '(auto-dim-other-buffers-face ((t (:background "#041f27")))))
-  (unpackaged/customize-theme-faces 'solarized-light
-    '(auto-dim-other-buffers-face ((t (:background
-                                     "#eee8d5")))))
-  (load-theme 'solarized-dark t)
-  (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
-  (set-face-attribute 'window-divider-first-pixel nil :foreground (face-attribute 'mode-line :background))
-  (set-face-attribute 'window-divider-last-pixel nil :foreground (face-attribute 'mode-line :background)))
+  (window-divider-mode 1))
+
+
+(use-package solarized-theme
+  :ensure t
+  :preface
+  (defvar my/solarized-customized-faces
+    '((custom-theme-set-faces
+       theme-name
+       `(auto-dim-other-buffers ((,class (:background ,base04))))))
+    "My custom face definitions for solarized themes.")
+  :config
+  (require 'solarized-palettes)
+  (require 'solarized-faces)
+  ;; Modify theme faces
+  ;; (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
+  ;; (set-face-attribute 'window-divider-first-pixel nil :foreground (face-attribute 'mode-line :background))
+  ;; (set-face-attribute 'window-divider-last-pixel nil :foreground (face-attribute 'mode-line :background))
+  ;; Add a new color named `base04' to light and dark theme variants
+  (setf (alist-get 'base04 solarized-dark-color-palette-alist) "#041f27")
+  (setf (alist-get 'base04 solarized-light-color-palette-alist) "#eee8d5")
+  ;; Create modified versions of the themes
+  (solarized-create-theme-file 'light 'solarized-light
+    solarized-light-color-palette-alist
+    my/solarized-customized-faces 'overwrite)
+  (solarized-create-theme-file 'dark 'solarized-dark
+    solarized-dark-color-palette-alist
+    my/solarized-customized-faces 'overwrite)
+  (load-theme 'solarized-light t t) ; Load, but don't enable
+  (load-theme 'solarized-dark t))
 
 (use-package doom-modeline
   :ensure t
@@ -198,9 +190,8 @@
   (doom-modeline-buffer-encoding 'nondefault)
   (doom-modeline-percent-position nil)
   (doom-modeline-workspace-name nil)
+  (doom-modeline-icon (display-graphic-p))
   :config
-  (unless (display-graphic-p)
-    (setq doom-modeline-icon nil))
   (doom-modeline-mode 1))
 
 ;; Set default font
@@ -224,20 +215,6 @@
      (magit-section-highlight . (auto-dim-other-buffers-face . nil))))
   :config
   (auto-dim-other-buffers-mode 1))
-
-
-;;;; Theme modifications
-;;;;----------------------
-
-
-;; Swap the modeline bg colors for oksolar-dark
-;;(unpackaged/customize-theme-faces 'doom-oksolar-dark
-;;  `(mode-line-active
-;;    ((t (:background ,(face-attribute 'mode-line-inactive
-;;                                      :background)))))
-;;  `(mode-line-inactive
-;;    ((t (:background ,(face-attribute 'mode-line-active
-;;                                      :background))))))
 
 ;;; EXWM
 ;;;--------
