@@ -516,70 +516,13 @@ Automatically exits fullscreen if any window-changing command is executed."
 ;;;; Statusbar
 ;;;;-----------
 
-(use-package tab-bar
-  :after exwm
-  :hook
-  (exwm-init . tab-bar-mode)
-  :config
-  (require 'lemon)
-  (defun lr/tab-bar-time-and-date ()
-    (let* ((tab-bar-time-face '(:weight bold))
-           (tab-bar-time-format  "%a %-d %b, %H:%M "))
-      `((menu-bar menu-item
-                  ,(propertize (format-time-string tab-bar-time-format)
-                               'font-lock-face
-                               tab-bar-time-face)
-                  nil ;; <- Function to run when clicked
-                  :help "My heltp"))))
-  (defun lr/tab-bar-separator () " | ")
-  (defun ram ()
-    (lemon-monitor-display my/memory-monitor))
-  (defun cpu ()
-    (lemon-monitor-display my/cpu-monitor))
-  (defun bat ()
-    (lemon-monitor-display my/battery-monitor))
-  (defun net ()
-    (concat
-     (lemon-monitor-display my/network-rx-monitor)
-     (lemon-monitor-display my/network-tx-monitor)))
-
-  (defface my-tab-bar-face
-    '((t :inherit mode-line-active))  ;; Inherit attributes from mode-line-active
-    "Face for the tab bar.")
-  ;; Set the tab-bar face to use the custom face
-  (set-face-attribute 'tab-bar nil :inherit 'my-tab-bar-face)
-  :custom
-  ;; Disable stupid "This window displayed buffer" in deleted buffers
-  (tab-bar-select-restore-windows nil)
-  (tab-bar-format `(tab-bar-format-history
-                    tab-bar-format-tabs
-                    tab-bar-separator
-                    tab-bar-format-add-tab
-                    tab-bar-format-align-right
-                    net
-                    ram
-                    cpu
-                    ,(when (lemon-battery-present?) 'bat)
-                    lr/tab-bar-separator
-                    lr/tab-bar-time-and-date)))
-
-(defvar my/battery-monitor)
-(defvar my/battery-monitor-timer)
-(defvar my/cpu-monitor)
-(defvar my/cpu-monitor-timer)
-(defvar my/memory-monitor)
-(defvar my/memory-monitor-timer)
-(defvar my/network-rx-monitor)
-(defvar my/network-tx-monitor)
-(defvar my/timer-network-monitor)
-(defvar my/tab-bar-refresh-timer)
 
 (use-package lemon
   :ensure (:fetcher codeberg :repo "emacs-weirdware/lemon")
-  :after exwm
   :autoload
-  lemon-monitor-display
-  :preface
+  lemon-battery-present?
+  my/lemon-def-monitor
+  :config
   (defun my/advice:lemon-battery--face (args)
     "Replace 0:00 time-left with N/A, to avoid error face when battery is full."
     (let* ((charging (nth 0 args))
@@ -589,45 +532,73 @@ Automatically exits fullscreen if any window-changing command is executed."
                        ((and (string= "0:00" time-left)
                              (>= percent 90))
                         "N/A")
-                      (t time-left))))
+                       (t time-left))))
       (list charging percent time-left)))
-  :config
   (advice-add 'lemon-battery--face :filter-args #'my/advice:lemon-battery--face)
-  (setq my/battery-monitor
-   (lemon-battery :display-opts '(:charging-indicator "+"
-                                  :discharging-indicator "-")))
-  (setq my/battery-monitor-timer
-   (run-with-timer 0 30
-                   (lambda ()
-                     (lemon-monitor-update
-                      my/battery-monitor))))
-  (setq my/cpu-monitor
-   (lemon-cpu-linux :display-opts '(:index "CPU: "
-                                    :unit "%")))
-  (setq my/cpu-monitor-timer
-   (run-with-timer 0 1
-                   (lambda ()
-                     (lemon-monitor-update
-                      my/cpu-monitor))))
-  (setq my/memory-monitor
-   (lemon-memory-linux :display-opts '(:index "MEM: "
-                                       :unit "%")))
-  (setq my/memory-monitor-timer
-   (run-with-timer 0 30
-                   (lambda ()
-                     (lemon-monitor-update
-                      my/memory-monitor))))
-  (setq my/network-rx-monitor (lemon-linux-network-rx))
-  (setq my/network-tx-monitor (lemon-linux-network-tx))
-  (setq my/network-monitor-timer
-   (run-with-timer 0 1
-                   (lambda ()
-                     (lemon-monitor-update
-                      my/network-rx-monitor)
-                     (lemon-monitor-update
-                      my/network-tx-monitor))))
-  (setq my/tab-bar-refresh-timer
-   (run-with-timer 0 1 'force-mode-line-update)))
+
+  (defmacro my/lemon-def-monitor (name interval &rest args)
+    (declare (indent defun))
+    (let ((monitor-name (intern (format "my/lemon-%s-monitor" (symbol-name name))))
+          (lemon-name (intern (format "lemon-%s" (symbol-name name))))
+          (function-name (intern (format "my/lemon-update-%s-monitor" (symbol-name name))))
+          (display-name (intern (format "my/lemon-%s" (symbol-name name))))
+          (timer-name (intern (format "my/lemon-%s-timer" (symbol-name name)))))
+      `(progn
+         (if (and (boundp ',timer-name)
+                  (timerp ',timer-name))
+             (cancel-timer ,timer-name)
+           (defvar ,timer-name nil))
+         (defvar ,monitor-name nil)
+         (defun ,function-name ()
+           (lemon-monitor-update ,monitor-name))
+         (defun ,display-name ()
+           (lemon-monitor-display ,monitor-name))
+         (setq ,monitor-name (,lemon-name ,@args))
+         (setq ,timer-name (run-with-timer 0 ,interval #',function-name))))))
+
+(use-package tab-bar
+  :ensure t
+  :hook (exwm-init . tab-bar-mode)
+  :config
+  (my/lemon-def-monitor battery 30
+    :display-opts '(:charging-indicator "+" :discharging-indicator "-"))
+  (my/lemon-def-monitor cpu-linux 1
+    :display-opts '(:index "CPU: " :unit "%"))
+  (my/lemon-def-monitor memory-linux 30
+    :display-opts '(:index "MEM: " :unit "%"))
+  (my/lemon-def-monitor linux-network-rx 1)
+  (my/lemon-def-monitor linux-network-tx 1)
+  (defun lr/tab-bar-time-and-date ()
+    (let* ((tab-bar-time-face '(:weight bold))
+           (tab-bar-time-format  "%a %-d %b, %H:%M "))
+      `((menu-bar menu-item
+                  ,(propertize (format-time-string tab-bar-time-format)
+                               'font-lock-face
+                               tab-bar-time-face)
+                  nil ;; <- Function to run when clicked
+                  :help "Current date and time"))))
+  (defface lr/tab-bar-face
+    '((t :inherit mode-line-active)) ;; Inherit attributes from mode-line-active
+    "Face for the tab bar.")
+  ;; Set the tab-bar face to use the custom face
+  (set-face-attribute 'tab-bar nil :inherit 'lr/tab-bar-face)
+  :custom
+  (my/tab-bar-refresh-timer (run-with-timer 0 1 'force-mode-line-update))
+  ;; Disable stupid "This window displayed buffer" in deleted buffers
+  (tab-bar-select-restore-windows nil)
+  (tab-bar-format `(tab-bar-format-history
+                    tab-bar-format-tabs
+                    tab-bar-separator
+                    tab-bar-format-add-tab
+                    tab-bar-format-align-right
+                    my/lemon-linux-network-tx
+                    my/lemon-linux-network-rx
+                    my/lemon-memory-linux
+                    my/lemon-cpu
+                    ,(when (lemon-battery-present?) 'my/lemon-battery)
+                    tab-bar-separator
+                    tab-bar-separator
+                    lr/tab-bar-time-and-date)))
 
 
 
