@@ -28,6 +28,8 @@
 
 ;;; Code:
 
+(require 'use-package)
+
 
 (defvar my-fullscreen-window-configuration nil
   "Stores the window configuration before entering fullscreen.")
@@ -305,6 +307,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 
 (use-package lemon
   :ensure (:fetcher codeberg :repo "emacs-weirdware/lemon")
+  :demand t
   :autoload
   lemon-battery-present?
   my/lemon-def-monitor
@@ -321,7 +324,7 @@ Automatically exits fullscreen if any window-changing command is executed."
                        (t time-left))))
       (list charging percent time-left)))
   (advice-add 'lemon-battery--face :filter-args #'my/advice:lemon-battery--face)
-
+  :preface
   (defmacro my/lemon-def-monitor (name interval &rest args)
     (declare (indent defun))
     (let ((monitor-name (intern (format "my/lemon-%s-monitor" (symbol-name name))))
@@ -345,6 +348,7 @@ Automatically exits fullscreen if any window-changing command is executed."
 (use-package tab-bar
   :ensure t
   :hook (exwm-init . tab-bar-mode)
+  :after lemon
   :config
   (my/lemon-def-monitor battery 30
     :display-opts '(:charging-indicator "+" :discharging-indicator "-"))
