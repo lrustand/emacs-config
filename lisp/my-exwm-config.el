@@ -1,34 +1,31 @@
 ;;; my-exwm-config.el --- My EXWM config -*- lexical-binding: t -*-
 
-;; Author: Lars Rustand
-;; Maintainer: Lars Rustand
-;; Version: 0
-;; Package-Requires: ((emacs "27.1"))
-;; Homepage: https://github.com/lrustand/emacs-config
-;; Keywords:
+;; Copyright (C) 2025 Lars Rustand.
 
-
-;; This file is not part of GNU Emacs
-
-;; This program is free software: you can redistribute it and/or modify
+;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
+;; the Free Software Foundation; either version 3 of the License, or
 ;; (at your option) any later version.
-
+;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;; GNU General Public License for more details.
-
+;;
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+;; along with this program; if not, write to the Free Software
+;; Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
+;; Author: Lars Rustand
+;; URL: https://github.com/lrustand/emacs-config.el
+;; Version: 0
+;; Package-Requires: ((emacs "27.1"))
 
 
 ;;; Commentary:
 
 ;;; Code:
 
-(require 'use-package)
 
 
 (defvar my-fullscreen-window-configuration nil
@@ -51,16 +48,15 @@ Automatically exits fullscreen if any window-changing command is executed."
   "Advice to exit fullscreen before executing window-changing commands."
   (when (and my-fullscreen-window-configuration
              (eq (selected-frame)
-                 (window-configuration-frame my-fullscreen-window-configuration))
-    (my-toggle-fullscreen))))
+                 (window-configuration-frame my-fullscreen-window-configuration)))
+    (my-toggle-fullscreen)))
 
 ;;(advice-add 'delete-window :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'delete-other-windows :before #'my-exit-fullscreen-advice)
 ;;(advice-add 'switch-to-buffer-other-window :before #'my-exit-fullscreen-advice)
 
 (use-package exwm
-  :ensure t
-  :when (eq window-system 'x)
+  :ensure (:wait t)
   :demand t
   :config
   (require 'exwm-randr)
@@ -346,9 +342,10 @@ Automatically exits fullscreen if any window-changing command is executed."
          (setq ,timer-name (run-with-timer 0 ,interval #',function-name))))))
 
 (use-package tab-bar
-  :ensure t
+  :ensure nil
   :hook (exwm-init . tab-bar-mode)
   :after lemon
+  :defines battery cpu-linux memory-linux linux-network-rx linux-network-tx
   :config
   (my/lemon-def-monitor battery 30
     :display-opts '(:charging-indicator "+" :discharging-indicator "-"))

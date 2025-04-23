@@ -17,7 +17,7 @@
 ;; Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 ;; Author: Lars Rustand
-;; URL: https://github.com/lrustand/emacs-config.el
+;; URL: https://github.com/lrustand/emacs-config
 ;; Version: 0
 ;; Package-Requires: ((emacs "27.1"))
 
@@ -29,6 +29,7 @@
 
 
 (use-package my-exwm-config
+  :ensure nil
   :demand t)
 
 
