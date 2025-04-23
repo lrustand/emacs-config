@@ -2846,10 +2846,11 @@ Might give duplicates, if a process has multiple windows."
 ;;;-------
 
 (use-package emacs-config
-  :ensure (:fetcher github :repo "lrustand/emacs-config" :files (:default "lisp/*.el")))
-
-(use-package my-exwm-config
-  :after emacs-config)
+  :ensure (:fetcher github
+                    :repo "lrustand/emacs-config"
+                    :files (:default "lisp/*.el")
+                    :build (:not elpaca--byte-compile))
+  :demand t)
 
 ;;; init.el ends here
 (put 'list-timers 'disabled nil)
