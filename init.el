@@ -73,62 +73,6 @@
 ;;e.g. a package which adds a use-package key word,
 ;;use the :wait recipe keyword to block until that package is installed/configured.
 ;;For example:
-;;(use-package general :ensure (:wait t) :demand t)
-
-;;;; Use-package setup
-;;;;-------------------
-
-;; Set up package.el to work with MELPA
-;;(require 'package)
-;;(add-to-list 'package-archives
-;;         '("melpa" . "https://melpa.org/packages/"))
-
-;;(async-bytecomp-package-mode 1)
-;;(setq package-quickstart t)
-
-;; Bootstrap `use-package' for emacs < 29.1
-;;(unless (package-installed-p 'use-package)
-;;  (package-refresh-contents)
-;;  (package-install 'use-package))
-
-;;(use-package auto-package-update
-;;  :ensure t
-;;  :custom
-;;  ;; Auto-update Emacs packages every 30 days
-;;  (auto-package-update-interval 30)
-;;  ;; Exclude packages installed from Guix
-;;  (auto-package-update-excluded-packages
-;;   '(geiser geiser-guile vterm multi-vterm mu4e pdf-tools))
-;;  :config
-;;  ;; Do it before loading any other packages, to avoid having to restart
-;;  (auto-package-update-maybe))
-
-(eval-when-compile
-  (require 'use-package))
-
-;; Used for installing packages from git
-;;(use-package quelpa-use-package
-;;  :ensure t
-;;  :config
-;;  ;; Avoid loading quelpa if not necessary
-;;  (setq quelpa-use-package-inhibit-loading-quelpa t)
-;;  :custom
-;;  ;; We don't use quelpa to checkout things from melpa.
-;;  ;; This avoids the extremely annoying "contacting melpa"
-;;  ;; when starting emacs.
-;;  (quelpa-update-melpa-p nil)
-;;  (quelpa-checkout-melpa-p nil)
-;;  (quelpa-async-p t)
-;;  (quelpa-verbose nil)
-;;  (quelpa-build-verbose nil))
-;;
-;;(defun dont-upgrade-external (orig-fun name)
-;;  (if (package--user-installed-p name)
-;;      (apply orig-fun (list name))
-;;    (message "Package %s is external, not deleting" name)))
-;;
-;;(advice-add 'package-upgrade :around #'dont-upgrade-external)
-
 (use-package general
   :ensure (:wait t))
 
@@ -1558,24 +1502,6 @@ targets."
                               (tags  . " %i %(org-get-title) ")
                               (search . " %i %(org-get-title) ")))
 
-  (org-agenda-custom-commands
-   `(("d" "Dashboard"
-      ((agenda "" ((org-deadline-warning-days 7)))
-       (todo "NEXT"
-             ((org-agenda-overriding-header "Next Tasks")))
-       (tags-todo "work"
-                  ((org-agenda-overriding-header "Work Tasks")))
-       (tags-todo "+irl-TODO=\"HOLD\"-recurring"
-                  ((org-agenda-overriding-header "IRL Tasks")))
-       ,@(my/org-agenda-create-project-heading-agenda-views)))
-     ("h" "Habits"
-      ((tags-todo "STYLE=\"habit\""
-                  ((org-agenda-overriding-header "Habits")))))
-     ("p" "Projects"
-      ,(my/org-agenda-create-project-heading-agenda-views))
-     ("t" "Tags"
-      ,(my/org-agenda-create-tag-heading-agenda-views))))
-
 
   :hook (org-mode . (lambda ()
                       (visual-line-mode 1)
@@ -1583,22 +1509,6 @@ targets."
                       (org-fold-all-done-entries)))
 
   :preface
-  ;; This function generates headings for org-agenda for project files
-  (defun my/org-agenda-create-project-heading-agenda-views ()
-    (mapcar (lambda (file)
-              `(todo "" ((org-agenda-files '(,file))
-                         (org-agenda-overriding-header ,(my/org-roam-get-title file))
-                         (org-agenda-prefix-format '((todo . ""))))))
-            (my/org-roam-list-notes-by-tag "project")))
-
-  ;; This function generates headings for org-agenda per tag
-  (defun my/org-agenda-create-tag-heading-agenda-views ()
-    (mapcar (lambda (tag)
-              `(tags-todo ,(car tag) ((org-agenda-overriding-header ,(car tag)))))
-            (seq-filter (lambda (it) (not (or (string-equal (car it) "project")
-                                              (string-equal (car it) "todo"))))
-                        (org-roam-db-query [:select :distinct [tag] :from tags ]))))
-
   (defun my/org-checkbox-todo ()
     "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
     (interactive)
