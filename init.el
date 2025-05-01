@@ -15,15 +15,6 @@
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
-;; Enabled/disable various groups of packages
-;; Use :when (memq 'feature my/enabled-features) in use-package
-(setq my/enabled-features
-      '(chat
-        mail
-        web
-        eglot
-        exwm))
-
 
 ;;;; Elpaca
 
@@ -2375,7 +2366,6 @@ and sends a message of the current volume status."
 ;;;;------
 
 (use-package consult-mu
-  :when (memq 'mail my/enabled-features)
   :after (consult mu4e)
   :ensure (:fetcher github :repo "armindarvish/consult-mu"))
 
@@ -2390,7 +2380,6 @@ and sends a message of the current volume status."
   (insert "--8<---------------cut here---------------end--------------->8---"))
 
 (use-package mu4e
-  :when (memq 'mail my/enabled-features)
   :ensure nil
   :ensure-system-package mu
   :init
@@ -2526,12 +2515,10 @@ and sends a message of the current volume status."
 ;;;;-----
 
 (use-package ement
-  :when (memq 'chat my/enabled-features)
   :defer t
   :ensure (:fetcher github :repo "alphapapa/ement.el"))
 
 (use-package erc
-  :when (memq 'chat my/enabled-features)
   :defer t
   :defines
   erc-modules
@@ -2544,7 +2531,6 @@ and sends a message of the current volume status."
   (erc-lurker-hide-list '("JOIN" "PART" "QUIT")))
 
 (use-package erc-twitch
-  :when (memq 'chat my/enabled-features)
   :ensure t
   :after erc
   :functions
@@ -2553,7 +2539,6 @@ and sends a message of the current volume status."
   (erc-twitch-enable))
 
 (use-package erc-hl-nicks
-  :when (memq 'chat my/enabled-features)
   :ensure t
   :after erc
   :functions
@@ -2562,7 +2547,6 @@ and sends a message of the current volume status."
   (erc-hl-nicks-enable))
 
 (use-package erc-image
-  :when (memq 'chat my/enabled-features)
   :ensure t
   :after erc
   :functions (erc-image-enable
@@ -2576,7 +2560,6 @@ and sends a message of the current volume status."
 
 
 (use-package engine-mode
-  :when (memq 'web my/enabled-features)
   :ensure t
   :functions
   engine-mode
@@ -2625,8 +2608,7 @@ and sends a message of the current volume status."
 ;;;;--------------
 
 (use-package qutebrowser
-  :when (and (eq window-system 'x)
-             (memq 'web my/enabled-features))
+  :when (eq window-system 'x)
   :ensure (:fetcher github
            :repo "lrustand/qutebrowser.el"
            :files (:defaults "*.py"))
