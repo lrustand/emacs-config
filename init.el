@@ -146,10 +146,10 @@
 
 (use-package emacs
   :config
-  (defun disable-all-themes-before-load (&rest _)
+  (defun my/disable-all-themes-before-load (&rest _)
     "Disable all themes before loading a new one."
     (mapcar #'disable-theme custom-enabled-themes))
-  (advice-add 'load-theme :before #'disable-all-themes-before-load)
+  (advice-add 'load-theme :before #'my/disable-all-themes-before-load)
   (window-divider-mode 1))
 
 
@@ -302,7 +302,7 @@
 
 ;; Make C-i and Tab separate. Without this hack it is impossible to
 ;; distinguish between Tab and C-i
-(defun my-translate-C-i (_prompt)
+(defun my/translate-C-i (_prompt)
   (if (and (= (length (this-single-command-raw-keys)) 1)
            (eql (aref (this-single-command-raw-keys) 0) ?\C-i)
            (bound-and-true-p evil-mode)
@@ -310,7 +310,7 @@
       (kbd "<C-i>")
     (kbd "TAB")))
 
-(define-key key-translation-map (kbd "TAB") 'my-translate-C-i)
+(define-key key-translation-map (kbd "TAB") 'my/translate-C-i)
 
 (with-eval-after-load 'evil-maps
   (define-key evil-motion-state-map (kbd "<C-i>") 'evil-jump-forward))
@@ -472,7 +472,7 @@
   :init
   (setq framemove-hook-into-windmove t)
   :preface
-  (defun my-fm-frame-bbox (frame)
+  (defun my/fm-frame-bbox (frame)
     (let* ((geometry (exwm-workspace--get-geometry frame))
            (yl (slot-value geometry 'y))
            (xl (slot-value geometry 'x)))
@@ -481,7 +481,7 @@
             (+ xl (frame-pixel-width frame))
             (+ yl (frame-pixel-height frame)))))
   :config
-  (advice-add 'fm-frame-bbox :override #'my-fm-frame-bbox))
+  (advice-add 'fm-frame-bbox :override #'my/fm-frame-bbox))
 
 ;; Move a buffer to a different window without swapping
 ;; TODO: Integrate with framemove
@@ -553,14 +553,14 @@
   :preface
   (setq eldoc-print-after-edit t)
   (setq eldoc-echo-area-use-multiline-p t)
-  (setq eldoc-message-function #'my-eldoc-posframe-show)
-  (setq eldoc-display-functions '(eldoc-display-in-echo-area my-eldoc-display-function))
+  (setq eldoc-message-function #'my/eldoc-posframe-show)
+  (setq eldoc-display-functions '(eldoc-display-in-echo-area my/eldoc-display-function))
   (setq eldoc-idle-delay 1)
   ;; Only trigger after any editing
   :config
   ;; TODO: Make package of this
   ;; Show function signatures in a popup instead of echo area
-  (defun my-eldoc-posframe-show (&rest args)
+  (defun my/eldoc-posframe-show (&rest args)
     "Show eldoc posframe containing ARGS."
     (when (car args)
       (posframe-show "*eldoc-posframe*"
@@ -571,18 +571,18 @@
                      :foreground-color "#eeeeee"
                      :internal-border-width 1
                      :internal-border-color "#777777")
-      (add-hook 'post-command-hook #'my-eldoc-posframe-hide)))
-  (defun my-eldoc-posframe-hide ()
+      (add-hook 'post-command-hook #'my/eldoc-posframe-hide)))
+  (defun my/eldoc-posframe-hide ()
     "Hide eldoc posframe."
     (unless (eq this-command 'eldoc) ; Don't hide immediately
-      (remove-hook 'post-command-hook #'my-eldoc-posframe-hide)
+      (remove-hook 'post-command-hook #'my/eldoc-posframe-hide)
       (posframe-hide "*eldoc-posframe*")))
-  (defun my-eldoc-display-function (docs interactive)
+  (defun my/eldoc-display-function (docs interactive)
     ""
     ;; For some reason eldoc calls the display function even in cases
     ;; where it shouldn't according to `eldoc-print-after-edit'.
     (when interactive
-      (my-eldoc-posframe-show (eldoc-box--compose-doc (car docs)))))
+      (my/eldoc-posframe-show (eldoc-box--compose-doc (car docs)))))
   (global-eldoc-mode 1)
   :general
   (:states 'normal
@@ -633,7 +633,7 @@
   :functions
   which-key-posframe-mode
   :preface
-  (defun my-which-key-posframe--max-dimensions (_)
+  (defun my/which-key-posframe--max-dimensions (_)
     "Return max-dimensions of posframe.
 The returned value has the form (HEIGHT . WIDTH) in lines and
 characters respectably."
@@ -641,7 +641,7 @@ characters respectably."
           (min 300 (frame-width))))
   :config
   (which-key-posframe-mode 1)
-  (advice-add 'which-key-posframe--max-dimensions :override #'my-which-key-posframe--max-dimensions))
+  (advice-add 'which-key-posframe--max-dimensions :override #'my/which-key-posframe--max-dimensions))
 
 ;; Show magit popups etc in posframe
 (use-package transient-posframe
@@ -1630,23 +1630,30 @@ targets."
                     (unless (string-equal todo-state "DONE")
                       (org-todo 'done)))))))))
 
-  (add-hook 'org-checkbox-statistics-hook 'my/org-checkbox-todo)
-
-  (defun org-summary-todo (_ n-not-done)
+  (defun my/org-summary-todo (_ n-not-done)
     "Switch entry to DONE when all subentries are done."
     (if (= n-not-done 0) (org-todo "DONE")))
 
-  (add-hook 'org-after-todo-statistics-hook #'org-summary-todo)
-
   ;; TODO only collapse DONE items if there are no TODO children
-  (defun org-fold-all-done-entries ()
+  (defun my/org-fold-all-done-entries ()
     "Close/fold all entries marked DONE."
     (interactive)
     (save-excursion
       (goto-char (point-max))
       (while (outline-previous-heading)
         (when (org-entry-is-done-p)
-          (hide-entry))))))
+          (hide-entry)))))
+
+  (defun my/org-mode-setup ()
+    "Setup function for org-mode."
+    (visual-line-mode 1)
+    (org-fold-hide-drawer-all)
+    (my/org-fold-all-done-entries))
+
+  :hook
+  (org-mode . #'my/org-mode-setup)
+  (org-checkbox-statistics . #'my/org-checkbox-todo)
+  (org-after-todo-statistics . #'my/org-summary-todo))
 
 (use-package org-contrib
   :ensure t
@@ -1682,7 +1689,7 @@ targets."
   :ensure t
   :after org
   :config
-  (defun my-org-rich-yank ()
+  (defun my/org-rich-yank ()
     "Only use rich yank when it makes sense."
     (interactive)
     (if (and org-rich-yank--buffer
@@ -1693,7 +1700,7 @@ targets."
   :general
   (:keymaps 'org-mode-map
             :states 'normal
-            "p" #'my-org-rich-yank))
+            "p" #'my/org-rich-yank))
 
 ;;;; Roam
 ;;;;-------
@@ -1952,31 +1959,31 @@ capture was not aborted."
 (use-package eshell
   :config
   ;; Define a variable to hold the cd history
-  (defvar eshell-cd-history nil
+  (defvar my/eshell-cd-history nil
     "History of directories visited in EShell.")
 
   ;; Function to view and select from cd history
-  (defun eshell-cd-history-view ()
+  (defun my/eshell-cd-history-view ()
     "View and select a directory from the cd history."
     (interactive)
-    (if eshell-cd-history
-        (let ((directory (completing-read "Select directory: " eshell-cd-history)))
+    (if my/eshell-cd-history
+        (let ((directory (completing-read "Select directory: " my/eshell-cd-history)))
           (cd directory))
       (message "No history available.")))
 
   ;; Advice function to modify the original cd command
-  (defun eshell-cd-advice (orig-fun &rest args)
+  (defun my/eshell-cd-advice (orig-fun &rest args)
     "Advice around the original cd function to record history."
-    (let ((directory (car args)))  ;; Get the first argument (the directory)
+    (let ((directory (car args))) ;; Get the first argument (the directory)
       (when (and directory (stringp directory))
-        (setq eshell-cd-history (cons (expand-file-name directory) eshell-cd-history)))
+        (setq my/eshell-cd-history (cons (expand-file-name directory) my/eshell-cd-history)))
       ;; Call the original cd function
       (apply orig-fun args)))
 
   ;; Apply the advice to the original eshell/cd function
-  (advice-add 'eshell/cd :around #'eshell-cd-advice)
+  (advice-add 'eshell/cd :around #'my/eshell-cd-advice)
 
-  (defun my-eshell-evil-insert ()
+  (defun my/eshell-evil-insert ()
     "Move cursor to end of prompt when entering insert mode in Eshell."
     (when (and (eq major-mode 'eshell-mode)
                (evil-insert-state-p))
@@ -1999,7 +2006,7 @@ capture was not aborted."
                    ;; (setenv "TERM" "xterm-256color")
                    ;; Buffer local hook
                    (add-hook 'evil-insert-state-entry-hook
-                             #'my-eshell-evil-insert nil t)))
+                             #'my/eshell-evil-insert nil t)))
   :general
   (:keymaps 'eshell-mode-map
    :states 'insert
@@ -2043,16 +2050,16 @@ capture was not aborted."
   (eshell-toggle-find-project-root-package 'projectile)
   (eshell-toggle-init-function 'eshell-toggle-init-eshell)
   :preface
-  (defun eshell-toggle--set-window-dedicated (orig-fun &rest args)
+  (defun my/eshell-toggle--set-window-dedicated (orig-fun &rest args)
     (apply orig-fun args)
     (when eshell-toggle--toggle-buffer-p
       (set-window-dedicated-p (selected-window) t)))
-  (defun eshell-toggle--hide-buffers (orig-fun &rest args)
+  (defun my/eshell-toggle--hide-buffers (orig-fun &rest args)
     "Make eshell-toggle buffers hidden."
     (concat " " (funcall orig-fun)))
   :config
-  (advice-add 'eshell-toggle :around #'eshell-toggle--set-window-dedicated)
-  (advice-add 'eshell-toggle--make-buffer-name :around #'eshell-toggle--hide-buffers))
+  (advice-add 'eshell-toggle :around #'my/eshell-toggle--set-window-dedicated)
+  (advice-add 'eshell-toggle--make-buffer-name :around #'my/eshell-toggle--hide-buffers))
 
 (use-package eshell-outline
   :ensure t
@@ -2090,7 +2097,7 @@ capture was not aborted."
   (vterm-buffer-name-string "VTerm: %s")
   :config
   ;; Fix background
-  (defun old-version-of-vterm--get-color (index &rest args)
+  (defun my/old-version-of-vterm--get-color (index &rest args)
     "This is the old version before it was broken by commit
 https://github.com/akermu/emacs-libvterm/commit/e96c53f5035c841b20937b65142498bd8e161a40.
 Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
@@ -2105,7 +2112,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
       (face-background 'vterm-color-inverse-video nil 'default))
      (t
       nil)))
-  (advice-add 'vterm--get-color :override #'old-version-of-vterm--get-color)
+  (advice-add 'vterm--get-color :override #'my/old-version-of-vterm--get-color)
   ;; Use libvterm installed in Guix
   (advice-add 'vterm-module-compile :around
               (lambda (f &rest r)
@@ -2175,7 +2182,7 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :ensure t
   :after dired
   :config
-  (defun my-dired-narrow-and-select ()
+  (defun my/dired-narrow-and-select ()
     "Narrow dired to filter results, then select the file at point."
     (interactive)
     (call-interactively 'dired-narrow)
@@ -2287,18 +2294,18 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
   :ensure t
   :defer t
   :preface
-  (defun empv-set-background (color)
+  (defun my/empv-set-background (color)
     (empv--send-command-sync (list "set_property" "background-color" color)))
-  (defun lr/empv-undim (orig-fun &rest next-window args)
+  (defun my/empv-undim (orig-fun &rest next-window args)
     (when (string= "mpv"  exwm-class-name)
-      (empv-set-background (face-background 'default))))
-  (defun lr/empv-dim (orig-fun &rest next-window args)
+      (my/empv-set-background (face-background 'default))))
+  (defun my/empv-dim (orig-fun &rest next-window args)
     (when (string= "mpv"  exwm-class-name)
-      (empv-set-background (face-background 'auto-dim-other-buffers-face))))
+      (my/empv-set-background (face-background 'auto-dim-other-buffers-face))))
   :config
   ;;(advice-add #'adob--dim-buffer :
-  (advice-add #'select-window :before #'lr/empv-dim)
-  (advice-add #'select-window :after #'lr/empv-undim)
+  (advice-add #'select-window :before #'my/empv-dim)
+  (advice-add #'select-window :after #'my/empv-undim)
   :custom
   (empv-invidious-instance "https://invidious.nerdvpn.de/api/v1")
   (empv-mpv-args `(,(format "--background-color=%s" (face-background 'default))
@@ -2326,40 +2333,40 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
       (call-process "yt-dlp" nil t nil "--get-title" url)
       (string-trim (buffer-string))))
   (advice-add 'emms-format-url-track-name :override #'my/get-youtube-title)
-  (defun advise-emms-playlist-mode-kill-track (orig-fun &rest args)
+  (defun my/advise-emms-playlist-mode-kill-track (orig-fun &rest args)
     "Get the actual track name, instead of the formatted name."
     (cl-letf (((symbol-function 'kill-line)
                (lambda ()
                  (delete-line)
                  (kill-new (emms-track-get track 'name)))))
       (funcall orig-fun args)))
-  (advice-add 'emms-playlist-mode-killtrack :around #'advise-emms-playlist-mode-kill-track)
-  (defvar emms-player-mpv-volume 100)
-  (defun emms-player-mpv-get-volume ()
-    "Sets `emms-player-mpv-volume' to the current volume value
+  (advice-add 'emms-playlist-mode-killtrack :around #'my/advise-emms-playlist-mode-kill-track)
+  (defvar my/emms-player-mpv-volume 100)
+  (defun my/emms-player-mpv-get-volume ()
+    "Sets `my/emms-player-mpv-volume' to the current volume value
 and sends a message of the current volume status."
     (emms-player-mpv-cmd '(get_property volume)
                          #'(lambda (vol err)
                              (unless err
                                (let ((vol (truncate vol)))
-                                 (setq emms-player-mpv-volume vol)
+                                 (setq my/emms-player-mpv-volume vol)
                                  (message "Volume: %s%%"
                                           vol))))))
 
-  (defun emms-player-mpv-raise-volume (&optional amount)
+  (defun my/emms-player-mpv-raise-volume (&optional amount)
     (interactive)
     (let* ((amount (or amount 5))
-           (new-volume (+ emms-player-mpv-volume amount)))
+           (new-volume (+ my/emms-player-mpv-volume amount)))
       (if (> new-volume 100)
           (emms-player-mpv-cmd '(set_property volume 100))
         (emms-player-mpv-cmd `(add volume ,amount))))
-    (emms-player-mpv-get-volume))
-  (defun emms-player-mpv-lower-volume (&optional amount)
+    (my/emms-player-mpv-get-volume))
+  (defun my/emms-player-mpv-lower-volume (&optional amount)
     (interactive)
     (emms-player-mpv-cmd `(add volume ,(- (or amount '5))))
-    (emms-player-mpv-get-volume))
+    (my/emms-player-mpv-get-volume))
   :custom
-  (emms-volume-change-function 'emms-player-mpv-raise-volume))
+  (emms-volume-change-function 'my/emms-player-mpv-raise-volume))
 
 
 ;;; Communication
@@ -2372,12 +2379,12 @@ and sends a message of the current volume status."
   :after (consult mu4e)
   :ensure (:fetcher github :repo "armindarvish/consult-mu"))
 
-(defun insert-cut-here-start ()
+(defun my/insert-cut-here-start ()
   "Insert opening \"cut here start\" snippet."
   (interactive)
   (insert "--8<---------------cut here---------------start------------->8---"))
 
-(defun insert-cut-here-end ()
+(defun my/insert-cut-here-end ()
   "Insert closing \"cut here end\" snippet."
   (interactive)
   (insert "--8<---------------cut here---------------end--------------->8---"))
@@ -2399,18 +2406,18 @@ and sends a message of the current volume status."
   mu4e--query-items-refresh
   :preface
   ;; Override this to avoid the IDIOTIC mue4 "main window"
-  (defun my-mu4e~headers-quit-buffer (&rest _)
+  (defun my/mu4e~headers-quit-buffer (&rest _)
     "Quit the mu4e-headers buffer and do NOT go back to the main view."
     (interactive)
     (mu4e-mark-handle-when-leaving)
     (quit-window t)
     (mu4e--query-items-refresh 'reset-baseline))
-  (defun my-disabled-mu4e--main-menu ()
+  (defun my/disabled-mu4e--main-menu ()
     "Skip the USELESS main menu."
     (mu4e-search-maildir "/All Mail"))
   :config
-  (advice-add 'mu4e~headers-quit-buffer :override #'my-mu4e~headers-quit-buffer)
-  (advice-add 'mu4e--main-menu :override #'my-disabled-mu4e--main-menu)
+  (advice-add 'mu4e~headers-quit-buffer :override #'my/mu4e~headers-quit-buffer)
+  (advice-add 'mu4e--main-menu :override #'my/disabled-mu4e--main-menu)
   (mu4e-modeline-mode -1)
   :hook
   ;; Don't create tons of "draft" messages
@@ -2482,13 +2489,13 @@ and sends a message of the current volume status."
   (smtpmail-smtp-service 465)
   (smtpmail-stream-type 'ssl))
 
-(defun my-confirm-empty-subject ()
+(defun my/confirm-empty-subject ()
   "Allow user to quit when current message subject is empty."
   (or (message-field-value "Subject")
       (yes-or-no-p "Really send without Subject? ")
       (keyboard-quit)))
 
-(add-hook 'message-send-hook #'my-confirm-empty-subject)
+(add-hook 'message-send-hook #'my/confirm-empty-subject)
 
 (use-package mu4e-thread-folding
   :ensure (:fetcher github
@@ -2580,7 +2587,7 @@ and sends a message of the current volume status."
 
   (defvar engine-search-history '())
 
-  (defun my-engine-use-completing-read (engine-name)
+  (defun my/engine-use-completing-read (engine-name)
     "Advice to use completing-read instead of read-string in engine-mode."
     (let ((current-word (or (thing-at-point 'symbol 'no-properties) "")))
       (completing-read (engine--search-prompt engine-name current-word)
@@ -2610,7 +2617,7 @@ and sends a message of the current volume status."
     "https://ebay.com/sch/i.html?_nkw=%s"
     :keybinding "e")
 
-  (advice-add 'engine--prompted-search-term :override #'my-engine-use-completing-read)
+  (advice-add 'engine--prompted-search-term :override #'my/engine-use-completing-read)
   (engine-mode 1))
 
 
