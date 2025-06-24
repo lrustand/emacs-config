@@ -1526,6 +1526,7 @@ targets."
   magit-get-current-branch
   magit-anything-modified-p
   :custom
+  (magit-format-file-function #'magit-format-file-nerd-icons)
   ;; Don't nag extreme amounts when having an unsaved file
   (magit-save-repository-buffers nil)
   (magit-diff-refine-hunk t)
