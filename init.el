@@ -1725,7 +1725,6 @@ targets."
   :defer t
   :after org
   :init
-  (make-directory "~/org-roam" t)
   (setq org-roam-v2-ack t)
   :custom
   (org-roam-directory "~/org-roam")
@@ -1752,6 +1751,7 @@ targets."
   :bind-keymap
   ("C-c n d" . org-roam-dailies-map)
   :config
+  (make-directory "~/org-roam" t)
   (require 'org-roam-dailies) ;; Ensure the keymap is available
 
   (defun my/org-roam-get-title (file)
