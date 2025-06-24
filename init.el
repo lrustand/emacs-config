@@ -261,6 +261,7 @@
   (global-hl-line-mode 1)
   (global-auto-revert-mode 1)
   (save-place-mode 1)
+  (put 'list-timers 'disabled nil)
 
   ;; change all prompts to y or n
   (fset 'yes-or-no-p 'y-or-n-p)
@@ -2869,4 +2870,3 @@ Might give duplicates, if a process has multiple windows."
   :demand t)
 
 ;;; init.el ends here
-(put 'list-timers 'disabled nil)
