@@ -1708,14 +1708,15 @@ targets."
     "Only use rich yank when it makes sense."
     (interactive)
     (if (and org-rich-yank--buffer
-               (with-current-buffer org-rich-yank--buffer
-                 (derived-mode-p '(prog-mode))))
+             (with-current-buffer org-rich-yank--buffer
+               (derived-mode-p '(prog-mode))))
         (org-rich-yank)
-      (org-yank)))
-  :general
-  (:keymaps 'org-mode-map
-            :states 'normal
-            "p" #'my/org-rich-yank))
+      (org-yank))))
+;;:general
+;;(:keymaps 'org-mode-map
+;;          :states 'normal
+;;          "p" #'my/org-rich-yank)
+
 
 ;;;; Roam
 ;;;;-------
