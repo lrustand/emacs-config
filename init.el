@@ -397,6 +397,9 @@
   (epg-gpg-program "gpg2")
   (epg-pinentry-mode 'loopback))
 
+(use-package pinentry
+  :ensure t)
+
 (use-package password-store
   :ensure t)
 
