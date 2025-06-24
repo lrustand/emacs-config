@@ -295,6 +295,18 @@ Automatically exits fullscreen if any window-changing command is executed."
   :defer t
   :ensure (:fetcher github :repo "SebastienWae/app-launcher"))
 
+(defvar app-launcher-source
+  `(:name "Desktop apps"
+    :narrow ,?d
+    :annotate ,app-launcher--annotation-function
+    :action ,app-launcher--action-function
+    :items ,(lambda ()
+              (let (apps)
+                (maphash (lambda (app data)
+                           (setf (alist-get app apps) data))
+                         (app-launcher-list-apps))
+                apps))))
+
 
 
 ;;;; Statusbar
