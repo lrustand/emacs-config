@@ -2366,6 +2366,8 @@ and sends a message of the current volume status."
   :ensure nil
   :ensure-system-package mu
   :init
+  (when (file-exists-p "/usr/share/emacs/site-lisp/elpa-src/mu4e-1.12.9")
+    (add-to-list 'load-path "/usr/share/emacs/site-lisp/elpa-src/mu4e-1.12.9"))
   (when (file-exists-p "/usr/share/emacs/site-lisp/mu4e")
     (add-to-list 'load-path "/usr/share/emacs/site-lisp/mu4e"))
   :config
