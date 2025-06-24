@@ -2692,6 +2692,14 @@ and sends a message of the current volume status."
 
 
 
+(use-package shr
+  :ensure nil
+  :defer t
+  :custom
+  (shr-color-visible-luminance-min 60)
+  (shr-color-visible-distance-min 5)
+  (shr-use-colors nil))
+
 (use-package shrface
   :ensure t
   :defer t
@@ -2708,20 +2716,17 @@ and sends a message of the current volume status."
 
 
 (use-package eww
+  :ensure nil
   :defer t
-  :requires
-  shrface
+  :init
+  (require 'shrface)
   :config
   (add-hook 'eww-after-render-hook #'shrface-mode))
 
 
-;; TODO one of the following options disables shrface conversion to org-mode headings
 ;; Figure out what and fix it
 ;;(setq mu4e-html2text-command 'mu4e-shr2text)
-(setq shr-color-visible-luminance-min 60)
-(setq shr-color-visible-distance-min 5)
-(setq shr-use-colors nil)
-(advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
+;;(advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
 
 
 ;;(use-package bitbake
