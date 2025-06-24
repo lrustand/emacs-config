@@ -35,6 +35,57 @@
 (defvar my-eshell-prompt-regexp "^ -> ")
 (setq eshell-prompt-regexp my-eshell-prompt-regexp)
 
+;;;; Prompt faces
+
+;; TODO: This breaks the foreground color of the below faces for
+;; themes that set a foreground color for the `highlight' face.
+;;
+;; Currently, it is not possible to un-inherit a face attribute:
+;; https://lists.gnu.org/archive/html/emacs-devel/2019-10/msg00394.html
+(defface my-prompt-default-face
+  '((t :foreground nil
+       :inherit highlight
+       :weight bold))
+  "Default face for my prompt.")
+
+(defface my-prompt-user-face
+  '((t :inherit (my-prompt-default-face term-color-green)))
+  "Face used to highlight a non-root user.")
+
+(defface my-prompt-root-face
+  '((t :inherit (my-prompt-default-face term-color-red)))
+  "Face used to highlight the root user.")
+
+(defface my-prompt-local-hostname-face
+  '((t :inherit (my-prompt-default-face term-color-green)))
+  "Face used to highlight the local hostname.")
+
+(defface my-prompt-remote-hostname-face
+  '((t :inherit (my-prompt-default-face term-color-blue)))
+  "Face used to highlight a remote hostname.")
+
+(defface my-prompt-timedate-face
+  '((t :inherit (my-prompt-default-face term-color-green)))
+  "Face used to highlight the time and date.")
+
+(defface my-prompt-directory-face
+  '((t :inherit (my-prompt-default-face)))
+  "Face used to highlight the current directory.")
+
+(defface my-prompt-git-branch-face
+  '((t :inherit (my-prompt-default-face term-color-blue)))
+  "Face used to highlight the git branch.")
+
+(defface my-prompt-venv-face
+  '((t :inherit (my-prompt-default-face term-color-green)))
+  "Face used to highlight the python venv.")
+
+(defface my-prompt-arrow-face
+  '((t :inherit (my-prompt-default-face term-color-blue)))
+  "Face used to highlight the arrow right before to input field.")
+
+
+;;;; Helper functions
 
 (defun my/git-status ()
   (with-output-to-string
@@ -45,61 +96,37 @@
   (not (string-blank-p (my/git-status))))
 
 
-;;;###autoload
-(defun my-eshell-prompt ()
-  "Function for generating my eshell prompt.
-Should be used as the function for `eshell-prompt-function'"
-  (let* ((green (face-foreground 'term-color-green))
-         (red (face-foreground 'term-color-red))
-         (black (face-foreground 'term-color-black))
-         (blue (face-foreground 'term-color-blue))
-         (bright-black (face-foreground 'term-color-bright-black))
-         (prompt-bg black)
-         (username-fg (if (= (user-uid) 0) red green))
-         (username-face `(:foreground ,username-fg
-                                      :background ,prompt-bg
-                                      :weight bold))
-         (hostname-face `(:foreground ,green
-                                      :background ,prompt-bg
-                                      :weight bold))
-         (timedate-face `(:foreground ,green
-                                      :background ,prompt-bg
-                                      :weight bold))
-         (git-branch-face `(:foreground ,blue
-                                        :background ,prompt-bg))
-         (default-prompt-face `(:foreground unspecified
-                                            :background ,black
-                                            :weight bold)))
-    (concat
-     "\n"
-     (my/eshell-prompt-venv)
-     (propertize (format-time-string "[%H:%M, %d/%m/%y]" (current-time)) 'face timedate-face)
-     "\n"
-     ;;(propertize (user-login-name) 'face username-face)
-     ;;(propertize "@" 'face default-prompt-face)
-     ;;(propertize (system-name) 'face hostname-face)
-     (my/eshell-prompt-user-and-host)
-     (propertize (format " [%s]" (f-abbrev default-directory)) 'face default-prompt-face)
-     (when (magit-get-current-branch)
-       (concat
-        (propertize (format " [%s" (magit-get-current-branch)) 'face git-branch-face)
-        (when (my/git-status--dirty-p)
-          (propertize "*" 'face `(:foreground "red" :background ,prompt-bg :bold)))
-        (propertize "]" 'face git-branch-face)))
-     "\n"
-     (propertize "\n" 'face default-prompt-face)
-     (propertize " ->" 'face `(:foreground ,blue :background ,prompt-bg :bold))
-     (propertize " " 'face default-prompt-face))))
+;;;; Prompt segment functions
 
 (defun my/eshell-prompt-user-and-host ()
-  (my/with-bold
-  (my/with-background 'term-color-black
-  (my/with-foreground 'term-color-green
+  "Return the formatted prompt segment for user and host info."
+  (let (user host userface hostface)
     (if (epe-remote-p)
-        (concat (epe-remote-user) "@" (epe-remote-host))
-      (concat (user-login-name) "@" system-name))))))
+        (progn
+          (setq user (epe-remote-user))
+          (setq host (epe-remote-host))
+          (setq hostface 'my-prompt-remote-hostname-face))
+      (setq user (user-login-name))
+      (setq host system-name)
+      (setq hostface 'my-prompt-local-hostname-face))
+    (if (string= user "root")
+        (setq userface 'my-prompt-root-face)
+      (setq userface 'my-prompt-user-face))
+    (concat (propertize user 'face userface)
+            (propertize "@" 'face 'my-prompt-default-face)
+            (propertize host 'face hostface))))
+
+(defun my/eshell-prompt-datetime ()
+  "Return the formatted prompt segment for the time and date."
+  (propertize (format-time-string "[%H:%M, %d/%m/%y]" (current-time)) 'face 'my-prompt-timedate-face))
+
+
+(defun my/eshell-prompt-directory ()
+  "Return the formatted prompt segment for the current directory."
+  (propertize (format " [%s]" (f-abbrev (directory-file-name default-directory))) 'face 'my-prompt-directory-face))
 
 (defun my/eshell-prompt-venv ()
+  "Return the formatted prompt segment for venv info."
   (when venv-current-dir
     (let* ((venv-parent-dir (thread-last venv-current-dir
                                          (file-name-parent-directory)
@@ -109,11 +136,38 @@ Should be used as the function for `eshell-prompt-function'"
                           venv-parent-dir
                         venv-current-name)))
       (concat
-       (thread-last (format "(%s)" venv-name)
-                    (my/with-bold)
-                    (my/with-background 'term-color-black)
-                    (my/with-foreground 'term-color-green))
-       "\n"))))
+       (propertize (format "(%s)" venv-name) 'face 'my-prompt-venv-face) "\n"))))
+
+(defun my/eshell-prompt-git ()
+  "Return the formatted prompt segment for git info."
+  (when (and (not (file-remote-p default-directory))
+             (magit-git-repo-p default-directory))
+    (let ((branch (or (magit-get-shortname "HEAD"))))
+      (concat
+       (propertize (format " [%s" branch) 'face 'my-prompt-git-branch-face)
+       (when (my/git-status--dirty-p)
+         (propertize "*" 'face '(:foreground "red" :inherit my-prompt-default-face)))
+       (propertize "]" 'face 'my-prompt-git-branch-face)))))
+
+
+;;;; The actual prompt function
+
+;;;###autoload
+(defun my-eshell-prompt ()
+  "Function for generating my eshell prompt.
+Should be used as the function for `eshell-prompt-function'"
+  (concat
+    "\n"
+    (my/eshell-prompt-venv)
+    (my/eshell-prompt-datetime)
+    "\n"
+    (my/eshell-prompt-user-and-host)
+    (my/eshell-prompt-directory)
+    (my/eshell-prompt-git)
+    "\n"
+    (propertize "\n" 'face 'my-prompt-default-face)
+    (propertize " ->" 'face 'my-prompt-arrow-face)
+    (propertize " " 'face 'my-prompt-default-face)))
 
 (provide 'my-eshell-prompt)
 ;;; my-eshell-prompt.el ends here
