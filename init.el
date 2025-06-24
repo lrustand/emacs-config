@@ -1609,12 +1609,6 @@ targets."
    '(("NEXT" . "green")
      ("BLOCKED" . "orange")
      ("CANCELED" . (:foreground "red" :weight bold))))
-
-  :hook (org-mode . (lambda ()
-                      (visual-line-mode 1)
-                      (org-fold-hide-drawer-all)
-                      (org-fold-all-done-entries)))
-
   :preface
   (defun my/org-checkbox-todo ()
     "Switch header TODO state to DONE when all checkboxes are ticked, to TODO otherwise"
@@ -1659,9 +1653,9 @@ targets."
     (my/org-fold-all-done-entries))
 
   :hook
-  (org-mode . #'my/org-mode-setup)
-  (org-checkbox-statistics . #'my/org-checkbox-todo)
-  (org-after-todo-statistics . #'my/org-summary-todo))
+  (org-mode . my/org-mode-setup)
+  (org-checkbox-statistics . my/org-checkbox-todo)
+  (org-after-todo-statistics . my/org-summary-todo))
 
 (use-package org-agenda
   :defer t
