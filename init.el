@@ -91,18 +91,18 @@
 (use-package solarized-theme
   :ensure t
   :preface
-  (defvar my/solarized-customized-faces
-    '((custom-theme-set-faces
-       theme-name
-       `(auto-dim-other-buffers ((,class (:background ,base04))))))
-    "My custom face definitions for solarized themes.")
+  (defvar my/solarized-customized-faces nil
+   "My custom face definitions for solarized themes.")
+  :custom
+  (my/solarized-customized-faces
+   '((custom-theme-set-faces
+      theme-name
+      `(auto-dim-other-buffers ((,class (:background ,base04))))
+      `(window-divider ((((background light)) (:foreground ,base01))
+                        (t :foreground ,base02))))))
   :config
   (require 'solarized-palettes)
   (require 'solarized-faces)
-  ;; Modify theme faces
-  ;; (set-face-attribute 'window-divider nil :foreground (face-attribute 'mode-line :background))
-  ;; (set-face-attribute 'window-divider-first-pixel nil :foreground (face-attribute 'mode-line :background))
-  ;; (set-face-attribute 'window-divider-last-pixel nil :foreground (face-attribute 'mode-line :background))
   ;; Add a new color named `base04' to light and dark theme variants
   (setf (alist-get 'base04 solarized-dark-color-palette-alist) "#041f27")
   (setf (alist-get 'base04 solarized-light-color-palette-alist) "#eee8d5")
