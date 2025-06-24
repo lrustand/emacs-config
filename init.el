@@ -551,6 +551,11 @@
   :config
   (which-key-mode 1))
 
+;; Only used for formatting eldoc string
+(use-package eldoc-box
+  :ensure t
+  :autoload eldoc-box--compose-doc)
+
 (use-package eldoc
   :ensure nil
   :demand t
@@ -558,7 +563,7 @@
   (setq eldoc-print-after-edit t)
   (setq eldoc-echo-area-use-multiline-p t)
   (setq eldoc-message-function #'my/eldoc-posframe-show)
-  (setq eldoc-display-functions '(eldoc-display-in-echo-area my/eldoc-display-function))
+  (setq eldoc-display-functions '(my/eldoc-display-function))
   (setq eldoc-idle-delay 1)
   ;; Only trigger after any editing
   :config
@@ -571,14 +576,15 @@
                      :string (apply 'format args)
                      :position (point)
                      :max-width 100
-                     :background-color "#333333"
-                     :foreground-color "#eeeeee"
+                     :background-color (face-background 'corfu-default)
                      :internal-border-width 1
                      :internal-border-color "#777777")
       (add-hook 'post-command-hook #'my/eldoc-posframe-hide)))
   (defun my/eldoc-posframe-hide ()
     "Hide eldoc posframe."
-    (unless (eq this-command 'eldoc) ; Don't hide immediately
+    (unless (or (eq this-command 'eldoc) ; Don't hide immediately
+                (eq this-command 'handle-switch-frame)
+                (eq this-command 'mwheel-scroll))
       (remove-hook 'post-command-hook #'my/eldoc-posframe-hide)
       (posframe-hide "*eldoc-posframe*")))
   (defun my/eldoc-display-function (docs interactive)
@@ -586,7 +592,7 @@
     ;; For some reason eldoc calls the display function even in cases
     ;; where it shouldn't according to `eldoc-print-after-edit'.
     (when interactive
-      (my/eldoc-posframe-show (eldoc-box--compose-doc (car docs)))))
+      (my/eldoc-posframe-show (concat (format "%s" (mapcar #'eldoc-box--compose-doc docs))))))
   (global-eldoc-mode 1)
   :general
   (:states 'normal
@@ -1442,9 +1448,11 @@ targets."
 ;;  (lsp-latex-build-on-save t))
 
 (use-package eglot
-  :ensure t
+  :ensure nil
   :defer t
   :config
+  (unbind-key "K" 'eglot-mode-map) ; Don't override my global "K" binding for eldoc
+  (unbind-key "<normal-state> K" 'eglot-mode-map)
   (setq-default eglot-workspace-configuration
                 '(:pylsp
                   (:plugins
@@ -1461,6 +1469,10 @@ targets."
                  "--header-insertion=iwyu"
                  "--header-insertion-decorators=true"))
   (add-to-list 'eglot-server-programs '(bitbake-mode . ("bitbake-language-server")))
+  :general
+  (:keymaps 'eglot-mode-map
+            :states 'normal
+            "K" #'eldoc)
   :hook
   (prog-mode . eglot-ensure)
   :custom
