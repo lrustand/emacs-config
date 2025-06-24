@@ -310,6 +310,74 @@
 ;;; Interface
 ;;;-----------
 
+;;;; Calendar
+
+(use-package calendar
+  :ensure nil
+  :init
+  (defvar calendar-norway-red-days
+    '((holiday-fixed 1 1 "Første nyttårsdag")
+
+      ;; Jul
+      (holiday-fixed 12 25 "Første juledag")
+      (holiday-fixed 12 26 "Andre juledag")
+
+      ;; Påske og pinse
+      (holiday-filter-visible-calendar
+       (mapcar
+        (lambda (dag)
+          (list (calendar-gregorian-from-absolute
+                 (+ (calendar-norway-calculate-easter displayed-year) (car dag)))
+                (cadr dag)))
+        '((  -3 "Skjærtorsdag")
+          (  -2 "Langfredag")
+          (  -1 "Påskeaften")
+          (   0 "Første påskedag")
+          (  +1 "Andre påskedag")
+          ( +39 "Kristi himmelfartsdag")
+          ( +49 "Første pinsedag")
+          ( +50 "Andre pinsedag"))))
+
+      (holiday-fixed 5 1 "Arbeidernes dag")
+      (holiday-fixed 5 17 "Grunnlovsdagen"))
+    "Røde kalenderdager i Norge.")
+  :custom
+  ;; Week starts on monday
+  (calendar-week-start-day 1)
+  ;; Display week numbers
+  (calendar-intermonth-text
+   '(propertize
+     (format "%2d"
+             (car
+              (calendar-iso-from-absolute
+               (calendar-absolute-from-gregorian (list month day year)))))
+     'font-lock-face 'font-lock-function-name-face))
+  (calendar-date-display-form
+   '((if dayname
+         (concat dayname ", "))
+     day ". " monthname " " year))
+  (calendar-time-display-form '(24-hours ":" minutes))
+  :config
+  ;; Helper:
+  (defun calendar-norway-calculate-easter (year)
+    "Calculate the date for Easter in YEAR."
+    (let* ((century (1+ (/ year 100)))
+           (shifted-epact (% (+ 14 (* 11 (% year 19))
+                                (- (/ (* 3 century) 4))
+                                (/ (+ 5 (* 8 century)) 25)
+                                (* 30 century))
+                             30))
+           (adjusted-epact (if (or (= shifted-epact 0)
+                                   (and (= shifted-epact 1)
+                                        (< 10 (% year 19))))
+                               (1+ shifted-epact)
+                             shifted-epact))
+           (paschal-moon (- (calendar-absolute-from-gregorian
+                             (list 4 19 year))
+                            adjusted-epact)))
+      (calendar-dayname-on-or-before 0 (+ paschal-moon 7))))
+  (calendar-set-date-style 'european))
+
 
 ;;;; GPG
 
