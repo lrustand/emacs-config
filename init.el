@@ -1727,6 +1727,7 @@ targets."
   :init
   (setq org-roam-v2-ack t)
   :custom
+  (org-roam-completion-everywhere t)
   (org-roam-directory "~/org-roam")
   (org-roam-dailies-directory "dailies")
   (org-roam-completion-everywhere t)
