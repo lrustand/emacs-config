@@ -886,9 +886,13 @@ characters respectably."
          ("C-s r" . consult-ripgrep)
          ("C-s f" . consult-find)
          ("C-s i" . consult-imenu)
-         ("C-s I" . consult-imenu-multi))
-  :bind (:map minibuffer-mode-map
-              ("C-r" . consult-history)))
+         ("C-s I" . consult-imenu-multi)
+         :map minibuffer-mode-map
+         ("C-r" . consult-history))
+  :general
+  (:keymaps 'comint-mode-map
+            :states 'insert
+            "C-r" 'consult-history))
 
 (use-package consult-projectile
   :ensure t
