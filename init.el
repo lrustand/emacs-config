@@ -1538,6 +1538,10 @@ targets."
   :after magit
   :functions
   magit-todos-mode
+  :custom
+  ;; Do not scan with git diff.
+  ;; Has previously caused extreme cpu usage.
+  (magit-todos-branch-list nil)
   :config
   (magit-todos-mode 1))
 
