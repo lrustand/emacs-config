@@ -61,13 +61,22 @@
 (add-hook 'after-init-hook #'elpaca-process-queues)
 (elpaca `(,@elpaca-order))
 
-;; Uncomment for systems which cannot create symlinks:
-;; (elpaca-no-symlink-mode)
+;; Bootstrap `use-package' for emacs < 29.1
+(unless (featurep 'use-package)
+  (elpaca use-package))
+
+(eval-and-compile
+  (setq
+   use-package-verbose t
+   use-package-expand-minimally t
+   use-package-compute-statistics t
+   use-package-enable-imenu-support t))
 
 ;; Install use-package support
 (elpaca elpaca-use-package
   ;; Enable use-package :ensure support for Elpaca.
   (elpaca-use-package-mode))
+
 
 ;;When installing a package used in the init file itself,
 ;;e.g. a package which adds a use-package key word,
