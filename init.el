@@ -1563,6 +1563,9 @@ targets."
 (use-package git-timemachine
   :ensure t)
 
+(use-package forge
+  :ensure t)
+
 ;;; Org
 ;;;-----
 
