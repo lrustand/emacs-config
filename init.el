@@ -414,9 +414,9 @@
   :ensure t
   :config
   (require 'smartparens-config)
-  (smartparens-global-mode 1)
+  ;;(smartparens-global-mode 1)
   ;; Make sure parens stay balanced in insert mode as well
-  (smartparens-global-strict-mode 1))
+  (smartparens-global-strict-mode -1))
 
 (use-package evil-cleverparens
   :after evil
@@ -426,6 +426,7 @@
   (evil-cleverparens-swap-move-by-word-and-symbol t)
   :hook
   (evil-cleverparens-mode . smartparens-mode)
+  (evil-cleverparens-mode . smartparens-strict-mode)
   (emacs-lisp-mode . evil-cleverparens-mode))
 
 ;; TODO: Define some cool easymotion motions for cleverparens etc
