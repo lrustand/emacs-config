@@ -679,6 +679,11 @@ characters respectably."
   :config
   (global-hl-todo-mode 1))
 
+
+;; TODO: Fix garbage collection
+
+;; Random freezes occur due to undo-tree explicitly triggering
+;; garbage-collection when saving files. Happens in `undo-list-transfer-to-tree'.
 (use-package undo-tree
   :ensure t
   :functions
