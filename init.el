@@ -925,6 +925,13 @@ characters respectably."
     "Jump to a directory in eshell using consult-dir."
     (eshell/cd (substring-no-properties (consult-dir--pick "cd: ")))))
 
+(use-package consult-git-log-grep
+  :ensure t)
+
+(use-package consult-vc-modified-files
+  :ensure t)
+
+
 ;; Editable grep results
 ;; Example usage:
 ;; consult-ripgrep -> embark-export -> wgrep-change-to-wgrep-mode
