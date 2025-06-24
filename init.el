@@ -1590,8 +1590,6 @@ targets."
   (org-return-follows-link  t)
   (org-log-done 'time)
   (org-log-into-drawer t)
-  (org-agenda-window-setup 'current-window)
-  (org-agenda-skip-scheduled-if-deadline-is-shown t)
 
   (org-todo-keywords
    '((sequence
@@ -1611,15 +1609,6 @@ targets."
    '(("NEXT" . "green")
      ("BLOCKED" . "orange")
      ("CANCELED" . (:foreground "red" :weight bold))))
-
-  (org-agenda-prefix-format '(
-                              ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
-                              (agenda  . " %i %(org-get-title) ")
-                              (timeline  . "  %(org-get-title) ")
-                              (todo  . " %i %(org-get-title) ")
-                              (tags  . " %i %(org-get-title) ")
-                              (search . " %i %(org-get-title) ")))
-
 
   :hook (org-mode . (lambda ()
                       (visual-line-mode 1)
@@ -1674,6 +1663,22 @@ targets."
   (org-checkbox-statistics . #'my/org-checkbox-todo)
   (org-after-todo-statistics . #'my/org-summary-todo))
 
+(use-package org-agenda
+  :defer t
+  :custom
+  (org-agenda-prefix-format '(
+                              ;; (agenda  . " %i %-12:c%?-12t% s") ;; file name + org-agenda-entry-type
+                              (agenda  . " %i %(org-get-title) ")
+                              (timeline  . "  %(org-get-title) ")
+                              (todo  . " %i %(org-get-title) ")
+                              (tags  . " %i %(org-get-title) ")
+                              (search . " %i %(org-get-title) ")))
+  (org-agenda-window-setup 'current-window)
+  (org-agenda-skip-scheduled-if-deadline-is-shown t)
+  :config
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys))
+
 (use-package org-contrib
   :ensure t
   :after org)
@@ -1681,10 +1686,7 @@ targets."
 (use-package evil-org
   :ensure t
   :after org
-  :hook (org-mode . evil-org-mode)
-  :config
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+  :hook (org-mode . evil-org-mode))
 
 (use-package org-bullets
   :ensure t
