@@ -111,7 +111,7 @@ Automatically exits fullscreen if any window-changing command is executed."
   (xinput-finger-disable)
   :custom
   ;; Set the default number of workspaces
-  (exwm-workspace-number 5)
+  (exwm-workspace-number 1)
   (exwm-layout-show-all-buffers t)
   (exwm-workspace-show-all-buffers t)
   ;; These keys should always pass through to Emacs
