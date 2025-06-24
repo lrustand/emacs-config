@@ -2127,7 +2127,12 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
                            (only-shell-running (not (process-running-child-p proc-name))))
                       (if only-shell-running
                           (set-process-query-on-exit-flag proc nil))))
-                (apply orig-fun args))))
+                (apply orig-fun args)))
+
+  :general
+  (:keymaps 'vterm-mode-map
+            :states '(insert normal)
+            "C-q" 'vterm-send-next-key))
 
 (use-package multi-vterm
   :ensure nil
