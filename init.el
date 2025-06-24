@@ -2703,13 +2703,29 @@ and sends a message of the current volume status."
 (advice-add #'shr-colorize-region :around (defun shr-no-colourise-region (&rest ignore)))
 
 
-(use-package bitbake
-  :ensure t
-  :defer t
-  :mode "bitbake-mode"
-  :init
-  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode)))
+;;(use-package bitbake
+;;  :ensure t
+;;  :defer t
+;;  :mode "bitbake-mode"
+;;  :init
+;;  (add-to-list 'auto-mode-alist '("\\.\\(bb\\|bbappend\\|bbclass\\|inc\\|conf\\)\\'" . bitbake-mode)))
 
+(use-package bitbake-modes
+  :ensure (:host "bitbucket.org" :url "https://bitbucket.org/olanilsson/bitbake-modes/src/master/")
+  :config
+  (mapcar (lambda (dir)
+            (add-to-list 'bitbake-ff-search-dirs dir))
+          '("poky"
+            "poky/meta"
+            "poky/meta-*"
+            "poky/meta-*/classes"
+            "poky/meta-*/classes-recipe"
+            "meta-*/meta-*"
+            "meta-*/meta-*/classes-recipe"
+            "meta-*/meta-*/classes"))
+  :custom
+  ;; Manually mark the top dir of Yocto source by making a .topdir file
+  (bitbake-topdir-dominating-file '(".topdir")))
 
 (use-package tex
   :ensure auctex
