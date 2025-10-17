@@ -2665,6 +2665,7 @@ and sends a message of the current volume status."
   (qutebrowser-launcher-backend #'qutebrowser-consult-launcher)
   (browse-url-browser-function #'qutebrowser-open-url)
   :config
+  (qutebrowser-rpc-ensure-installed)
   (qutebrowser-theme-export-mode 1)
   (global-qutebrowser-doom-modeline-mode 1)
   (qutebrowser-evil-state-mode 1)
