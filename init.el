@@ -555,6 +555,14 @@
             "L" #'help-go-forward
             "H" #'help-go-back))
 
+(use-package info
+  :ensure nil
+  :general
+  (:keymaps 'Info-mode-map
+            :states 'normal
+            "L" #'Info-history-forward
+            "H" #'Info-history-back))
+
 (use-package which-key
   :ensure t
   :defer 5
