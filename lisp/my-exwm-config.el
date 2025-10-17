@@ -320,6 +320,7 @@ Automatically exits fullscreen if any window-changing command is executed."
   :autoload
   lemon-battery-present?
   my/lemon-def-monitor
+  lemon-battery
   :config
   (defun my/advice:lemon-battery--face (args)
     "Replace 0:00 time-left with N/A, to avoid error face when battery is full."
