@@ -2320,27 +2320,34 @@ Re-introducing the old version fixes auto-dim-other-buffers for vterm buffers."
 ;;; Media players
 ;;;----------------
 
-(use-package empv
+;; NOTE: Doesn't work anymore. Invidious has stopped working. Use yeetube instead (below).
+;;(use-package empv
+;;  :ensure t
+;;  :defer t
+;;  :preface
+;;  (defun my/empv-set-background (color)
+;;    (empv--send-command-sync (list "set_property" "background-color" color)))
+;;  (defun my/empv-undim (orig-fun &rest next-window args)
+;;    (when (string= "mpv"  exwm-class-name)
+;;      (my/empv-set-background (face-background 'default))))
+;;  (defun my/empv-dim (orig-fun &rest next-window args)
+;;    (when (string= "mpv"  exwm-class-name)
+;;      (my/empv-set-background (face-background 'auto-dim-other-buffers-face))))
+;;  :config
+;;  ;;(advice-add #'adob--dim-buffer :
+;;  (advice-add #'select-window :before #'my/empv-dim)
+;;  (advice-add #'select-window :after #'my/empv-undim)
+;;  :custom
+;;  (empv-invidious-instance "https://invidious.nerdvpn.de/api/v1")
+;;  (empv-mpv-args `(,(format "--background-color=%s" (face-background 'default))
+;;                   "--no-terminal" "--idle" "--stream-buffer-size=20MiB"
+;;                   "--input-ipc-server=/tmp/empv-socket")))
+
+(use-package yeetube
   :ensure t
-  :defer t
-  :preface
-  (defun my/empv-set-background (color)
-    (empv--send-command-sync (list "set_property" "background-color" color)))
-  (defun my/empv-undim (orig-fun &rest next-window args)
-    (when (string= "mpv"  exwm-class-name)
-      (my/empv-set-background (face-background 'default))))
-  (defun my/empv-dim (orig-fun &rest next-window args)
-    (when (string= "mpv"  exwm-class-name)
-      (my/empv-set-background (face-background 'auto-dim-other-buffers-face))))
-  :config
-  ;;(advice-add #'adob--dim-buffer :
-  (advice-add #'select-window :before #'my/empv-dim)
-  (advice-add #'select-window :after #'my/empv-undim)
   :custom
-  (empv-invidious-instance "https://invidious.nerdvpn.de/api/v1")
-  (empv-mpv-args `(,(format "--background-color=%s" (face-background 'default))
-                   "--no-terminal" "--idle" "--stream-buffer-size=20MiB"
-                   "--input-ipc-server=/tmp/empv-socket")))
+  (yeetube-results-limit 200)
+  (yeetube-play-function #'emms-play-url))
 
 (use-package elfeed-tube
   :ensure t
