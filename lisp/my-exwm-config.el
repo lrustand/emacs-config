@@ -191,6 +191,9 @@ Automatically exits fullscreen if any window-changing command is executed."
                   (interactive (list (read-shell-command "$ ")))
                   (start-process-shell-command command nil command)))
 
+     ;; Qutebrowser
+     ([?\s-o] . qutebrowser-launcher)
+
      ;; Switch workspace
      ([?\s-w] . exwm-workspace-switch)
 
