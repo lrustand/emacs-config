@@ -156,6 +156,9 @@
      (fringe . (auto-dim-other-buffers-face . nil))
      (line-number . (auto-dim-other-buffers-face . nil))
      (line-number-current-line . (auto-dim-other-buffers-face . nil))
+     (geiser-font-lock-repl-input . (auto-dim-other-buffers-face . nil))
+     (geiser-font-lock-repl-output . (auto-dim-other-buffers-face . nil))
+     (geiser-font-lock-repl-prompt . (auto-dim-other-buffers-face . nil))
      (magit-diff-context-highlight . (auto-dim-other-buffers-face . nil))
      (magit-section-highlight . (auto-dim-other-buffers-face . nil))))
   :config
