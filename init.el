@@ -2835,12 +2835,13 @@ and sends a message of the current volume status."
   :hook
   (xkcd-mode . olivetti-mode)
   (xkcd-mode . (lambda ()
-                     (set (make-local-variable 'evil-normal-state-cursor) (list nil))
-                     (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
-  :bind
-  (:map xkcd-mode-map
-        ("h" . xkcd-prev)
-        ("l" . xkcd-next)))
+                 (set (make-local-variable 'evil-normal-state-cursor) (list nil))
+                 (set (make-local-variable 'evil-evilified-state-cursor) (list nil))))
+  :general
+  (:keymaps 'xkcd-mode-map
+            :states 'normal
+            "h" 'xkcd-prev
+            "l" 'xkcd-next))
 
 
 
