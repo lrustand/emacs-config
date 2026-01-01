@@ -1359,17 +1359,16 @@ targets."
 (use-package bash-completion
   :ensure t
   :defer t
-  :autoload
-  bash-completion-dynamic-complete
-  bash-completion-capf-nonexclusive
   :custom
   (bash-completion-use-separate-processes t)
   :init
   (add-to-list 'shell-dynamic-complete-functions 'bash-completion-dynamic-complete)
+  (defun my/eshell-enable-bash-completion ()
+    "Setup bash-completion in eshell"
+    (add-hook 'completion-at-point-functions
+              'bash-completion-capf-nonexclusive nil t))
   :hook
-  (eshell-mode . (lambda ()
-                   (add-hook 'completion-at-point-functions
-                             'bash-completion-capf-nonexclusive nil t))))
+  (eshell-mode . my/eshell-enable-bash-completion))
 
 ;;;; Lisp
 ;;;;-----
