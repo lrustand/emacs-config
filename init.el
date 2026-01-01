@@ -1554,7 +1554,7 @@ targets."
   :defer t
   :autoload
   ;; Used in eshell prompt
-  magit-get-current-branch
+  magit-get-shortname
   magit-anything-modified-p
   :custom
   (magit-format-file-function #'magit-format-file-nerd-icons)

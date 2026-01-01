@@ -30,6 +30,7 @@
 
 (require 'eshell-prompt-extras)
 (require 'my-text-property-helpers)
+(require 'vc-git)
 
 
 (defvar my-eshell-prompt-regexp "^ -> ")
@@ -43,7 +44,7 @@
 ;; Currently, it is not possible to un-inherit a face attribute:
 ;; https://lists.gnu.org/archive/html/emacs-devel/2019-10/msg00394.html
 (defface my-prompt-default-face
-  '((t :foreground nil
+  '((t :foreground unspecified
        :inherit highlight
        :weight bold))
   "Default face for my prompt.")
@@ -141,7 +142,7 @@
 (defun my/eshell-prompt-git ()
   "Return the formatted prompt segment for git info."
   (when (and (not (file-remote-p default-directory))
-             (magit-git-repo-p default-directory))
+             (vc-git-root default-directory))
     (let ((branch (or (magit-get-shortname "HEAD"))))
       (concat
        (propertize (format " [%s" branch) 'face 'my-prompt-git-branch-face)
