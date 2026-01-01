@@ -1563,8 +1563,7 @@ targets."
   (magit-diff-refine-hunk t)
   :config
   ;; Create "commits" in reflog of uncommitted changes
-  (magit-wip-before-change-mode 1)
-  (magit-wip-initial-backup-mode 1))
+  (magit-wip-mode 1))
 
 (use-package magit-todos
   :ensure t
