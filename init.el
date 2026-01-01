@@ -1582,7 +1582,10 @@ targets."
   :ensure t)
 
 (use-package forge
-  :ensure t)
+  :ensure t
+  :init
+  (setq forge-add-default-bindings nil)
+  :after magit)
 
 ;;; Org
 ;;;-----
