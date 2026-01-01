@@ -127,7 +127,7 @@
 
 (defun my/eshell-prompt-venv ()
   "Return the formatted prompt segment for venv info."
-  (when venv-current-dir
+  (when (bound-and-true-p venv-current-dir)
     (let* ((venv-parent-dir (thread-last venv-current-dir
                                          (file-name-parent-directory)
                                          (string-remove-suffix "/")
