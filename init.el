@@ -1565,17 +1565,17 @@ targets."
   ;; Create "commits" in reflog of uncommitted changes
   (magit-wip-mode 1))
 
-(use-package magit-todos
-  :ensure t
-  :after magit
-  :functions
-  magit-todos-mode
-  :custom
-  ;; Do not scan with git diff.
-  ;; Has previously caused extreme cpu usage.
-  (magit-todos-branch-list nil)
-  :config
-  (magit-todos-mode 1))
+;;(use-package magit-todos
+;;  :ensure t
+;;  :after magit
+;;  :functions
+;;  magit-todos-mode
+;;  :custom
+;;  ;; Do not scan with git diff.
+;;  ;; Has previously caused extreme cpu usage.
+;;  (magit-todos-branch-list nil)
+;;  :config
+;;  (magit-todos-mode 1))
 
 
 (use-package git-timemachine
