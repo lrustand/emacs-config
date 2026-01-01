@@ -1510,7 +1510,7 @@ targets."
             :states 'normal
             "K" #'eldoc)
   :hook
-  (prog-mode . eglot-ensure)
+  ((python-base-mode c++-mode c-mode) . eglot-ensure)
   :custom
   (eglot-extend-to-xref t))
 
