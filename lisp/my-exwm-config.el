@@ -312,6 +312,19 @@ Automatically exits fullscreen if any window-changing command is executed."
                         apps)))))
 
 
+;;;###autoload
+(defun pavucontrol ()
+  "Launch pavucontrol"
+  (interactive)
+  (if-let* ((buf (and (bound-and-true-p exwm--connection)
+                      (seq-filter (lambda (buf)
+                                    (buffer-local-value 'exwm-class-name buf))
+                                  (buffer-list)))))
+      (switch-to-buffer (car buf))
+    (async-shell-command "pavucontrol")))
+
+;;;###autoload
+(defalias 'volume 'pavucontrol)
 
 ;;;; Statusbar
 ;;;;-----------
