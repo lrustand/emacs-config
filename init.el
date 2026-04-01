@@ -1770,6 +1770,13 @@ targets."
   (make-directory "~/org-roam" t)
   (require 'org-roam-dailies) ;; Ensure the keymap is available
 
+  (defun my/org-roam:ignore-case (orig-fun &rest args)
+    ":around advice to ignore case in completion."
+    (let ((completion-ignore-case t))
+      (apply orig-fun args)))
+
+  (advice-add 'org-roam-node-read :around 'my/org-roam:ignore-case)
+
   (defun my/org-roam-node-annotation (node)
     ""
     (concat " " (format "%s" (or  (org-roam-node-tags node) ""))))
